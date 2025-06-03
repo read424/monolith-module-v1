@@ -1,0 +1,67 @@
+# Compiled class file
+*.class
+
+# Log files
+*.log
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+.settings/
+.project
+.classpath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Spring Boot
+application-local.properties
+application-dev.properties
+application-secrets.properties
+
+# Docker
+.env
+
+# Logs
+logs/
+*.log
+
+# Específicos de módulos
+*/target/
+*/.mvn/
+*/.idea/
+*/logs/
+
+# M2 Cache
+.m2/
+
+# IMPORTANTE: module-almacen debe ser excluido hasta agregarlo como subtree
+module-almacen/
