@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <springProperty name="appName" source="spring.application.name" defaultValue="module-almacen"/>
+    <property name="LOGS" value="./logs" />
+    <property name="PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] [%X{correlationId:-NONE}] %-5level %logger{36} - %msg%n" />
+    <property name="JSON_PATTERN" value='{
+        "timestamp": "%d{yyyy-MM-dd HH:mm:ss.SSS}",
+        "thread": "%thread",
+        "level": "%-5level",
+        "logger": "%logger{36}",
+        "correlationId": "%X{correlationId:-NONE}",
+        "message": "%message",
+        "exception": "%exception"
+        }' />
+    <!-- Console appender -->
+    <appender name="Console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- JSON Console Appender para entornos que requieren logs estructurados -->
+    <appender name="JsonConsole" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <includeContext>false</includeContext>
+        </encoder>
+    </appender>
+
+    <!-- File appender -->
+    <appender name="File" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS}/${appName}.log</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>traceId</includeMdcKeyName>
+            <includeMdcKeyName>spanId</includeMdcKeyName>
+            <includeMdcKeyName>topic</includeMdcKeyName>
+            <includeMdcKeyName>correlationId</includeMdcKeyName>
+            <customFields>{"application":"${appName}"}</customFields>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS}/archived/${appName}-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- File JSON Appender -->
+    <appender name="JsonFile" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS}/application-json.log</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <includeContext>false</includeContext>
+        </encoder>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS}/archived/application-json-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>10MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- Async Appender -->
+    <appender name="AsyncFile" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="File" />
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+    </appender>
+
+    <appender name="AsyncJsonFile" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="JsonFile" />
+        <queueSize>512</queueSize>
+        <discardingThreshold>0</discardingThreshold>
+    </appender>
+
+    <!-- Configuración de loggers específicos -->
+    <logger name="com.walrex.adapters.inbound.consumer" level="DEBUG" additivity="false">
+        <appender-ref ref="Console" />
+        <appender-ref ref="AsyncFile" />
+        <appender-ref ref="AsyncJsonFile" />
+    </logger>
+
+    <logger name="com.walrex.adapters.outbound" level="DEBUG" additivity="false">
+        <appender-ref ref="Console" />
+        <appender-ref ref="AsyncFile" />
+        <appender-ref ref="AsyncJsonFile" />
+    </logger>
+
+    <logger name="com.walrex.domain.service" level="INFO" additivity="false">
+        <appender-ref ref="Console" />
+        <appender-ref ref="AsyncFile" />
+        <appender-ref ref="AsyncJsonFile" />
+    </logger>
+
+    <logger name="reactor.netty" level="INFO" />
+    <logger name="io.netty" level="INFO" />
+    <logger name="org.springframework.kafka" level="INFO" />
+    <logger name="org.apache.kafka" level="WARN" />
+
+    <!-- Niveles de log -->
+    <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="org.springframework" level="INFO"/>
+    <logger name="reactor.kafka" level="INFO"/>
+
+    <!-- Log levels específicos para diferentes entornos -->
+    <springProfile name="dev">
+        <root level="DEBUG">
+            <appender-ref ref="Console" />
+            <appender-ref ref="AsyncFile" />
+        </root>
+    </springProfile>
+
+    <springProfile name="qa">
+        <root level="INFO">
+            <appender-ref ref="Console" />
+            <appender-ref ref="AsyncFile" />
+            <appender-ref ref="AsyncJsonFile" />
+        </root>
+    </springProfile>
+
+    <springProfile name="prod">
+        <root level="WARN">
+            <appender-ref ref="JsonConsole" />
+            <appender-ref ref="AsyncJsonFile" />
+        </root>
+    </springProfile>
+
+    <root level="INFO">
+        <appender-ref ref="Console"/>
+        <appender-ref ref="AsyncFile"/>
+    </root>
+</configuration>

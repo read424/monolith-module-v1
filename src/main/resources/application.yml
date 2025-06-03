@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: module-almacen
+  profiles:
+    active: dev
+  main:
+    web-application-type: none # Deshabilita completamente la aplicación web
+management:
+  endpoints:
+    web:
+      exposure:
+        include: prometheus
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    export:
+      prometheus:
+        enabled: true
+logging:
+  level:
+    root: INFO
+    com.walrex: DEBUG
+  file:
+    path: logs
+    name: ${spring.application.name}
+security:
+  jwt:
+    secret-key: l7kP8lgYRt/PyIh/tBDYlg4QWCLf2RSOJ8oLPNV6O34=
+    expiration-time: 36000
+    refresh-toke:
+      expiration: 604800000
+kafka:
+  topics:
+    almacen:
+      create-ingreso-ajuste: ajuste-ingreso-message
+      create-ingreso-ajuste-response: ajuste-ingreso-response
