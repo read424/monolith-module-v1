@@ -1,0 +1,52 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:12345}
+  #resilience4j:
+      #  circuitbreaker:
+      #instances:
+      #kafkaProducer:
+      #failureRateThreshold: 50
+      #waitDurationInOpenState: 5000
+      #permittedNumberOfCallsInHalfOpenState: 2
+      #slidingWindowSize: 5
+      #minimumNumberOfCalls: 2
+      #automaticTransitionFromOpenToHalfOpenEnabled: true
+      #recordExceptions:
+      #- java.io.IOException
+      #- java.util.concurrent.TimeoutException
+      #- org.apache.kafka.common.errors.TimeoutException
+    #- org.apache.kafka.common.errors.NetworkException
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:localhost:9094}
+    properties:
+      auto.create.topics.enabled: true
+      security:
+        protocol: PLAINTEXT
+      schema.registry.url: ${SCHEMA_REGISTRY_SERVER:http://localhost:8081 }
+    consumer:
+      group-id: articulo-group
+      auto-offset-reset: latest #earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        schema.registry.url: http://localhost:8081
+        auto.registry.schemas: true
+        max.partition.fetch.bytes: 10485760
+        specific.avro.reader: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        schema.registry.url: http://localhost:8081
+        auto.registry.schemas: true
+        use.latest.version: true
+        specific.avro.reader: true
+  logging:
+    level:
+      io.r2dbc.postgresql: TRACE
+    org.springframework.r2dbc: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    org.springframework.transaction: TRACE
+    io.r2dbc.proxy: TRACE
