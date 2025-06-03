@@ -1,0 +1,55 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_test}
+    username: ${DB_USER:test_user}
+    password: ${DB_PASSWORD:test_password}
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_test}
+    user: ${DB_USER:test_user}
+    password: ${DB_PASSWORD:test_password}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    out-of-order: false
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:localhost:9094}
+    admin:
+      properties:
+        auto.create.topics.enable: true
+    properties:
+      auto.create.topics.enabled: true
+      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+      security:
+        protocol: PLAINTEXT
+    consumer:
+      group-id: rol-service-group
+      auto-offset-reset: latest #earliest asegura leer desde el principio
+      enable-auto-commit: true
+      session-timeout-ms: 60000
+      heartbeat-interval-ms: 20000
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      properties:
+        max.partition.fetch.bytes: 10485760
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+        specific.avro.reader: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+        auto.registry.schemas: true
+        use.latest.version: true
+        specific.avro.reader: true
+kafka:
+  topics:
+    almacen:
+      create-ingreso-ajuste: "create-ingreso-ajuste"
+
+logging:
+  level:
+    com.walrex.module_almacen: DEBUG
+    org.springframework.r2dbc: DEBUG
+    io.r2dbc.postgresql: DEBUG
+    org.testcontainers: INFO
