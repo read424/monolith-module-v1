@@ -63,5 +63,3 @@ logs/
 # M2 Cache
 .m2/
 
-# IMPORTANTE: module-almacen debe ser excluido hasta agregarlo como subtree
-module-almacen/
