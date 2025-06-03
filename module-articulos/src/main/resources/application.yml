@@ -1,0 +1,12 @@
+spring:
+  main:
+    web-application-type: none # Deshabilita completamente la aplicación web
+  application:
+    name: module-articulos
+  profiles:
+    active: dev
+kafka:
+  topics:
+    articulo:
+      get-info-articulos: articulo-by-code
+      get-info-articulos-response: articulo-by-code-response
