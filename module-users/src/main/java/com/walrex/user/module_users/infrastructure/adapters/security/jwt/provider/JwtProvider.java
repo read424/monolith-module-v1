@@ -1,5 +1,6 @@
 package com.walrex.user.module_users.infrastructure.adapters.security.jwt.provider;
 
+import com.walrex.user.module_users.infrastructure.adapters.security.dto.UserDetailDTO;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Component;
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 @Slf4j
@@ -20,10 +23,19 @@ public class JwtProvider {
     @Value("${security.jwt.expiration-time:36000}")
     private long jwtExpiration;
 
-    public String generateToken(UserDetails userDetails){
+    public String generateToken(UserDetailDTO userDetails){
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", userDetails.getId_usuario());
+        data.put("username", userDetails.getUsername());
+        data.put("idrol", userDetails.getId_rol());
+        data.put("apenom_employee", userDetails.getNo_empleado());
+        data.put("role", userDetails.getNo_rol());
+        data.put("permission", userDetails.getPermissions());
+
         return Jwts.builder()
                 .setSubject(userDetails.getUsername())
                 .claim("roles", userDetails.getAuthorities())
+                .claim("data", data)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration * 1000))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
