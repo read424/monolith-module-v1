@@ -1,0 +1,14 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:12345}
+
+logging:
+  file:
+    path: ./logs
+  level:
+    com.walrex.gateway: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.r2dbc: INFO
