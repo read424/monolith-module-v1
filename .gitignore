@@ -1,0 +1,32 @@
+# Compiled class file
+*.class
+
+# Log files
+*.log
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.properties
+
+# IDE
+.idea/
+*.iws
+*.iml
+*.ipr
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Application properties with secrets
+application-local.properties
+application-secrets.properties
