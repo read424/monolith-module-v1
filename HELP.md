@@ -1,31 +1,22 @@
-# Read Me First
-The following was discovered as part of building this project:
-
-* The original package name 'com.walrex.monolith-module-v1' is invalid and this project uses 'com.walrex.monolith_module_v1' instead.
-
 # Getting Started
 
 ### Reference Documentation
 For further reference, please consider the following sections:
 
 * [Official Apache Maven documentation](https://maven.apache.org/guides/index.html)
-* [Spring Boot Maven Plugin Reference Guide](https://docs.spring.io/spring-boot/3.3.11/maven-plugin)
-* [Create an OCI image](https://docs.spring.io/spring-boot/3.3.11/maven-plugin/build-image.html)
-* [Spring Reactive Web](https://docs.spring.io/spring-boot/3.3.11/reference/web/reactive.html)
-* [Spring Data R2DBC](https://docs.spring.io/spring-boot/3.3.11/reference/data/sql.html#data.sql.r2dbc)
-* [Spring Modulith](https://docs.spring.io/spring-modulith/reference/)
-* [Spring Boot DevTools](https://docs.spring.io/spring-boot/3.3.11/reference/using/devtools.html)
+* [Spring Boot Maven Plugin Reference Guide](https://docs.spring.io/spring-boot/3.4.2/maven-plugin)
+* [Create an OCI image](https://docs.spring.io/spring-boot/3.4.2/maven-plugin/build-image.html)
+* [Gateway](https://docs.spring.io/spring-cloud-gateway/reference/spring-cloud-gateway-server-mvc.html)
+* [Spring Security](https://docs.spring.io/spring-boot/3.4.2/reference/web/spring-security.html)
+* [Spring Reactive Web](https://docs.spring.io/spring-boot/3.4.2/reference/web/reactive.html)
 
 ### Guides
 The following guides illustrate how to use some features concretely:
 
+* [Securing a Web Application](https://spring.io/guides/gs/securing-web/)
+* [Spring Boot and OAuth2](https://spring.io/guides/tutorials/spring-boot-oauth2/)
+* [Authenticating a User with LDAP](https://spring.io/guides/gs/authenticating-ldap/)
 * [Building a Reactive RESTful Web Service](https://spring.io/guides/gs/reactive-rest-service/)
-* [Accessing data with R2DBC](https://spring.io/guides/gs/accessing-data-r2dbc/)
-
-### Additional Links
-These additional references should also help you:
-
-* [R2DBC Homepage](https://r2dbc.io)
 
 ### Maven Parent overrides
 
