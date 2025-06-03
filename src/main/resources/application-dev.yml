@@ -1,0 +1,48 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:12345}
+    show-sql: true
+
+  security:
+    enabled: false
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:localhost:9094}
+    properties:
+      security:
+        protocol: PLAINTEXT
+      schema.registry.url: http://localhost:8081
+    consumer:
+      auto-offset-reset: latest #earliest #earliest asegura leer desde el principio
+      enable-auto-commit: true
+      session-timeout-ms: 60000
+      heartbeat-interval-ms: 20000
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      properties:
+        max.partition.fetch.bytes: 10485760
+        schema.registry.url: http://localhost:8081
+        specific.avro.reader: true
+      group-id: rol-service-group
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        schema.registry.url: http://localhost:8081
+        auto.registry.schemas: true
+        use.latest.version: true
+        specific.avro.reader: true
+
+logging:
+  path: ./logs
+  max:
+    size: "10MB"
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%"
+
+kafka:
+  topics:
+    role-and-details: detail-rol
