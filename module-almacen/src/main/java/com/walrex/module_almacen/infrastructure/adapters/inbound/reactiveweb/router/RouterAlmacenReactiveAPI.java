@@ -3,12 +3,19 @@ package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.ro
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.ApproveDeliveryHandler;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.OrdenIngresoLogisticaHandler;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.TransformacionInsumosHandler;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.server.*;
+import reactor.core.publisher.Mono;
+
+import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Configuration
 @RequiredArgsConstructor
@@ -36,5 +43,10 @@ public class RouterAlmacenReactiveAPI {
                 return response;
             })
             .build();
+    }
+
+    @PostConstruct
+    public void init() {
+        log.info("🔌 Rutas del módulo de almacenes registradas en: /{}", PATH_ALMACEN);
     }
 }

@@ -24,5 +24,6 @@ public class OrdenIngreso {
     private Integer idCliente;
     private Integer idOrdServ;
     private String observacion;
+    private Integer idUser;
     private List<DetalleOrdenIngreso> detalles;
 }

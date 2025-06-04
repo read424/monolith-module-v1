@@ -1,7 +1,9 @@
 package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb;
 
 import com.walrex.module_almacen.application.ports.input.CrearOrdenIngresoUseCase;
+import com.walrex.module_almacen.domain.model.JwtUserInfo;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.mapper.OrdenIngresoLogisticaMapper;
+import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.JwtUserContextService;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.OrdenIngresoLogisticaRequestDto;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.ResponseCreateOrdenIngresoLogisticaDto;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +25,10 @@ public class OrdenIngresoLogisticaHandler {
     private final Validator validator;
     private final CrearOrdenIngresoUseCase crearOrdenIngresoUseCase;
     private final OrdenIngresoLogisticaMapper ordenIngresoMapper;
+    private final JwtUserContextService jwtService;
 
     public Mono<ServerResponse> nuevoIngresoLogistica(ServerRequest request){
+        JwtUserInfo user = jwtService.getCurrentUser(request);
         log.info("Método HTTP: {}", request.method());
         log.info("Headers: {}", request.headers().asHttpHeaders());
 
@@ -32,6 +36,9 @@ public class OrdenIngresoLogisticaHandler {
                 .doOnNext(dto->log.info("Request body recibido: {}", dto))
                 .flatMap(this::validate)
                 .map(ordenIngresoMapper::toOrdenIngreso)
+                .doOnNext(ordenIngreso -> {
+                    ordenIngreso.setIdUser(Integer.valueOf(user.getUserId()));
+                })
                 .flatMap(ordenIngreso -> ServerResponse.status(HttpStatus.OK)
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(crearOrdenIngresoUseCase.crearOrdenIngresoLogistica(ordenIngreso), ResponseCreateOrdenIngresoLogisticaDto.class)
