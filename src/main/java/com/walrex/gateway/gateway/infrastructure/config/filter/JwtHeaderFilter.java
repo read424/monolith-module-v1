@@ -68,9 +68,9 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
                         try{
                             // Extraer datos del claim 'data'
                             Map<String, Object> data = jwt.getClaimAsMap("data");
-                            String userId = (String) data.get("id");
+                            String userId = getClaimAsString(data, "id");
                             String username = (String) data.get("username");
-                            String idRol = (String) data.get("idrol");
+                            String idRol = getClaimAsString(data, "idrol");
                             String empleado = (String) data.get("apenom_employee");
                             String role = (String) data.get("role");
 
@@ -143,6 +143,11 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
         DataBuffer buffer = response.bufferFactory().wrap(body.getBytes());
 
         return response.writeWith(Mono.just(buffer));
+    }
+
+    private String getClaimAsString(Map<String, Object> data, String key) {
+        Object value = data.get(key);
+        return value != null ? value.toString() : "";
     }
 
     public static class Config {
