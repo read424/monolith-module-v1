@@ -3,9 +3,6 @@ package com.walrex.user.module_users.infrastructure.adapters.outbound.producer;
 import com.walrex.avro.schemas.RoleMessage;
 import com.walrex.user.module_users.application.ports.output.RoleMessageProducer;
 import com.walrex.user.module_users.config.kafka.producer.manager.UserKafkaRequestReplyManager;
-//import io.github.resilience4j.circuitbreaker.CircuitBreaker;
-//import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-//import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -28,7 +25,6 @@ public class KafkaRoleMessageProducer implements RoleMessageProducer {
     @Qualifier("roleMessageKafkaSender") // Especifica el nombre del bean
     private final KafkaSender<String, RoleMessage> kafkaSender;
     private final UserKafkaRequestReplyManager requestReplyManager;
-    //private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final ReactiveCircuitBreakerFactory circuitBreakerFactory;
 
     @Override
@@ -67,24 +63,6 @@ public class KafkaRoleMessageProducer implements RoleMessageProducer {
                             "Error al procesar la solicitud (circuit breaker): " + throwable.getMessage());
                     return Mono.error(new RuntimeException("Servicio no disponible temporalmente", throwable));
                 });
-        // Crear el circuit breaker programáticamente en lugar de usar la anotación
-        /*
-        //CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("kafkaProducer");
-        return Mono.defer(() -> kafkaSender.send(Mono.just(SenderRecord.create(record, null)))
-                        .doOnNext(result -> log.info("📤 Mensaje enviado a {} con correlación {}: {}", topic, correlationId, message))
-                        .doOnError(e ->{
-                            handleError(correlationId, "❌ Error al enviar mensaje: " + e.getMessage());
-                            requestReplyManager.removeRequestWithError(correlationId, "Error al enviar mensaje: " + e.getMessage());
-                        })
-                        .then(responseMono) // Esperar la respuesta con timeout
-                )
-                //.transformDeferred(CircuitBreakerOperator.of(circuitBreaker)) // Aplicar CircuitBreaker a la espera de respuesta
-                .onErrorResume(ex -> {
-                    log.error("⛔ Error en la operación: {}", ex.getMessage(), ex);
-                    requestReplyManager.removeRequestWithError(correlationId, "Error al procesar la solicitud: " + ex.getMessage());
-                    return Mono.error(new RuntimeException("Error al procesar la solicitud: " + ex.getMessage(), ex));
-                });
-        */
     }
 
     private Mono<String> handleError(String correlationId, String message) {

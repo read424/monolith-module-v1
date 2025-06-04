@@ -27,7 +27,7 @@ public class JwtProvider {
         Map<String, Object> data = new HashMap<>();
         data.put("id", userDetails.getId_usuario());
         data.put("username", userDetails.getUsername());
-        data.put("idrol", userDetails.getId_rol());
+        data.put("idrol", userDetails.getId_rol().toString());
         data.put("apenom_employee", userDetails.getNo_empleado());
         data.put("role", userDetails.getNo_rol());
         data.put("permission", userDetails.getPermissions());
