@@ -58,6 +58,15 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                 return chain.filter(exchange);
             }
 
+            // Verificar si esta solicitud ya ha sido procesada por este filtro
+            Boolean processed = exchange.getAttribute("DYNAMIC_MODULE_ROUTE_PROCESSED");
+            if (processed != null && processed) {
+                // Esta solicitud ya ha sido procesada, pasar al siguiente filtro
+                return chain.filter(exchange);
+            }
+            // Marcar esta solicitud como procesada para evitar bucles
+            exchange.getAttributes().put("DYNAMIC_MODULE_ROUTE_PROCESSED", true);
+
             // Obtener o inicializar el contador de redirecciones
             Integer redirectCount = exchange.getAttribute("REDIRECT_COUNT");
             if (redirectCount == null) {
@@ -73,15 +82,6 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                 exchange.getResponse().setStatusCode(HttpStatus.LOOP_DETECTED);
                 return exchange.getResponse().setComplete();
             }
-
-            // Verificar si esta solicitud ya ha sido procesada por este filtro
-            Boolean processed = exchange.getAttribute("DYNAMIC_MODULE_ROUTE_PROCESSED");
-            if (processed != null && processed) {
-                // Esta solicitud ya ha sido procesada, pasar al siguiente filtro
-                return chain.filter(exchange);
-            }
-            // Marcar esta solicitud como procesada para evitar bucles
-            exchange.getAttributes().put("DYNAMIC_MODULE_ROUTE_PROCESSED", true);
 
             ServerHttpRequest request = exchange.getRequest();
             // Intentar obtener la ruta original si está disponible
@@ -129,6 +129,11 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                             log.info("Módulo encontrado en BD (coincidencia de patrón) para ruta: {}", requestPath);
                             foundModule.set(true);
                             // No guardar en caché de rutas exactas, pero sí usarlo para el procesamiento
+                }))
+                .switchIfEmpty(Mono.defer(()->{
+                    log.warn("No se encontró configuración para la ruta: {}", requestPath);
+                    exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
+                    return exchange.getResponse().setComplete().then(Mono.empty());
                 }))
                 .flatMap(module -> processRouting(module, requestPath, request, exchange, chain))
                 .then(Mono.defer(() -> {
@@ -178,6 +183,10 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                                       GatewayFilterChain chain) {
         String newPath = processPath(requestPath, module);
         log.info("Path procesado para redirección interna: {}", newPath);
+
+        // ✅ MARCAR AQUÍ - AL INICIO, en el exchange original
+        exchange.getAttributes().put("GATEWAY_FORWARDED_REQUEST", true);
+        log.debug("🔄 Marcando petición como forwardeada para evitar bucles");
 
         // Almacenar la URI original para depuración
         URI originalUri = request.getURI();
@@ -238,8 +247,8 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
         for (String key : exchange.getAttributes().keySet()) {
             mutatedExchange.getAttributes().put(key, exchange.getAttributes().get(key));
         }
-        mutatedExchange.getAttributes().put("GATEWAY_FORWARDED_REQUEST", true);
-        log.debug("🔄 Marcando petición como forwardeada para evitar bucles");
+        //mutatedExchange.getAttributes().put("GATEWAY_FORWARDED_REQUEST", true);
+        //log.debug("🔄 Marcando petición como forwardeada para evitar bucles");
 
         log.debug("🔄 Request modificado - Headers: {}", modifiedRequest.getHeaders());
         log.debug("🔄 Request modificado - Method: {}", modifiedRequest.getMethod());
