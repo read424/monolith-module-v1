@@ -1,6 +1,8 @@
 package com.walrex.user.module_users.infrastructure.adapters.security.jwt.filter;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
@@ -9,13 +11,20 @@ import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
 @Component
+@Slf4j
 public class JwtFilter implements WebFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain){
         ServerHttpRequest request = exchange.getRequest();
-
         String path = request.getPath().value();
+
+        // ✅ SALTEAR JWT para requests OPTIONS (preflight)
+        if (request.getMethod() == HttpMethod.OPTIONS) {
+            log.debug("Saltando validación JWT para OPTIONS request: {}", path);
+            return chain.filter(exchange);
+        }
+
         if(path.contains("auth") || path.contains("graphiql") || path.contains("graphql"))
             return chain.filter(exchange);
 
