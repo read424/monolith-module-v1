@@ -104,10 +104,15 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
                         log.error("JWT inválido: {}", ex.getMessage());
                         return unauthorizedResponse(exchange, "Token inválido");
                     })
-                    .onErrorResume(Exception.class, ex -> {
-                        log.error("Error validando JWT: {}", ex.getMessage());
-                        return unauthorizedResponse(exchange, "Error de autenticación");
-                    });
+                    .onErrorResume(throwable ->
+                                    throwable instanceof JwtException ||
+                                            throwable instanceof SecurityException ||
+                                            throwable.getCause() instanceof JwtException,
+                            ex -> {
+                                log.error("Error de autenticación: {}", ex.getMessage());
+                                return unauthorizedResponse(exchange, "Error de autenticación");
+                            }
+                    );
         });
     }
 
