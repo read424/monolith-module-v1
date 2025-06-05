@@ -2,6 +2,7 @@ package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb;
 
 import com.walrex.module_almacen.application.ports.input.CrearOrdenIngresoUseCase;
 import com.walrex.module_almacen.domain.model.JwtUserInfo;
+import com.walrex.module_almacen.domain.model.OrdenIngreso;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.mapper.OrdenIngresoLogisticaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.JwtUserContextService;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.OrdenIngresoLogisticaRequestDto;
@@ -39,9 +40,11 @@ public class OrdenIngresoLogisticaHandler {
                 .doOnNext(ordenIngreso -> {
                     ordenIngreso.setIdUser(Integer.valueOf(user.getUserId()));
                 })
-                .flatMap(ordenIngreso -> ServerResponse.status(HttpStatus.OK)
+                .flatMap(crearOrdenIngresoUseCase::crearOrdenIngresoLogistica)
+                .map(this::mapToResponse)
+                .flatMap(response -> ServerResponse.status(HttpStatus.OK)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(crearOrdenIngresoUseCase.crearOrdenIngresoLogistica(ordenIngreso), ResponseCreateOrdenIngresoLogisticaDto.class)
+                        .bodyValue(response)
                 );
     }
 
@@ -56,5 +59,14 @@ public class OrdenIngresoLogisticaHandler {
             return Mono.error(new ServerWebInputException(String.join("; ", errorMessages)));
         }
         return Mono.just(dto);
+    }
+
+    // ✅ Método para mapear la respuesta
+    private ResponseCreateOrdenIngresoLogisticaDto mapToResponse(OrdenIngreso ordenIngreso) {
+        return ResponseCreateOrdenIngresoLogisticaDto.builder()
+                .success(true)
+                .affected_rows(1)
+                .message("Orden de ingreso creada exitosamente " + ordenIngreso.getCod_ingreso())
+                .build();
     }
 }

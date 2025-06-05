@@ -102,7 +102,7 @@ public abstract class BaseOrdenIngresoPersistenceAdapter implements OrdenIngreso
 
     // Método para procesar un detalle individual
     protected Mono<DetalleOrdenIngreso> procesarDetalle(DetalleOrdenIngreso detalle, OrdenIngreso ordenIngreso) {
-        if (detalle.getIdUnidadSalida() == null) {
+        if (detalle.getArticulo().getStock() == null) {
             return buscarInfoConversion(detalle, ordenIngreso)
                     .flatMap(infoConversion -> aplicarConversion(detalle, infoConversion))
                     .flatMap(detalleConvertido -> guardarDetalleOrdenIngreso(detalleConvertido, ordenIngreso));
