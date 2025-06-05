@@ -29,6 +29,9 @@ public class ItemArticuloLogisticaRequestDto {
     private Integer idMoneda;
     @JsonProperty("id_unidad_consumo")
     private Integer idUnidadConsumo;
+    private String isMultiplo;
+    @JsonProperty("valor_conv")
+    private Integer valorConversion;
     private BigDecimal mto_compra;
     private BigDecimal mto_igv;
     private BigDecimal subtotal;
