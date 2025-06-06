@@ -23,6 +23,7 @@ import reactor.core.publisher.Mono;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -178,7 +179,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
     /**
      * Procesa el enrutamiento basado en el módulo encontrado
      */
-    private Mono<Void> processRouting(ModulesUrl module, String requestPath, ServerHttpRequest request,
+    protected Mono<Void> processRouting(ModulesUrl module, String requestPath, ServerHttpRequest request,
                                       ServerWebExchange exchange,
                                       GatewayFilterChain chain) {
         String newPath = processPath(requestPath, module);
@@ -247,8 +248,6 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
         for (String key : exchange.getAttributes().keySet()) {
             mutatedExchange.getAttributes().put(key, exchange.getAttributes().get(key));
         }
-        //mutatedExchange.getAttributes().put("GATEWAY_FORWARDED_REQUEST", true);
-        //log.debug("🔄 Marcando petición como forwardeada para evitar bucles");
 
         log.debug("🔄 Request modificado - Headers: {}", modifiedRequest.getHeaders());
         log.debug("🔄 Request modificado - Method: {}", modifiedRequest.getMethod());
@@ -283,7 +282,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
     /**
      * Encuentra un módulo que coincida con un patrón para la ruta dada
      */
-    private Mono<ModulesUrl> findModuleByPattern(String requestPath) {
+    protected Mono<ModulesUrl> findModuleByPattern(String requestPath) {
         return modulesUrlRepository.findAll()
                 .filter(module -> {
                     if (module.getPath() == null || module.getPath().isEmpty()) {
@@ -311,21 +310,25 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
     /**
      * Extrae la parte de la ruta después del patrón configurado
      */
-    private String processPath(String requestPath, ModulesUrl module) {
+    protected String processPath(String requestPath, ModulesUrl module) {
+        log.error("🔍 processPath - Input: '{}', stripCount: {}", requestPath, module.getStripPrefixCount());
         // Si hay un stripPrefixCount, aplicarlo
         if (module.getStripPrefixCount() != null && module.getStripPrefixCount() > 0) {
             String[] segments = requestPath.split("/");
+            log.error("🔍 processPath - Segments: {}", Arrays.toString(segments));
+
             StringBuilder strippedPath = new StringBuilder();
             int segmentsToSkip = module.getStripPrefixCount();
 
             // Construir la nueva ruta omitiendo los segmentos indicados
-            for (int i = segmentsToSkip+1; i < segments.length; i++) {
+            for (int i = segmentsToSkip + 1; i < segments.length; i++) {
                 if (!segments[i].isEmpty()) {
                     strippedPath.append("/").append(segments[i]);
                 }
             }
-
-            return strippedPath.length() > 0 ? strippedPath.toString() : "/";
+            String result = strippedPath.length() > 0 ? strippedPath.toString() : "/";
+            log.error("🔍 processPath - Output: '{}'", result);
+            return result   ;
         }
         // Si no hay stripPrefix, usar la ruta completa
         return requestPath;
