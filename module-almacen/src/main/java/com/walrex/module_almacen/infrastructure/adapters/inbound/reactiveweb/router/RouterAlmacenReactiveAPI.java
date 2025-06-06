@@ -30,7 +30,7 @@ public class RouterAlmacenReactiveAPI {
     public RouterFunction<ServerResponse> almacenRouter(){
         return RouterFunctions.route()
             .path("/"+PATH_ALMACEN, builder -> builder
-                .POST("", RequestPredicates.accept(MediaType.APPLICATION_JSON), ordenIngresoHandler::nuevoIngresoLogistica)
+                .POST("/ingreso-logistica", RequestPredicates.accept(MediaType.APPLICATION_JSON), ordenIngresoHandler::nuevoIngresoLogistica)
                 .POST("/transformacion", RequestPredicates.accept(MediaType.APPLICATION_JSON), transformacionInsumosHandler::crearConversion)
                 .POST("/approve_delivery", RequestPredicates.accept(MediaType.APPLICATION_JSON), approveDeliveryHandler::deliver)
             )
