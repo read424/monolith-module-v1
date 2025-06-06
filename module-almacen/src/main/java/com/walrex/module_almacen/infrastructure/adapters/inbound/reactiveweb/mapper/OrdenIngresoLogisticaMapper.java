@@ -36,6 +36,7 @@ public interface OrdenIngresoLogisticaMapper {
 
     // Mapeo de ItemArticuloLogisticaRequestDto a DetalleOrdenIngreso
     @Mapping(source = "idUnidadConsumo", target = "idUnidadSalida")
+    @Mapping(source = "idDetOrdenCompra", target = "idDetalleOrdenCompra")
     @Mapping(source = "idArticulo", target = "articulo.id")
     @Mapping(source = "isMultiplo", target = "articulo.is_multiplo")
     @Mapping(source = "valorConversion", target = "articulo.valor_conv")

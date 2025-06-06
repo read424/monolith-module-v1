@@ -13,6 +13,8 @@ import java.math.BigDecimal;
 public class ItemArticuloLogisticaRequestDto {
     @JsonProperty("id_articulo")
     private Integer idArticulo;
+    @JsonProperty("id_detordencompra")
+    private Integer idDetOrdenCompra;
     @NotNull
     private Integer id_tipo_producto;
     @NotNull
@@ -32,9 +34,12 @@ public class ItemArticuloLogisticaRequestDto {
     private String isMultiplo;
     @JsonProperty("valor_conv")
     private Integer valorConversion;
+    @JsonProperty("costo")
     private BigDecimal mto_compra;
     private BigDecimal mto_igv;
     private BigDecimal subtotal;
+    @JsonProperty("cnt_saldo")
+    private BigDecimal cantidadSaldo;
     private BigDecimal total_igv;
     private BigDecimal total;
     @JsonProperty("subGridOptions")

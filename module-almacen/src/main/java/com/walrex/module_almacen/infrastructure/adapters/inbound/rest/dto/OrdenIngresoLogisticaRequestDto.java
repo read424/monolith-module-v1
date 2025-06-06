@@ -23,7 +23,6 @@ public class OrdenIngresoLogisticaRequestDto {
     @NotNull
     private Integer id_orden;
 
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     @NotNull(message = "La fecha de ingreso es obligatoria")
     private LocalDateTime fec_ingreso;
 
@@ -36,8 +35,6 @@ public class OrdenIngresoLogisticaRequestDto {
     @NotBlank(message = "Numero de documento es obligatorio")
     private String nu_comprobante;
 
-    @NotNull(message = "Fecha de Referencia documento es obligatorio")
-    @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
     private LocalDateTime fec_ref;
 
     private String comprobanteRef;
