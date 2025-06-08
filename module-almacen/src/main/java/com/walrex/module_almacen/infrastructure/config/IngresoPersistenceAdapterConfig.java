@@ -23,6 +23,7 @@ public class IngresoPersistenceAdapterConfig {
             DetailsIngresoRepository detalleRepository,
             OrdenIngresoEntityMapper mapper,
             ArticuloIngresoLogisticaMapper articuloIngresoLogisticaMapper,
+            DetalleInventoryRespository detalleInventoryRespository,
             KardexRepository kardexRepository,
             DetailOrdenCompraAlmacenRepository detailOrdenCompraAlmacenRepository ) {
 
@@ -32,6 +33,7 @@ public class IngresoPersistenceAdapterConfig {
                 .detalleRepository(detalleRepository)
                 .mapper(mapper)
                 .articuloIngresoLogisticaMapper(articuloIngresoLogisticaMapper)
+                .detalleInventoryRespository(detalleInventoryRespository)
                 .kardexRepository(kardexRepository)
                 .detailOrdenCompraAlmacenRepository(detailOrdenCompraAlmacenRepository)
                 .build();

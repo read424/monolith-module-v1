@@ -33,8 +33,7 @@ public class AprobarSalidaRequestDTO {
     private String entregado;
     @NotNull(message = "campo obligatorio")
     private Integer id_personal_supervisor;
-    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-    @NotBlank(message = "campo obligatorio")
+    @NotNull(message = "campo obligatorio")
     private OffsetDateTime fec_entrega;
     private String cod_partida;
     @NotNull(message = "campo obligatorio")

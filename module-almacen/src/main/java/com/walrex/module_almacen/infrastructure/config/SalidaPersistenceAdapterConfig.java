@@ -1,7 +1,9 @@
 package com.walrex.module_almacen.infrastructure.config;
 
 import com.walrex.module_almacen.application.ports.input.OrdenSalidaAdapterFactory;
+import com.walrex.module_almacen.application.ports.output.OrdenSalidaAprobacionPort;
 import com.walrex.module_almacen.application.ports.output.OrdenSalidaLogisticaPort;
+import com.walrex.module_almacen.domain.model.mapper.ArticuloRequerimientoToDetalleMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.OrdenSalidaAdapterFactoryImpl;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.OrdenSalidaAprobacionPersistenceAdapter;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.OrdenSalidaLogisticaPersistenceAdapter;
@@ -60,7 +62,7 @@ public class SalidaPersistenceAdapterConfig {
 
     @Bean
     @Qualifier("aprobacionSalida")
-    public OrdenSalidaLogisticaPort ordenSalidaAprobarSalidaPort(
+    public OrdenSalidaAprobacionPort ordenSalidaAprobarSalidaPort(
             ArticuloAlmacenRepository articuloRepository,
             OrdenSalidaRepository ordenSalidaRepository,
             DetailSalidaRepository detalleSalidaRepository,
@@ -68,7 +70,8 @@ public class SalidaPersistenceAdapterConfig {
             DetalleInventoryRespository detalleInventoryRespository,
             OrdenSalidaEntityMapper ordenSalidaEntityMapper,
             DetailSalidaMapper detailSalidaMapper,
-            KardexRepository kardexRepository
+            KardexRepository kardexRepository,
+            ArticuloRequerimientoToDetalleMapper articuloRequerimientoToDetalleMapper
     ){
         return new OrdenSalidaAprobacionPersistenceAdapter(
                 articuloRepository,
@@ -78,7 +81,8 @@ public class SalidaPersistenceAdapterConfig {
                 detalleInventoryRespository,
                 ordenSalidaEntityMapper,
                 detailSalidaMapper,
-                kardexRepository
+                kardexRepository,
+                articuloRequerimientoToDetalleMapper
             );
     }
 
@@ -86,7 +90,7 @@ public class SalidaPersistenceAdapterConfig {
     public OrdenSalidaAdapterFactory ordenSalidaAdapterFactory(
             OrdenSalidaLogisticaPort ordenSalidaLogisticaAdapter,
             @Qualifier("transformacionSalida") OrdenSalidaLogisticaPort ordenSalidaTransformacionAdapter,
-            @Qualifier("aprobacionSalida") OrdenSalidaLogisticaPort ordenSalidaAprobacionAdapter) {
+            @Qualifier("aprobacionSalida") OrdenSalidaAprobacionPort ordenSalidaAprobacionAdapter) {
 
         return new OrdenSalidaAdapterFactoryImpl(
                 ordenSalidaLogisticaAdapter,

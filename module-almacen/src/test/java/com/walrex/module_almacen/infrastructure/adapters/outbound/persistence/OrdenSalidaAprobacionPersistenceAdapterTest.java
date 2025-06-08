@@ -6,6 +6,7 @@ import com.walrex.module_almacen.domain.model.dto.DetalleEgresoDTO;
 import com.walrex.module_almacen.domain.model.dto.OrdenEgresoDTO;
 import com.walrex.module_almacen.domain.model.enums.TypeMovimiento;
 import com.walrex.module_almacen.domain.model.exceptions.StockInsuficienteException;
+import com.walrex.module_almacen.domain.model.mapper.ArticuloRequerimientoToDetalleMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.DetailSalidaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenSalidaEntityMapper;
@@ -50,6 +51,8 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
     private DetailSalidaMapper detailSalidaMapper;
     @Mock
     private KardexRepository kardexRepository;
+    @Mock
+    private ArticuloRequerimientoToDetalleMapper articuloRequerimientoToDetalleMapper;
 
     private OrdenSalidaAprobacionPersistenceAdapter adapter;
 
@@ -63,7 +66,8 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 detalleInventoryRespository,
                 ordenSalidaEntityMapper,
                 detailSalidaMapper,
-                kardexRepository
+                kardexRepository,
+                articuloRequerimientoToDetalleMapper
         );
     }
 
@@ -503,6 +507,10 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
     @DisplayName("Debe marcar detalle como entregado exitosamente")
     void debeMarcarDetalleComoEntregadoExitosamente() {
         // Given
+        OrdenEgresoDTO ordenEgresoDTO = OrdenEgresoDTO.builder()
+                .almacenDestino(Almacen.builder().idAlmacen(1).build())
+                .build();
+
         DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
                 .id(1L)
                 .build();
@@ -517,7 +525,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .thenReturn(Mono.just(detalleActualizado));
 
         // When
-        StepVerifier.create(adapter.marcarDetalleComoEntregado(detalle))
+        StepVerifier.create(adapter.marcarDetalleComoEntregado(detalle, ordenEgresoDTO))
                 .verifyComplete();
 
         // Then
@@ -528,6 +536,10 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
     @DisplayName("Debe fallar cuando hay error al marcar como entregado")
     void debeFallarCuandoHayErrorAlMarcarComoEntregado() {
         // Given
+        OrdenEgresoDTO ordenEgresoDTO = OrdenEgresoDTO.builder()
+                .almacenDestino(Almacen.builder().idAlmacen(1).build())
+                .build();
+
         DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
                 .id(2L)
                 .build();
@@ -537,7 +549,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .thenReturn(Mono.error(new RuntimeException("Error de base de datos")));
 
         // When & Then
-        StepVerifier.create(adapter.marcarDetalleComoEntregado(detalle))
+        StepVerifier.create(adapter.marcarDetalleComoEntregado(detalle, ordenEgresoDTO))
                 .expectErrorMatches(error ->
                         error instanceof RuntimeException &&
                                 error.getMessage().equals("Error de base de datos"))
@@ -550,6 +562,10 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
     @DisplayName("Debe manejar cuando assignedDelivered no encuentra el detalle")
     void debeManejarCuandoAssignedDeliveredNoEncuentraDetalle() {
         // Given
+        OrdenEgresoDTO ordenEgresoDTO = OrdenEgresoDTO.builder()
+                .almacenDestino(Almacen.builder().idAlmacen(1).build())
+                .build();
+
         DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
                 .id(999L)
                 .build();
@@ -559,7 +575,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .thenReturn(Mono.empty());
 
         // When
-        StepVerifier.create(adapter.marcarDetalleComoEntregado(detalle))
+        StepVerifier.create(adapter.marcarDetalleComoEntregado(detalle, ordenEgresoDTO))
                 .verifyComplete(); // ✅ Completa aunque no encuentre (el then() convierte empty a complete)
 
         // Then
@@ -570,6 +586,10 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
     @DisplayName("Debe convertir correctamente Long a Integer para assignedDelivered")
     void debeConvertirCorrectamenteLongAIntegerParaAssignedDelivered() {
         // Given
+        OrdenEgresoDTO ordenEgresoDTO = OrdenEgresoDTO.builder()
+                .almacenDestino(Almacen.builder().idAlmacen(1).build())
+                .build();
+
         DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
                 .id(123456L) // ✅ ID Long grande
                 .build();
@@ -584,7 +604,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .thenReturn(Mono.just(detalleActualizado));
 
         // When
-        StepVerifier.create(adapter.marcarDetalleComoEntregado(detalle))
+        StepVerifier.create(adapter.marcarDetalleComoEntregado(detalle, ordenEgresoDTO))
                 .verifyComplete();
 
         // Then

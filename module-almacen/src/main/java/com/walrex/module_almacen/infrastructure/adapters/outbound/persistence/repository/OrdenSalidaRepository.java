@@ -19,5 +19,5 @@ public interface OrdenSalidaRepository extends ReactiveCrudRepository<OrdenSalid
     @Query("UPDATE almacenes.ordensalida "+
             "SET fec_entrega=:fec_entrega, id_usuario_entrega=:id_usuario, id_supervisor=:id_supervisor, id_usuario_declara=:id_user_declara, entregado=1 "+
             "WHERE id_ordensalida=:id_ordensalida")
-    Mono<OrdenSalidaEntity> asignarEntregado(Date fech_entrega, Integer id_usuario, Integer id_supervisor, Integer id_user_declara, Integer id_ordensalida);
+    Mono<Integer> asignarEntregado(Date fech_entrega, Integer idUsuarioEntrega, Integer idSupervisor, Integer idUserDeclara, Integer id_ordensalida);
 }

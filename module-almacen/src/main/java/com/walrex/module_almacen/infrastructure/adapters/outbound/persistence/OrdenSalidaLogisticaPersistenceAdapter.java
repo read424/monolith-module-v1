@@ -1,6 +1,8 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 
 import com.walrex.module_almacen.application.ports.output.OrdenSalidaLogisticaPort;
+import com.walrex.module_almacen.domain.model.dto.AprobarSalidaRequerimiento;
+import com.walrex.module_almacen.domain.model.dto.ArticuloRequerimiento;
 import com.walrex.module_almacen.domain.model.dto.OrdenEgresoDTO;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.DetailSalidaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenSalidaEntityMapper;
@@ -10,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -27,7 +31,7 @@ public class OrdenSalidaLogisticaPersistenceAdapter implements OrdenSalidaLogist
     }
 
     @Override
-    public Mono<OrdenEgresoDTO> actualizarEstadoEntrega(Integer idOrden, boolean entregado) {
+    public Mono<OrdenEgresoDTO> actualizarEstadoEntrega(OrdenEgresoDTO idOrden) {
         // Implementación básica
         return Mono.empty();
     }
@@ -41,4 +45,5 @@ public class OrdenSalidaLogisticaPersistenceAdapter implements OrdenSalidaLogist
     public Mono<OrdenEgresoDTO> consultarYValidarOrdenParaAprobacion(Integer idOrdenSalida) {
         return null;
     }
+
 }

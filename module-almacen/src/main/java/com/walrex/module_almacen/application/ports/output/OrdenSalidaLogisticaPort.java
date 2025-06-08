@@ -3,6 +3,8 @@ package com.walrex.module_almacen.application.ports.output;
 import com.walrex.module_almacen.domain.model.dto.OrdenEgresoDTO;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 public interface OrdenSalidaLogisticaPort {
     /**
      * Guarda una orden de salida con sus detalles
@@ -13,11 +15,10 @@ public interface OrdenSalidaLogisticaPort {
 
     /**
      * Actualiza el estado de entrega de una orden de salida
-     * @param idOrden ID de la orden
-     * @param entregado estado de entrega
+     * @param ordenEgresoDTO de la orden
      * @return orden actualizada
      */
-    Mono<OrdenEgresoDTO> actualizarEstadoEntrega(Integer idOrden, boolean entregado);
+    Mono<OrdenEgresoDTO> actualizarEstadoEntrega(OrdenEgresoDTO ordenEgresoDTO);
 
     /**
      * Procesa la salida por lotes

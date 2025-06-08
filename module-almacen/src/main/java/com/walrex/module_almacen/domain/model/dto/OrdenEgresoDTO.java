@@ -27,6 +27,7 @@ public class OrdenEgresoDTO {
     private Integer idUsuario;
     private Date fecEntrega;
     private Integer idUsuarioEntrega;
+    private Integer idUsuarioDeclara;
     private Integer entregado;
     private Integer idDocumentoRef;
     private String codEgreso;

@@ -23,5 +23,6 @@ public class DetalleOrdenIngreso {
     private BigDecimal costo;
     private BigDecimal montoTotal;
     private BigDecimal cantidadSaldo;
+    private Integer idLoteInventario;
     private List<DetalleRollo> detallesRollos;
 }

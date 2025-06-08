@@ -11,4 +11,7 @@ public interface DetalleInventoryRespository extends ReactiveCrudRepository<Deta
 
     @Query("SELECT * FROM almacenes.detalle_inventario WHERE id_lote=:idLote")
     Mono<DetalleInventaryEntity> getStockLote(Integer idLote);
+
+    @Query("SELECT * FROM almacenes.detalle_inventario WHERE id_detordeningreso=:idDetalleOrdenIngreso")
+    Mono<DetalleInventaryEntity> getInventarioByDetailIngreso(Integer idDetalleOrdenIngreso);
 }

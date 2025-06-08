@@ -2,9 +2,12 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 
 import com.walrex.module_almacen.domain.model.DetalleOrdenIngreso;
 import com.walrex.module_almacen.domain.model.OrdenIngreso;
+import com.walrex.module_almacen.domain.model.enums.TypeMovimiento;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetailsIngresoEntity;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetalleInventaryEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.KardexEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.DetailOrdenCompraAlmacenRepository;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.DetalleInventoryRespository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.KardexRepository;
 import io.r2dbc.spi.R2dbcException;
 import lombok.experimental.SuperBuilder;
@@ -18,6 +21,7 @@ import java.math.RoundingMode;
 @Slf4j
 public class OrdenIngresoLogisticaPersistenceAdapter  extends BaseOrdenIngresoPersistenceAdapter {
     protected final KardexRepository kardexRepository;
+    protected final DetalleInventoryRespository detalleInventoryRespository;
     protected  final DetailOrdenCompraAlmacenRepository detailOrdenCompraAlmacenRepository;
 
     @Override
@@ -26,23 +30,46 @@ public class OrdenIngresoLogisticaPersistenceAdapter  extends BaseOrdenIngresoPe
             DetailsIngresoEntity savedDetalleEntity,
             OrdenIngreso ordenIngreso) {
 
+        // ✅ Validar y actualizar saldo de orden de compra
         return validarYActualizarOrdenCompra(detalle, ordenIngreso)
-                .then(Mono.defer(()->{
-                    // Crear y guardar el kardex
-                    KardexEntity kardexEntity = crearKardexEntity(savedDetalleEntity, detalle, ordenIngreso);
-                    return kardexRepository.save(kardexEntity)
-                            .doOnSuccess(info -> log.info("✅ Información de kardex guardado: {}", info))
-                            .onErrorResume(ex -> manejarErroresGuardadoKardex(ex))
-                            // Actualizar el ID del detalle y retornar
-                            .then(actualizarIdDetalle(detalle, savedDetalleEntity));
+                .then(Mono.defer(() -> {
+                    // ✅ NUEVO: Consultar lote asociado al ingreso
+                    return consultarLoteInventario(savedDetalleEntity.getId())
+                            .flatMap(inventario -> {
+                                // ✅ Setear el id_lote en el detalle
+                                detalle.setIdLoteInventario(inventario.getIdLote().intValue());
+
+                                // ✅ Crear y guardar kardex con el lote correcto
+                                KardexEntity kardexEntity = crearKardexEntity(savedDetalleEntity, detalle, ordenIngreso);
+
+                                return kardexRepository.save(kardexEntity)
+                                        .doOnSuccess(info -> log.info("✅ Kardex guardado con lote: {}", inventario.getIdLote()))
+                                        .onErrorResume(ex -> manejarErroresGuardadoKardex(ex))
+                                        .then(actualizarIdDetalle(detalle, savedDetalleEntity));
+                            });
                 }));
+    }
+
+    /**
+     * Consulta el lote de inventario asociado al detalle de ingreso
+     */
+    private Mono<DetalleInventaryEntity> consultarLoteInventario(Long idDetalleIngreso) {
+        log.debug("🔍 Consultando lote de inventario para detalle ingreso: {}", idDetalleIngreso);
+
+        return detalleInventoryRespository.getInventarioByDetailIngreso(idDetalleIngreso.intValue())
+                .doOnNext(inventario ->
+                        log.info("✅ Lote encontrado: {} para detalle ingreso: {}",
+                                inventario.getIdLote(), idDetalleIngreso))
+                .switchIfEmpty(Mono.error(new RuntimeException(
+                        String.format("No se encontró inventario asociado al detalle de ingreso: %d", idDetalleIngreso)
+                )));
     }
 
     // Método para crear la entidad de kardex
     protected KardexEntity crearKardexEntity(DetailsIngresoEntity detalleEntity,
                                              DetalleOrdenIngreso detalle,
                                              OrdenIngreso ordenIngreso) {
-        String str_detalle = String.format("(%s) - %s", ordenIngreso.getCod_ingreso(), ordenIngreso.getMotivo().getDescMotivo());
+        String str_detalle = String.format("%s - (%s)", ordenIngreso.getMotivo().getDescMotivo(), ordenIngreso.getCod_ingreso());
         BigDecimal mto_total = BigDecimal.valueOf(detalleEntity.getCosto_compra() * detalleEntity.getCantidad());
         BigDecimal cantidadConvertida;
         BigDecimal total_stock;
@@ -59,7 +86,7 @@ public class OrdenIngresoLogisticaPersistenceAdapter  extends BaseOrdenIngresoPe
 
         // Construir la entidad
         return KardexEntity.builder()
-                .tipo_movimiento(1) // 1 - ingreso 2 - salida
+                .tipo_movimiento(TypeMovimiento.INGRESO_LOGISTICA.getId())
                 .detalle(str_detalle)
                 .cantidad(BigDecimal.valueOf(detalleEntity.getCantidad()))
                 .costo(BigDecimal.valueOf(detalleEntity.getCosto_compra()))
@@ -71,6 +98,7 @@ public class OrdenIngresoLogisticaPersistenceAdapter  extends BaseOrdenIngresoPe
                 .id_almacen(ordenIngreso.getAlmacen().getIdAlmacen())
                 .id_documento(ordenIngreso.getId())
                 .id_detalle_documento(detalleEntity.getId().intValue())
+                .id_lote(detalle.getIdLoteInventario())
                 .saldo_actual(detalle.getArticulo().getStock())
                 .saldoLote(cantidadConvertida.setScale(6, RoundingMode.HALF_UP))
                 .build();

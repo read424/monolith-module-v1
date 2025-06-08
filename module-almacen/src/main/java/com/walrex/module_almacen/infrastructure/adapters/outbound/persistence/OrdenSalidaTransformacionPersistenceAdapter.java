@@ -43,7 +43,7 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
                 .flatMap(this::procesarDetalles)
                 .flatMap(this::procesarEntregaYLotes)
                 .flatMap(this::registrarKardexConLotes)
-                .flatMap(orden -> actualizarEstadoEntrega(orden.getId().intValue(), true))
+                .flatMap(orden -> actualizarEstadoEntrega(orden))
                 .doOnSuccess(orden ->
                         log.info("✅ Orden de salida por transformación completada: {}", orden.getId()));
     }
@@ -294,19 +294,25 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
     }
 
     @Override
-    public Mono<OrdenEgresoDTO> actualizarEstadoEntrega(Integer idOrden, boolean entregado) {
-        log.info("Actualizando estado de entrega para orden: {} a {}", idOrden, entregado);
+    public Mono<OrdenEgresoDTO> actualizarEstadoEntrega(OrdenEgresoDTO ordenEgresoDTO) {
+        log.info("Actualizando estado de entrega para orden: {} ", ordenEgresoDTO.getId());
 
-        Date fechaEntrega = entregado ? new Date() : null;
+        Date fechaEntrega = new Date();
 
-        return ordenSalidaRepository.asignarEntregado(fechaEntrega, 1, 1, 1, idOrden)
-                .flatMap(entity ->
-                        // Actualizar detalles como entregados
-                        actualizarDetallesEntregados(idOrden.longValue())
-                                .then(Mono.just(ordenSalidaEntityMapper.toDomain(entity)))
+        return ordenSalidaRepository.asignarEntregado(fechaEntrega, ordenEgresoDTO.getIdUsuarioEntrega(), ordenEgresoDTO.getIdSupervisor(), ordenEgresoDTO.getIdUsuarioEntrega(), ordenEgresoDTO.getId().intValue())
+                .flatMap(entityFromUpdate ->
+                        ordenSalidaRepository.findById(ordenEgresoDTO.getId())
+                                .map(entityWithTrigger -> {
+                                    log.info("🔍 Código generado por trigger: {}", entityWithTrigger.getCod_salida());
+                                    ordenEgresoDTO.setCodEgreso(entityWithTrigger.getCod_salida());
+                                    ordenEgresoDTO.setEntregado(entityWithTrigger.getEntregado());
+                                    return ordenEgresoDTO;
+                                })
+                                .switchIfEmpty(Mono.error(new IllegalStateException(
+                                        "Orden no encontrada después del update: " + ordenEgresoDTO.getId())))
                 )
                 .doOnSuccess(orden ->
-                        log.info("Estado de entrega actualizado para orden: {}", idOrden));
+                        log.info("Estado de entrega actualizado para orden: {}", ordenEgresoDTO.getId()));
     }
 
     private Mono<Void> actualizarDetallesEntregados(Long idOrdenSalida) {
