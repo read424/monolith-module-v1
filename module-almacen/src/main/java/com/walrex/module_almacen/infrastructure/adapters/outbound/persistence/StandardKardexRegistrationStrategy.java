@@ -3,8 +3,11 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 import com.walrex.module_almacen.application.ports.output.KardexRegistrationStrategy;
 import com.walrex.module_almacen.domain.model.DetalleOrdenIngreso;
 import com.walrex.module_almacen.domain.model.OrdenIngreso;
+import com.walrex.module_almacen.domain.model.dto.ItemKardexDTO;
+import com.walrex.module_almacen.domain.model.enums.TypeMovimiento;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetailsIngresoEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.KardexEntity;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.ItemKardexDTOToKardexEntityMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.KardexRepository;
 import io.r2dbc.spi.R2dbcException;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import java.math.RoundingMode;
 @Slf4j
 public class StandardKardexRegistrationStrategy implements KardexRegistrationStrategy {
     private final KardexRepository kardexRepository;
+    private final ItemKardexDTOToKardexEntityMapper kardexMapper;
 
     @Override
     public Mono<Void> registrarKardex(DetailsIngresoEntity detalleEntity, DetalleOrdenIngreso detalle, OrdenIngreso ordenIngreso) {
@@ -41,7 +45,7 @@ public class StandardKardexRegistrationStrategy implements KardexRegistrationStr
         total_stock = cantidadConvertida.add(detalle.getArticulo().getStock()).setScale(6, RoundingMode.HALF_UP);
 
         KardexEntity kardexEntity = KardexEntity.builder()
-                .tipo_movimiento(1) // 1 - ingreso 2 - salida
+                .tipo_movimiento(TypeMovimiento.INGRESO_LOGISTICA.getId()) // 1 - ingreso 2 - salida
                 .detalle(str_detalle)
                 .cantidad(BigDecimal.valueOf(detalleEntity.getCantidad()))
                 .costo(BigDecimal.valueOf(detalleEntity.getCosto_compra()))
@@ -52,6 +56,7 @@ public class StandardKardexRegistrationStrategy implements KardexRegistrationStr
                 .id_unidad_salida(detalle.getIdUnidadSalida())
                 .id_almacen(ordenIngreso.getAlmacen().getIdAlmacen())
                 .id_documento(ordenIngreso.getId())
+                .id_lote(detalle.getIdLoteInventario())
                 .id_detalle_documento(detalleEntity.getId().intValue())
                 .saldo_actual(total_stock)
                 .saldoLote(cantidadConvertida.setScale(6, RoundingMode.HALF_UP))
@@ -70,5 +75,26 @@ public class StandardKardexRegistrationStrategy implements KardexRegistrationStr
                     return Mono.error(new RuntimeException(errorMsg, ex));
                 })
                 .then();
+    }
+
+
+    @Override
+    public Mono<KardexEntity> registrarKardex(ItemKardexDTO itemKardex){
+        // ✅ Usar mapper para convertir
+        KardexEntity kardexEntity = kardexMapper.toEntity(itemKardex);
+        log.info("kardexEntity {}: ", kardexEntity);
+        return kardexRepository.save(kardexEntity)
+                .doOnSuccess(savedEntity ->
+                        log.info("✅ Kardex guardado con ID: {}", savedEntity.getId_kardex()))
+                .onErrorResume(R2dbcException.class, ex -> {
+                    String errorMsg = "Error de base de datos al guardar kardex: " + ex.getMessage();
+                    log.error(errorMsg, ex);
+                    return Mono.error(new RuntimeException(errorMsg, ex));
+                })
+                .onErrorResume(Exception.class, ex -> {
+                    String errorMsg = "Error inesperado al guardar kardex: " + ex.getMessage();
+                    log.error(errorMsg, ex);
+                    return Mono.error(new RuntimeException(errorMsg, ex));
+                });
     }
 }
