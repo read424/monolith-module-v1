@@ -20,6 +20,8 @@ public interface DetailSalidaMapper {
     @Mapping(source = "idOrdenEgreso", target = "id_ordensalida")
     @Mapping(source = "id", target = "id_detalle_orden")
     @Mapping(source = "totalMonto", target = "tot_monto")
+    @Mapping(source = "articulo.id", target = "id_articulo")
+    @Mapping(source = "idUnidad", target = "id_unidad")
     DetailSalidaEntity toEntity(DetalleEgresoDTO dto);
 
     List<DetailSalidaEntity> toEntityList(List<ItemProductDTO> dtos);
