@@ -1,8 +1,10 @@
 package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb;
 
 import com.walrex.module_almacen.application.ports.input.ProcesarTransformacionUseCase;
+import com.walrex.module_almacen.domain.model.JwtUserInfo;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.dto.OrdenIngresoTransformacionRequestDto;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.mapper.OrdenIngresoTransformacionRequestMapper;
+import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.JwtUserContextService;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.ResponseCreateOrdenIngresoLogisticaDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,17 +25,30 @@ public class TransformacionInsumosHandler {
     private final ProcesarTransformacionUseCase procesarTransformacionUseCase;
     private final OrdenIngresoTransformacionRequestMapper ordenIngresoTransformacionMapper;
     private final Validator validator;
+    private final JwtUserContextService jwtService;
 
     public Mono<ServerResponse> crearConversion(ServerRequest request){
+        JwtUserInfo user = jwtService.getCurrentUser(request);
         log.info("Método HTTP: {}", request.method());
         log.info("Headers: {}", request.headers().asHttpHeaders());
+
         return request.bodyToMono(OrdenIngresoTransformacionRequestDto.class)
                 .doOnNext(dto->log.info("Request body recibido: {}", dto))
                 .flatMap(this::validate)
                 .map(ordenIngresoTransformacionMapper::toOrdenIngreso)
-                .flatMap(ordenIngreso -> ServerResponse.status(HttpStatus.OK)
+                .doOnNext(ordenTransformacion->{
+                    ordenTransformacion.setIdUsuario(Integer.valueOf(user.getUserId()));
+                })
+                .flatMap(procesarTransformacionUseCase::procesarTransformacion)
+                .map(transformacionResponse->ResponseCreateOrdenIngresoLogisticaDto.builder()
+                        .success(true)
+                        .affected_rows(1)
+                        .message(String.format("Transformación completada exitosamente - Orden: %s ", transformacionResponse.getCodigoIngreso()))
+                        .build()
+                )
+                .flatMap(response -> ServerResponse.status(HttpStatus.OK)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .body(procesarTransformacionUseCase.procesarTransformacion(ordenIngreso), ResponseCreateOrdenIngresoLogisticaDto.class)
+                        .bodyValue(response)
                 );
     }
 

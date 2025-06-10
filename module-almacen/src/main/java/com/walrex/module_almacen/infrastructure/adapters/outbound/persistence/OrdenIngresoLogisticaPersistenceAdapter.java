@@ -22,7 +22,7 @@ import java.math.RoundingMode;
 public class OrdenIngresoLogisticaPersistenceAdapter  extends BaseOrdenIngresoPersistenceAdapter {
     protected final KardexRepository kardexRepository;
     protected final DetalleInventoryRespository detalleInventoryRespository;
-    protected  final DetailOrdenCompraAlmacenRepository detailOrdenCompraAlmacenRepository;
+    protected final DetailOrdenCompraAlmacenRepository detailOrdenCompraAlmacenRepository;
 
     @Override
     protected Mono<DetalleOrdenIngreso> procesarDetalleGuardado(

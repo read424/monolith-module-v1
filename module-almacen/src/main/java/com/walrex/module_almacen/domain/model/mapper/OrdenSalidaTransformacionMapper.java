@@ -21,6 +21,7 @@ public interface OrdenSalidaTransformacionMapper {
     @Mapping(source = "detalles", target = "detalles") // ✅ Mapear detalles
     @Mapping(target = "entregado", constant = "0") // ✅ Inicialmente no entregado
     @Mapping(target = "status", constant = "1") // ✅ Estado activo
+    @Mapping(source = "idUsuario", target = "idUsuario")
     OrdenEgresoDTO toOrdenEgreso(OrdenIngresoTransformacionDTO dto);
 
     @Mapping(source = "id_articulo", target = "articulo.id")

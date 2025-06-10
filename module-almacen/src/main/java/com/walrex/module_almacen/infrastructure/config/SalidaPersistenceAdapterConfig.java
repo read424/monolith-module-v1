@@ -1,13 +1,12 @@
 package com.walrex.module_almacen.infrastructure.config;
 
 import com.walrex.module_almacen.application.ports.input.OrdenSalidaAdapterFactory;
+import com.walrex.module_almacen.application.ports.output.KardexRegistrationStrategy;
 import com.walrex.module_almacen.application.ports.output.OrdenSalidaAprobacionPort;
 import com.walrex.module_almacen.application.ports.output.OrdenSalidaLogisticaPort;
 import com.walrex.module_almacen.domain.model.mapper.ArticuloRequerimientoToDetalleMapper;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.OrdenSalidaAdapterFactoryImpl;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.OrdenSalidaAprobacionPersistenceAdapter;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.OrdenSalidaLogisticaPersistenceAdapter;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.OrdenSalidaTransformacionPersistenceAdapter;
+import com.walrex.module_almacen.domain.model.mapper.DetEgresoLoteEntityToItemKardexMapper;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.DetailSalidaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenSalidaEntityMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.*;
@@ -46,7 +45,8 @@ public class SalidaPersistenceAdapterConfig {
             DetalleInventoryRespository detalleInventoryRespository,
             OrdenSalidaEntityMapper ordenSalidaEntityMapper,
             DetailSalidaMapper detailSalidaMapper,
-            KardexRepository kardexRepository) {
+            KardexRegistrationStrategy kardexStrategy,
+            DetEgresoLoteEntityToItemKardexMapper detEgresoLoteEntityToItemKardexMapper) {
 
         return new OrdenSalidaTransformacionPersistenceAdapter(
                 ordenSalidaRepository,
@@ -56,7 +56,8 @@ public class SalidaPersistenceAdapterConfig {
                 detalleInventoryRespository,
                 ordenSalidaEntityMapper,
                 detailSalidaMapper,
-                kardexRepository
+                kardexStrategy,
+                detEgresoLoteEntityToItemKardexMapper
         );
     }
 
