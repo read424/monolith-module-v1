@@ -1,6 +1,13 @@
 # Stage build and compile
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 
+ARG GITHUB_USERNAME
+ARG GITHUB_TOKEN
+
+RUN mkdir -p /root/.m2 && \
+    printf '<settings>\n  <servers>\n    <server>\n      <id>github</id>\n      <username>"${GITHUB_USERNAME}"</username>\n      <password>${GITHUB_TOKEN}</password>\n    </server>\n  </servers>\n</settings>\n' > /root/.m2/settings.xml
+
+
 # Directory work
 WORKDIR /app
 
@@ -14,13 +21,6 @@ COPY ./module-common/pom.xml ./module-common/pom.xml
 COPY ./module-articulos/pom.xml ./module-articulos/pom.xml
 COPY ./module-almacen/pom.xml ./module-almacen/pom.xml
 COPY ./module-mailing/pom.xml ./module-mailing/pom.xml
-
-RUN --mount=type=secret,id=github_token \
-    --mount=type=secret,id=github_username \
-    mkdir -p /root/.m2 && \
-    printf '<settings>\n  <servers>\n    <server>\n      <id>github</id>\n      <username>%s</username>\n      <password>%s</password>\n    </server>\n  </servers>\n</settings>\n' \
-    "$(cat /run/secrets/github_username)" \
-    "$(cat /run/secrets/github_token)" > /root/.m2/settings.xml
 
 # Descargar dependencias (aprovechando caché de Docker)
 RUN mvn dependency:go-offline -B
