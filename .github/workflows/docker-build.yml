@@ -51,8 +51,3 @@ jobs:
           build-args: |
             GITHUB_USERNAME=read424
             GITHUB_TOKEN=${{ secrets.AVRO_SCHEMAS_GITHUB_TOKEN }}
-
-      - name: Clean up secrets
-        if: always()
-        run: |
-          rm -f /tmp/github_username /tmp/github_token
