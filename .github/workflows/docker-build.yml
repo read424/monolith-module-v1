@@ -26,7 +26,9 @@ jobs:
 
       - name: Create temporary secret files
         run: |
-          echo "${{ github.actor }}" > /tmp/github_username
+          # Evitar masking usando variable
+          GITHUB_USER="${{ github.actor }}"
+          echo "${GITHUB_USER}" > /tmp/github_username
           echo "${{ secrets.AVRO_SCHEMAS_GITHUB_TOKEN }}" > /tmp/github_token
           
           # 🔍 DEBUG: Verificar archivos
