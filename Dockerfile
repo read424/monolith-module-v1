@@ -6,8 +6,14 @@ WORKDIR /app
 
 #Copy file pom.xml
 COPY ./pom.xml ./pom.xml
-COPY ./module-*/pom.xml ./module-*/pom.xml
+COPY ./module-core/pom.xml ./module-core/pom.xml
+COPY ./module-users/pom.xml ./module-users/pom.xml
+COPY ./module-role/pom.xml ./module-role/pom.xml
 COPY ./gateway/pom.xml ./gateway/pom.xml
+COPY ./module-common/pom.xml ./module-common/pom.xml
+COPY ./module-articulos/pom.xml ./module-articulos/pom.xml
+COPY ./module-almacen/pom.xml ./module-almacen/pom.xml
+COPY ./module-mailing/pom.xml ./module-mailing/pom.xml
 
 RUN --mount=type=secret,id=github_token \
     --mount=type=secret,id=github_username \
