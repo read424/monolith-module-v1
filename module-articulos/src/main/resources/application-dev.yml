@@ -24,7 +24,7 @@ spring:
       auto.create.topics.enabled: true
       security:
         protocol: PLAINTEXT
-      schema.registry.url: ${SCHEMA_REGISTRY_SERVER:http://localhost:8081 }
+      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
     consumer:
       group-id: articulo-group
       auto-offset-reset: latest #earliest
