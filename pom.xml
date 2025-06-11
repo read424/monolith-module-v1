@@ -66,6 +66,16 @@
 			<id>confluent</id>
 			<url>https://packages.confluent.io/maven/</url>
 		</repository>
+		<repository>
+			<id>github</id>
+			<url>https://maven.pkg.github.com/read424/avro-schemas</url>
+			<releases>
+				<enabled>true</enabled>
+			</releases>
+			<snapshots>
+				<enabled>true</enabled>
+			</snapshots>
+		</repository>
 	</repositories>
 	<dependencyManagement>
 		<dependencies>
