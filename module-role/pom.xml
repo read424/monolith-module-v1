@@ -130,7 +130,7 @@
 		<dependency>
 			<groupId>com.walrex</groupId>
 			<artifactId>avro-schemas</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
+			<version>1.0.0</version>
 		</dependency>
 		<!-- PostgreSQL (R2DBC only) -->
 		<dependency>
