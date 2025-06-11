@@ -4,21 +4,17 @@ FROM maven:3.9.6-eclipse-temurin-21 AS build
 # Directory work
 WORKDIR /app
 
-#crate directorio para dependencias
-RUN mkdir -p /root/.m2/repository/com/walrex/avro-schemas/0.0.1-SNAPSHOT
-
-#Copy file pom.xml m
+#Copy file pom.xml
 COPY ./pom.xml ./pom.xml
-COPY ./module-core/pom.xml ./module-core/pom.xml
-COPY ./module-users/pom.xml ./module-users/pom.xml
-COPY ./module-role/pom.xml ./module-role/pom.xml
+COPY ./module-*/pom.xml ./module-*/pom.xml
 COPY ./gateway/pom.xml ./gateway/pom.xml
-COPY ./module-common/pom.xml ./module-common/pom.xml
-COPY ./module-articulos/pom.xml ./module-articulos/pom.xml
-COPY ./module-almacen/pom.xml ./module-almacen/pom.xml
-COPY ./module-mailing/pom.xml ./module-mailing/pom.xml
 
-COPY ./m2-cache/com/walrex/avro-schemas/0.0.1-SNAPSHOT/* /root/.m2/repository/com/walrex/avro-schemas/0.0.1-SNAPSHOT
+RUN --mount=type=secret,id=github_token \
+    --mount=type=secret,id=github_username \
+    mkdir -p /root/.m2 && \
+    printf '<settings>\n  <servers>\n    <server>\n      <id>github</id>\n      <username>%s</username>\n      <password>%s</password>\n    </server>\n  </servers>\n</settings>\n' \
+    "$(cat /run/secrets/github_username)" \
+    "$(cat /run/secrets/github_token)" > /root/.m2/settings.xml
 
 # Descargar dependencias (aprovechando caché de Docker)
 RUN mvn dependency:go-offline -B
