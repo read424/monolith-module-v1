@@ -5,7 +5,7 @@ ARG GITHUB_USERNAME
 ARG GITHUB_TOKEN
 
 RUN mkdir -p /root/.m2 && \
-    printf '<settings>\n  <servers>\n    <server>\n      <id>github</id>\n      <username>"${GITHUB_USERNAME}"</username>\n      <password>${GITHUB_TOKEN}</password>\n    </server>\n  </servers>\n</settings>\n' > /root/.m2/settings.xml
+    printf '<settings>\n  <servers>\n    <server>\n      <id>github</id>\n      <username>%s</username>\n      <password>%s</password>\n    </server>\n  </servers>\n</settings>\n' "${GITHUB_USERNAME}" "${GITHUB_TOKEN}" > /root/.m2/settings.xml
 
 
 # Directory work
@@ -30,6 +30,8 @@ COPY ./module-core/src ./module-core/src
 COPY ./module-users/src ./module-users/src
 COPY ./module-role/src ./module-role/src
 COPY ./gateway/src ./gateway/src
+COPY ./module-articulos/src ./module-articulos/src
+COPY ./module-almacen/src ./module-almacen/src
 COPY ./module-mailing/src ./module-mailing/src
 COPY ./src ./src
 
