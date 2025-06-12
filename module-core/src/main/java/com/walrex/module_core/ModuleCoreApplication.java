@@ -10,6 +10,7 @@ import org.springframework.context.annotation.ComponentScan;
 		"com.walrex",
 		"com.walrex.module_core",
 		"com.walrex.gateway.gateway",
+		"com.walrex.module_common",
 		"com.walrex.user",
 		"com.walrex.role"
 })
@@ -19,6 +20,7 @@ public class ModuleCoreApplication {
 	public static void main(String[] args) {
 		log.info("Iniciando aplicación...");
 		try {
+			System.setProperty("reactor.tools.agent.enabled", "false");
 			SpringApplication.run(ModuleCoreApplication.class, args);
 			log.info("Aplicación iniciada correctamente");
 		} catch (Exception e) {
