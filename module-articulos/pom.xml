@@ -158,25 +158,6 @@
 			<artifactId>module-common</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
-		<!--Observability-->
-		<dependency>
-			<groupId>io.micrometer</groupId>
-			<artifactId>micrometer-core</artifactId>
-			<version>${micrometer.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.micrometer</groupId>
-			<artifactId>micrometer-registry-prometheus</artifactId>
-			<version>${micrometer.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>io.opentelemetry</groupId>
-			<artifactId>opentelemetry-sdk-logs</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.micrometer</groupId>
-			<artifactId>micrometer-tracing-bridge-otel</artifactId>
-		</dependency>
 		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
