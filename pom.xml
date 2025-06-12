@@ -28,7 +28,6 @@
 		<url/>
 	</scm>
 	<modules>
-		<module>module-core</module>
 		<module>module-common</module>
 		<module>gateway</module>
 		<module>module-users</module>
@@ -36,6 +35,7 @@
 		<module>module-mailing</module>
 		<module>module-almacen</module>
 		<module>module-articulos</module>
+		<module>module-core</module>
 	</modules>
 	<properties>
 		<java.version>21</java.version>
