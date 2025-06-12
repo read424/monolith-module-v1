@@ -26,6 +26,7 @@ COPY ./module-mailing/pom.xml ./module-mailing/pom.xml
 RUN mvn dependency:go-offline -B
 
 # Copiar código fuente
+COPY ./module-common/src ./module-common/src
 COPY ./module-core/src ./module-core/src
 COPY ./module-users/src ./module-users/src
 COPY ./module-role/src ./module-role/src
