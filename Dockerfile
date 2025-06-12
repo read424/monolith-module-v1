@@ -86,4 +86,4 @@ EXPOSE 8088
 #ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Comando para ejecutar la aplicación
-CMD ["java", "-jar", "app.jar"]
+CMD ["java", "-Dreactor.tools.agent.enabled=false", "-Xms512m", "-Xmx1024m", "-jar", "app.jar"]
