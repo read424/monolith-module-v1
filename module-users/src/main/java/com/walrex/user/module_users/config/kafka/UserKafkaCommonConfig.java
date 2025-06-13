@@ -13,16 +13,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class UserKakfkaCommonConfig {
+public class UserKafkaCommonConfig {
     @Value("${spring.kafka.producer.properties.schema.registry.url}")
     private String schemaRegistryUrl;
 
-    @Bean
+    @Bean(name = "UserSchemaRegistryClient")
     public SchemaRegistryClient UserSchemaRegistryClient() {
         return new CachedSchemaRegistryClient(schemaRegistryUrl, 100);
     }
 
-    @Bean
+    @Bean(name="UserSchemaRegistryConfig")
     public Map<String, Object> UserSchemaRegistryConfig() {
         Map<String, Object> config = new HashMap<>();
         config.put(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG, schemaRegistryUrl);

@@ -1,7 +1,6 @@
 package com.walrex.user.module_users.config.kafka.consumer.factory;
 
 import com.walrex.avro.schemas.RoleResponseMessage;
-import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -23,9 +22,9 @@ public class UserKafkaConsumerFactory {
     public <T> KafkaReceiver<String, T> createReceiver(String topicName){
         Map<String, Object> props = new HashMap<>(kafkaReceiverOptions.consumerProperties());
         // Si la validación es necesaria, puede hacerse solo en entornos específicos
-        if (!doesTopicExist(topicName, props)) {
-            throw new IllegalArgumentException("Topic does not exist: " + topicName);
-        }
+        //if (!doesTopicExist(topicName, props)) {
+        //    throw new IllegalArgumentException("Topic does not exist: " + topicName);
+        //}
         ReceiverOptions<String, T> options =
                 ReceiverOptions.<String, T>create(props)
                         .subscription(Collections.singletonList(topicName));
@@ -39,9 +38,9 @@ public class UserKafkaConsumerFactory {
 
     public ReceiverOptions<String, Object> getKafkaOptions(String topicName){
         var consumerProperties = kafkaReceiverOptions.consumerProperties();
-        if (!doesTopicExist(topicName, consumerProperties)) {
-            throw new IllegalArgumentException("Topic does not exist: " + topicName);
-        }
+        //if (!doesTopicExist(topicName, consumerProperties)) {
+        //    throw new IllegalArgumentException("Topic does not exist: " + topicName);
+        //}
 
         var kafkaOptions = kafkaReceiverOptions.subscription(List.of(topicName));
         kafkaOptions.addAssignListener(partitions ->
@@ -56,9 +55,9 @@ public class UserKafkaConsumerFactory {
      */
     public KafkaReceiver<String, RoleResponseMessage> receiverRoleResponseMessage(String topicName) {
         Map<String, Object> props = new HashMap<>(kafkaReceiverOptions.consumerProperties());
-        if (!doesTopicExist(topicName, props)) {
-            throw new IllegalArgumentException("Topic does not exist: " + topicName);
-        }
+        //if (!doesTopicExist(topicName, props)) {
+        //    throw new IllegalArgumentException("Topic does not exist: " + topicName);
+        //}
 
         ReceiverOptions<String, RoleResponseMessage> options =
                 ReceiverOptions.<String, RoleResponseMessage>create(props)

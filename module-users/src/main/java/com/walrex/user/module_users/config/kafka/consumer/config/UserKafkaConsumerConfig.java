@@ -1,5 +1,6 @@
 package com.walrex.user.module_users.config.kafka.consumer.config;
 
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
 import io.confluent.kafka.serializers.KafkaAvroDeserializer;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -15,8 +16,8 @@ import java.util.Map;
 
 @Configuration
 public class UserKafkaConsumerConfig {
-
-    private Map<String, Object> schemaRegistryConfig;
+    private final SchemaRegistryClient schemaRegistryClient;
+    private final Map<String, Object> schemaRegistryConfig;
 
     @Value("${spring.kafka.bootstrap-servers}")
     private String bootstrapServers;
@@ -28,7 +29,11 @@ public class UserKafkaConsumerConfig {
     private String offset_reset;
 
     // Inyectar usando constructor con @Qualifier específico
-    public UserKafkaConsumerConfig(@Qualifier("userModuleSchemaRegistryConfig") Map<String, Object> schemaRegistryConfig) {
+    public UserKafkaConsumerConfig(
+            @Qualifier("UserSchemaRegistryClient") SchemaRegistryClient schemaRegistryClient,
+            @Qualifier("UserSchemaRegistryConfig") Map<String, Object> schemaRegistryConfig
+    ) {
+        this.schemaRegistryClient = schemaRegistryClient;
         this.schemaRegistryConfig = schemaRegistryConfig;
     }
 
