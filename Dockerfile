@@ -46,6 +46,10 @@ RUN ls -la module-core/target/*.jar
 # Stage: make executable
 FROM eclipse-temurin:21-jre-alpine AS runtime
 
+# Definir UID/GID específicos que coincidan con tu host
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
 # Directorio de trabajo
 WORKDIR /app
 
@@ -66,26 +70,23 @@ ENV DB_PASSWORD=12345
 ENV SECRET_KEY_JWT="l7kP8lgYRt/PyIh/tBDYlg4QWCLf2RSOJ8oLPNV6O34="
 
 # Crear usuario no privilegiado para ejecutar la aplicación
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
+RUN addgroup -g ${GROUP_ID} -S appgroup && \
+    adduser -u ${USER_ID} -S appuser -G appgroup && \
     mkdir -p /app/logs && \
     mkdir -p /app/traces && \
     chown -R appuser:appgroup /app/logs && \
     chown -R appuser:appgroup /app/traces
+
+# Declarar volúmenes
+VOLUME ["/app/logs", "/app/traces"]
 
 USER appuser
 
 # Copiar JAR desde la etapa de construcción
 COPY --from=build /app/module-core/target/*.jar /app/app.jar
 
-# Script de inicio para verificar Kafka y otros servicios antes de arrancar
-#COPY --chown=appuser:appgroup docker-entrypoint.sh /app/
-#RUN chmod +x /app/docker-entrypoint.sh
-
 # Exponer puertos
 EXPOSE 8088
-
-# Punto de entrada que verifica dependencias antes de arrancar
-#ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
 # Comando para ejecutar la aplicación
 CMD ["java", "-Dreactor.tools.agent.enabled=false", "-Xms512m", "-Xmx1024m", "-jar", "app.jar"]

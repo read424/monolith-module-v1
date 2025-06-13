@@ -35,6 +35,7 @@
 		<module>module-mailing</module>
 		<module>module-almacen</module>
 		<module>module-articulos</module>
+		<module>module-partidas</module>
 		<module>module-core</module>
 	</modules>
 	<properties>
