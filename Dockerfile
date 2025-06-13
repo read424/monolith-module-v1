@@ -21,6 +21,7 @@ COPY ./module-common/pom.xml ./module-common/pom.xml
 COPY ./module-articulos/pom.xml ./module-articulos/pom.xml
 COPY ./module-almacen/pom.xml ./module-almacen/pom.xml
 COPY ./module-mailing/pom.xml ./module-mailing/pom.xml
+COPY ./module-partidas/pom.xml ./module-partidas/pom.xml
 
 # Descargar dependencias (aprovechando caché de Docker)
 RUN mvn dependency:go-offline -B
@@ -34,6 +35,7 @@ COPY ./gateway/src ./gateway/src
 COPY ./module-articulos/src ./module-articulos/src
 COPY ./module-almacen/src ./module-almacen/src
 COPY ./module-mailing/src ./module-mailing/src
+COPY ./module-partidas/src ./module-partidas/src
 COPY ./src ./src
 
 # Compilar el proyecto completo (avro-schemas ya está disponible en .m2)
