@@ -26,19 +26,19 @@ spring:
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:12345}
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:localhost:9094}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:127.0.0.1:9092}
     properties:
       auto.create.topics.enabled: true
       security:
         protocol: PLAINTEXT
-      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
     consumer:
       group-id: mailing-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
-        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
         auto.registry.schemas: true
         max.partition.fetch.bytes: 10485760
         specific.avro.reader: true
