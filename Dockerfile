@@ -68,7 +68,9 @@ ENV SECRET_KEY_JWT="l7kP8lgYRt/PyIh/tBDYlg4QWCLf2RSOJ8oLPNV6O34="
 # Crear usuario no privilegiado para ejecutar la aplicación
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup && \
     mkdir -p /app/logs && \
-    chown -R appuser:appgroup /app/logs
+    mkdir -p /app/traces && \
+    chown -R appuser:appgroup /app/logs && \
+    chown -R appuser:appgroup /app/traces
 
 USER appuser
 
