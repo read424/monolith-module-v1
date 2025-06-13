@@ -23,9 +23,9 @@ public class MailingKafkaConsumerFactory {
     public <T> KafkaReceiver<String, T> createReceiver(String topicName){
         Map<String, Object> props = new HashMap<>(kafkaReceiverOptions.consumerProperties());
         // Si la validación es necesaria, puede hacerse solo en entornos específicos
-        if (!doesTopicExist(topicName, props)) {
-            throw new IllegalArgumentException("Topic does not exist: " + topicName);
-        }
+        //if (!doesTopicExist(topicName, props)) {
+        //    throw new IllegalArgumentException("Topic does not exist: " + topicName);
+        //}
         ReceiverOptions<String, T> options =
                 ReceiverOptions.<String, T>create(props)
                         .subscription(Collections.singletonList(topicName));
