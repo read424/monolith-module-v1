@@ -9,11 +9,11 @@ spring:
     enabled: false
 
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:localhost:9094}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:127.0.0.1:9092}
     properties:
       security:
         protocol: PLAINTEXT
-      schema.registry.url: http://localhost:8081
+      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
     consumer:
       auto-offset-reset: latest #earliest #earliest asegura leer desde el principio
       enable-auto-commit: true
@@ -23,14 +23,14 @@ spring:
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
         max.partition.fetch.bytes: 10485760
-        schema.registry.url: http://localhost:8081
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
         specific.avro.reader: true
       group-id: rol-service-group
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
       properties:
-        schema.registry.url: http://localhost:8081
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
         auto.registry.schemas: true
         use.latest.version: true
         specific.avro.reader: true

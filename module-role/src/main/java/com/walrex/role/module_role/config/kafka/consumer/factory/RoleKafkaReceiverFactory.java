@@ -1,7 +1,6 @@
 package com.walrex.role.module_role.config.kafka.consumer.factory;
 
 import com.walrex.avro.schemas.RoleMessage;
-import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.admin.AdminClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
@@ -39,21 +38,20 @@ public class RoleKafkaReceiverFactory {
      */
     public ReceiverOptions<String, Object> getKafkaOptions(String topicName){
         var consumerProperties = kafkaReceiverOptions.consumerProperties();
-        if (!doesTopicExist(topicName, consumerProperties)) {
-            throw new IllegalArgumentException("Topic does not exist: " + topicName);
-        }
+        //if (!doesTopicExist(topicName, consumerProperties)) {
+        //    throw new IllegalArgumentException("Topic does not exist: " + topicName);
+        //}
         var kafkaOptions = kafkaReceiverOptions.subscription(List.of(topicName));
         kafkaOptions.addAssignListener(partitions ->
                 partitions.forEach(ReceiverPartition::seekToBeginning));
         return kafkaOptions;
     }
 
-
     public KafkaReceiver<String, RoleMessage> createKafkaRoleMessageReceiver(String topicName) {
         Map<String, Object> props = kafkaReceiverOptions.consumerProperties();
-        if (!doesTopicExist(topicName, props)) {
-            throw new IllegalArgumentException("Topic does not exist: " + topicName);
-        }
+        //if (!doesTopicExist(topicName, props)) {
+        //    throw new IllegalArgumentException("Topic does not exist: " + topicName);
+        //}
 
         ReceiverOptions<String, RoleMessage> options = ReceiverOptions.<String, RoleMessage>create(props)
                 .subscription(Collections.singletonList(topicName));

@@ -5,7 +5,6 @@ import com.walrex.avro.schemas.RoleResponseMessage;
 import com.walrex.role.module_role.application.ports.output.RoleMessageProducer;
 import com.walrex.role.module_role.domain.model.RolDetailDTO;
 import com.walrex.role.module_role.infrastructure.adapters.outbound.producer.mapper.RoleDetailMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Qualifier;
