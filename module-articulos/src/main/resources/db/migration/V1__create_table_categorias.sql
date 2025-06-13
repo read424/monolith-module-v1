@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS logistica.categorias (
     id_categoria SERIAL PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
     descripcion TEXT,
-    categoria_padre_id INTEGER REFERENCES logistica.categorias(id_categoria),
+    categoria_padre_id INTEGER,
     nivel INTEGER NOT NULL, -- 1: principal, 2: subcategoría, etc.
     codigo VARCHAR(20) UNIQUE,
     activo BOOLEAN DEFAULT TRUE,
