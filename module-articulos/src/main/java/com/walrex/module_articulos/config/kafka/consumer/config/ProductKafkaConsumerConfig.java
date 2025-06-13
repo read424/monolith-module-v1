@@ -56,6 +56,6 @@ public class ProductKafkaConsumerConfig {
 
     @Bean(name = "productModuleReceiveOptions")
     public ReceiverOptions<String, Object> productModuleReceiveOptions() {
-        return ReceiverOptions.create(productModuleConsumerProps());
+        return ReceiverOptions.<String, Object>create(productModuleConsumerProps());
     }
 }
