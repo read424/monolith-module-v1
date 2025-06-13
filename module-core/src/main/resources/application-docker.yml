@@ -58,10 +58,10 @@ spring:
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:12345}
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:localhost:9094}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:kafka-1:9094}
     properties:
       auto.create.topics.enabled: true
-      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
       security:
         protocol: PLAINTEXT
     consumer:
@@ -74,13 +74,13 @@ spring:
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
         max.partition.fetch.bytes: 10485760
-        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
         specific.avro.reader: true
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
       properties:
-        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:schema-registry}:${SCHEMA_REGISTRY_PORT:8081}
         auto.registry.schemas: true
         use.latest.version: true
         specific.avro.reader: true
@@ -116,7 +116,7 @@ spring:
     #path: /graphql
   flyway:
     enabled: true
-    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
+    url: jdbc:postgresql://${DB_HOST:postgresql-testing}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
     user: ${DB_USER:postgres}
     password: ${DB_PASSWORD:12345}
     locations: classpath:db/migration

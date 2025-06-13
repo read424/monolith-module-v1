@@ -1,0 +1,164 @@
+server:
+  port: 8088
+spring:
+  application:
+    name: module-core
+  main:
+    web-application-type: reactive
+    banner-mode: console
+  security:
+    enabled: false
+  cloud:
+    gateway:
+      enabled: true
+      discovery:
+        locator:
+          enabled: false
+      httpclient:
+        wiretap: true
+      httpserver:
+        wiretap: true
+    circuitbreaker:
+      resilience4j:
+        configs:
+          default:
+            slidingWindowSize: 10
+            failureRateThreshold: 50
+            waitDurationInOpenState: 10000
+            permittedNumberOfCallsInHalfOpenState: 5
+            registerHealthIndicator: true
+            timeLimiterConfig:
+              timeoutDuration: 10s
+            recordExceptions:
+              - java.util.concurrent.TimeoutException
+              - org.springframework.web.reactive.function.client.WebClientResponseException
+            ignoreExceptions:
+              - java.lang.IllegalArgumentException
+        instances:
+          kafkaProducer:
+            timeoutDuration: 5s
+            baseConfig: default
+            slidingWindowType: COUNT_BASED
+            slidingWindowSize: 20
+            timeLimiterConfig:
+              timeoutDuration: 10s
+            waitDurationInOpenState: 30000
+            automaticTransitionFromOpenToHalfOpenEnabled: true
+          articleProducerKafka:
+            timeoutDuration: 5s
+            baseConfig: default
+            slidingWindowType: COUNT_BASED
+            slidingWindowSize: 20
+            timeLimiterConfig:
+              timeoutDuration: 10s
+            waitDurationInOpenState: 30000
+            automaticTransitionFromOpenToHalfOpenEnabled: true
+  r2dbc:
+    url: r2dbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:12345}
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:127.0.0.1:9092}
+    properties:
+      auto.create.topics.enabled: true
+      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
+      security:
+        protocol: PLAINTEXT
+    consumer:
+      group-id: rol-service-group
+      auto-offset-reset: latest #earliest asegura leer desde el principio
+      enable-auto-commit: true
+      session-timeout-ms: 60000
+      heartbeat-interval-ms: 20000
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      properties:
+        max.partition.fetch.bytes: 10485760
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
+        specific.avro.reader: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
+        auto.registry.schemas: true
+        use.latest.version: true
+        specific.avro.reader: true
+  totp:
+    code:
+      digits: 6
+    time:
+      period: 300
+  mail:
+    host: mail.texlamerced.com
+    port: 465
+    username: raybar@texlamerced.com
+    password: Sistemas2023@.
+    properties:
+      mail:
+        debug: true
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          socketFactory:
+            port: 465
+            class: javax.net.ssl.SSLSocketFactory
+        transport:
+          protocol: smtp
+      from: noreply@texlamerced.com
+  graphql:
+    graphiql:
+      enabled: true
+    schema:
+      printer:
+        enabled: true
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
+    user: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:12345}
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    out-of-order: false
+  aop:
+    auto: true
+    proxy-target-class: true
+flyway:
+  modules:
+    enabled: true
+    verbose: true
+logging:
+  level:
+    reactor.tools: OFF
+    com.walrex: DEBUG
+    com.walrex.gateway: TRACE
+    org.springframework.web.reactive: DEBUG
+    org.springframework.boot.reactor: OFF
+reactor:
+  tools:
+    agent:
+      enabled: false
+security:
+  jwt:
+    secret-key: ${SECRET_KEY_JWT:l7kP8lgYRt/PyIh/tBDYlg4QWCLf2RSOJ8oLPNV6O34=}
+    expiration-time: 36000
+    refresh-toke:
+      expiration: 604800000
+
+kafka:
+  topics:
+    password-recovery: "email-requests-topic"
+    rol-details: "detail-rol"
+    response-rol-details: "details-rol-response"
+    role-and-details: "role_and_detail"
+    get-info-articulos: "articulo-by-code"
+    almacen:
+      create-ingreso-ajuste: ajuste-ingreso-message
+      create-ingreso-ajuste-response: ajuste-ingreso-response
+
+app:
+  mail:
+    templates:
+      recovery: "reset-password.html"

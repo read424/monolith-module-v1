@@ -9,7 +9,7 @@ import org.springframework.context.annotation.ComponentScan;
 @ComponentScan(basePackages = {
 		"com.walrex",
 		"com.walrex.module_core",
-		"com.walrex.gateway.gateway",
+		"com.walrex.gateway",
 		"com.walrex.module_common",
 		"com.walrex.user",
 		"com.walrex.role"
