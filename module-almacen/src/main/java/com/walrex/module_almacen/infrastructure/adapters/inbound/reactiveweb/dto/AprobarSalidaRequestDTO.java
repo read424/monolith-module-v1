@@ -1,7 +1,5 @@
 package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.dto;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -31,7 +29,6 @@ public class AprobarSalidaRequestDTO {
     @NotNull(message = "campo obligatorio")
     private Integer id_usuario_entrega;
     private String entregado;
-    @NotNull(message = "campo obligatorio")
     private Integer id_personal_supervisor;
     @NotNull(message = "campo obligatorio")
     private OffsetDateTime fec_entrega;
