@@ -1,6 +1,7 @@
 package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.router;
 
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.ApproveDeliveryHandler;
+import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.KardexHandler;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.OrdenIngresoLogisticaHandler;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.TransformacionInsumosHandler;
 import jakarta.annotation.PostConstruct;
@@ -24,6 +25,7 @@ public class RouterAlmacenReactiveAPI {
     private final OrdenIngresoLogisticaHandler ordenIngresoHandler;
     private final TransformacionInsumosHandler transformacionInsumosHandler;
     private final ApproveDeliveryHandler approveDeliveryHandler;
+    private final KardexHandler kardexHandler;
     private static final String PATH_ALMACEN="almacen";
 
     @Bean
@@ -33,6 +35,7 @@ public class RouterAlmacenReactiveAPI {
                 .POST("/ingreso-logistica", RequestPredicates.accept(MediaType.APPLICATION_JSON), ordenIngresoHandler::nuevoIngresoLogistica)
                 .POST("/transformacion", RequestPredicates.accept(MediaType.APPLICATION_JSON), transformacionInsumosHandler::crearConversion)
                 .POST("/approve_delivery", RequestPredicates.accept(MediaType.APPLICATION_JSON), approveDeliveryHandler::deliver)
+                .GET("/kardex", RequestPredicates.accept(MediaType.APPLICATION_JSON), kardexHandler::consultarKardex) // ← NUEVO
             )
             .before(request -> {
                 log.info("🔄 Router {} recibió solicitud: {} {}", PATH_ALMACEN, request.method(), request.path());
