@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Optional;
 
 @SuperBuilder
 @Slf4j
@@ -80,9 +81,11 @@ public class OrdenIngresoLogisticaPersistenceAdapter  extends BaseOrdenIngresoPe
         } else {
             cantidadConvertida = detalle.getCantidad();
         }
+        BigDecimal stockActual = Optional.ofNullable(detalle.getArticulo().getStock())
+                .orElse(BigDecimal.ZERO);
 
-        total_stock = cantidadConvertida.add(detalle.getArticulo().getStock()).setScale(6, RoundingMode.HALF_UP);
-        log.info("Stock Disponible: {} Total Stock {}", detalle.getArticulo().getStock(), total_stock);
+        total_stock = cantidadConvertida.add(stockActual).setScale(6, RoundingMode.HALF_UP);
+        log.info("Stock Disponible: {} Total Stock {}", stockActual, total_stock);
 
         // Construir la entidad
         return KardexEntity.builder()
@@ -99,7 +102,7 @@ public class OrdenIngresoLogisticaPersistenceAdapter  extends BaseOrdenIngresoPe
                 .id_documento(ordenIngreso.getId())
                 .id_detalle_documento(detalleEntity.getId().intValue())
                 .id_lote(detalle.getIdLoteInventario())
-                .saldo_actual(detalle.getArticulo().getStock())
+                .saldo_actual(stockActual)
                 .saldoLote(cantidadConvertida.setScale(6, RoundingMode.HALF_UP))
                 .build();
     }
