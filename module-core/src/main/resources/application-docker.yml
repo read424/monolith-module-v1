@@ -90,10 +90,10 @@ spring:
     time:
       period: 300
   mail:
-    host: ${MAIL_DOMAIN}
-    port: ${MAIL_PORT}
-    username: ${MAIL_USER}
-    password: ${MAIL_PASSWORD}
+    host: ${MAIL_DOMAIN:mail.texlamerced.com}
+    port: ${MAIL_PORT:465}
+    username: ${MAIL_USER:raybar@texlamerced.com}
+    password: ${MAIL_PASSWORD:Sistemas2023@.}
     properties:
       mail:
         debug: true
@@ -106,7 +106,7 @@ spring:
             class: javax.net.ssl.SSLSocketFactory
         transport:
           protocol: smtp
-      from: ${MAIL_NOREPLY}
+      from: ${MAIL_NOREPLY:noreply@texlamerced.com}
   graphql:
     graphiql:
       enabled: true
