@@ -2,10 +2,7 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 
 import com.walrex.module_almacen.application.ports.output.OrdenSalidaAprobacionPort;
 import com.walrex.module_almacen.domain.model.Articulo;
-import com.walrex.module_almacen.domain.model.dto.AprobarSalidaRequerimiento;
-import com.walrex.module_almacen.domain.model.dto.ArticuloRequerimiento;
-import com.walrex.module_almacen.domain.model.dto.DetalleEgresoDTO;
-import com.walrex.module_almacen.domain.model.dto.OrdenEgresoDTO;
+import com.walrex.module_almacen.domain.model.dto.*;
 import com.walrex.module_almacen.domain.model.enums.TypeMovimiento;
 import com.walrex.module_almacen.domain.model.exceptions.StockInsuficienteException;
 import com.walrex.module_almacen.domain.model.mapper.ArticuloRequerimientoToDetalleMapper;
@@ -23,7 +20,6 @@ import reactor.core.publisher.Mono;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -79,6 +75,8 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
                     ordenEgreso.setIdSupervisor(request.getIdUsuarioSupervisor());
                     ordenEgreso.setIdUsuarioDeclara(request.getIdUsuarioDeclara());
                     ordenEgreso.setFecEntrega(request.getFecEntrega());
+
+                    log.info("✅ Orden {}, productos seleccionados: {}", request.getIdOrdenSalida(), productosSeleccionados);
 
                     // ✅ Procesar todos los detalles
                     return Flux.fromIterable(productosSeleccionados)
@@ -156,14 +154,17 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
      * Valida que el detalle esté en la orden, no esté entregado y las cantidades coincidan
      */
     protected Mono<Void> validarDetalleEnOrden(DetalleEgresoDTO detalle, List<DetalleEgresoDTO> detallesOrden) {
+        log.info("🔍 INICIO validarDetalleEnOrden {} con listado {}", detalle.getId(), detallesOrden.size());
         Long idDetalle = detalle.getId();
         return Mono.fromCallable(() -> {
+                    log.info("🔍 DENTRO del Callable - buscando detalle {}", idDetalle);
                     // ✅ Buscar el detalle en la lista
                     DetalleEgresoDTO detalleEncontrado = detallesOrden.stream()
                             .filter(d -> d.getId().equals(idDetalle))
                             .findFirst()
                             .orElse(null);
 
+                    log.info("detalleEncontrado {} ", detalleEncontrado);
                     if (detalleEncontrado == null) {
                         throw new IllegalArgumentException(
                                 String.format("El detalle %d no pertenece a esta orden de salida", idDetalle));
@@ -317,6 +318,8 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
      * Marca el detalle como entregado usando assignedDelivered
      */
     protected Mono<Void> marcarDetalleComoEntregado(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenEgreso) {
+        log.info("marcarDetalleComoEntregado para detalle {}: ", detalle);
+        detalle.setIdOrdenEgreso(ordenEgreso.getId());
         return buscarInfoConversion(detalle, ordenEgreso)
                 .doOnNext(articuloInfo -> actualizarInfoArticulo(detalle, articuloInfo)) // ✅ Actualizar detalle
                 .flatMap(articuloInfo -> validarStockDisponible(detalle, articuloInfo))
@@ -329,6 +332,7 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
      * Actualiza la información del artículo en el detalle con datos de conversión
      */
     private void actualizarInfoArticulo(DetalleEgresoDTO detalle, ArticuloEntity articuloInfo) {
+        log.info("actualizarInfoArticulo: detalle {} -> articuloEntity: {} ", detalle, articuloInfo);
         if (detalle.getArticulo() == null) {
             detalle.setArticulo(Articulo.builder().id(articuloInfo.getIdArticulo()).build());
         }
@@ -390,11 +394,10 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
         }
 
         // ✅ Preparar stock inicial
-        BigDecimal stockAntesDeSalida = detalle.getArticulo().getStock().add(cantidadConvertida);
-        detalle.getArticulo().setStock(stockAntesDeSalida);
-
-        log.debug("📊 Preparando kardex para artículo {}: cantidad_convertida={}, stock_antes_salida={}",
-                detalle.getArticulo().getId(), cantidadConvertida, stockAntesDeSalida);
+        //BigDecimal stockAntesDeSalida = detalle.getArticulo().getStock().add(cantidadConvertida);
+        //detalle.getArticulo().setStock(stockAntesDeSalida);
+        //log.debug("📊 Preparando kardex para artículo {}: cantidad_convertida={}, stock_antes_salida={}",
+        //        detalle.getArticulo().getId(), cantidadConvertida, stockAntesDeSalida);
 
         return detalleSalidaLoteRepository.findByIdDetalleOrden(detalle.getId())
                 .switchIfEmpty(Flux.error(new IllegalStateException(
@@ -440,11 +443,13 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
 
             return kardexRepository.save(kardexEntity)
                     .doOnSuccess(kardex -> {
-                        BigDecimal nuevoStock = saldoStockActual.subtract(cantidadSalida);
-                        detalle.getArticulo().setStock(nuevoStock);
-                        log.info("✅ Kardex registrado: artículo {} lote {} cantidad {} - Stock: {} → {}",
-                                detalle.getArticulo().getId(), salidaLote.getId_lote(),
-                                cantidadSalida, saldoStockActual, nuevoStock);
+                        log.info("✅ Kardex registrado: artículo {} id_lote {} stock general {} cantidad {} - Stock lote: {}",
+                                kardex.getId_articulo(),
+                                kardex.getId_lote(),
+                                kardex.getSaldo_actual(),
+                                kardex.getCantidad(),
+                                kardex.getSaldoLote()
+                                );
                     })
                     .then();
         });
@@ -452,5 +457,86 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
 
     private Mono<OrdenSalidaEntity> consultarOrdenActual(Long idOrden) {
         return ordenSalidaRepository.findById(idOrden);
+    }
+
+    /**
+     * ✅ Procesa solo los detalles de salida (sin actualizar estado de orden)
+     * Método protegido para ser usado por subclases
+     */
+    protected Mono<List<DetalleEgresoDTO>> procesarDetallesSalida(
+            List<ArticuloRequerimiento> productosSeleccionados,
+            OrdenEgresoDTO ordenEgreso) {
+
+        log.debug("Procesando {} detalles de salida", productosSeleccionados.size());
+
+        return Flux.fromIterable(productosSeleccionados)
+                .flatMap(articulo -> {
+                    log.debug("🔍 ANTES del mapper - ArticuloRequerimiento: {}", articulo);
+
+                    DetalleEgresoDTO detalle = articuloRequerimientoMapper.toDetalleEgreso(articulo);
+                    log.debug("🔍 DESPUÉS del mapper - DetalleEgresoDTO: {}", detalle);
+                    log.debug("🔍 Artículo en detalle: {}", detalle.getArticulo());
+                    log.debug("🔍 ID Unidad en detalle: {}", detalle.getIdUnidad());
+
+                    return validarDetalleEnOrden(detalle, ordenEgreso.getDetalles())
+                            .then(marcarDetalleComoEntregado(detalle, ordenEgreso))
+                            .then(enriquecerConInfoLotes(detalle, ordenEgreso))
+                            .doOnSuccess(detalleCompleto ->
+                                log.debug("✅ Detalle completo: precio={}, lotes={}",
+                                    detalleCompleto.getPrecio(), detalleCompleto.getA_lotes().size())
+                            );
+                })
+                .collectList();
+    }
+
+    public Mono<Void> registrarKardexParaDetalle(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenSalida) {
+        return registrarKardexPorDetalle(detalle, ordenSalida);
+    }
+
+    /**
+     * ✅ Enriquece el detalle con información de lotes SIN registrar kardex
+     */
+    protected Mono<DetalleEgresoDTO> enriquecerConInfoLotes(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenSalida) {
+        log.debug("🔍 Enriqueciendo detalle {} con información de lotes", detalle.getId());
+
+        return detalleSalidaLoteRepository.findByIdDetalleOrden(detalle.getId())
+                .switchIfEmpty(Flux.error(new IllegalStateException(
+                        String.format("No se encontraron lotes para el detalle %d", detalle.getId()))))
+                .collectList()
+                .flatMap(lotesEntity -> {
+                    // ✅ Calcular información agregada
+                    Double precioPromedio = lotesEntity.stream()
+                            .mapToDouble(lote -> lote.getMonto_consumo())
+                            .average()
+                            .orElse(0.0);
+
+                    BigDecimal totalMonto = lotesEntity.stream()
+                            .map(lote -> BigDecimal.valueOf(lote.getTotal_monto()))
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+                    // ✅ Convertir lotes a DTO
+                    List<LoteDTO> lotesDTO = lotesEntity.stream()
+                            .map(this::convertirLoteEntityADTO)
+                            .collect(Collectors.toList());
+
+                    // ✅ Setear información en el detalle
+                    detalle.setPrecio(precioPromedio);
+                    detalle.setTotalMonto(totalMonto);
+                    detalle.setA_lotes(lotesDTO);
+
+                    log.debug("✅ Detalle enriquecido - Precio: {}, Total: {}, Lotes: {}",
+                            precioPromedio, totalMonto, lotesDTO.size());
+
+                    return Mono.just(detalle);
+                });
+    }
+
+    private LoteDTO convertirLoteEntityADTO(DetailSalidaLoteEntity loteEntity) {
+        return LoteDTO.builder()
+                .id_lote(loteEntity.getId_lote())
+                .cantidad(loteEntity.getCantidad())
+                .precioUnitario(loteEntity.getMonto_consumo())
+                .totalMonto(loteEntity.getTotal_monto())
+                .build();
     }
 }

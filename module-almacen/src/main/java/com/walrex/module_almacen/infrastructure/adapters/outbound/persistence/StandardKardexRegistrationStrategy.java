@@ -42,8 +42,6 @@ public class StandardKardexRegistrationStrategy implements KardexRegistrationStr
             cantidadConvertida = detalle.getCantidad();
         }
 
-        total_stock = cantidadConvertida.add(detalle.getArticulo().getStock()).setScale(6, RoundingMode.HALF_UP);
-
         KardexEntity kardexEntity = KardexEntity.builder()
                 .tipo_movimiento(TypeMovimiento.INGRESO_LOGISTICA.getId()) // 1 - ingreso 2 - salida
                 .detalle(str_detalle)
@@ -58,12 +56,19 @@ public class StandardKardexRegistrationStrategy implements KardexRegistrationStr
                 .id_documento(ordenIngreso.getId())
                 .id_lote(detalle.getIdLoteInventario())
                 .id_detalle_documento(detalleEntity.getId().intValue())
-                .saldo_actual(total_stock)
+                .saldo_actual(detalle.getArticulo().getStock().setScale(6, RoundingMode.HALF_UP))
                 .saldoLote(cantidadConvertida.setScale(6, RoundingMode.HALF_UP))
                 .build();
 
         return kardexRepository.save(kardexEntity)
-                .doOnSuccess(info -> log.info("✅ Información de kardex guardado: {}", info))
+                .doOnSuccess(info ->log.info("✅ Kardex registrado: {} artículo {} id_lote {} stock general {} cantidad {} - Stock lote: {}",
+                        info.getTipo_movimiento(),
+                        info.getId_articulo(),
+                        info.getId_lote(),
+                        info.getSaldo_actual(),
+                        info.getCantidad(),
+                        info.getSaldoLote()
+                ))
                 .onErrorResume(R2dbcException.class, ex -> {
                     String errorMsg = "Error de base de datos al guardar el kardex: " + ex.getMessage();
                     log.error(errorMsg, ex);
@@ -76,7 +81,6 @@ public class StandardKardexRegistrationStrategy implements KardexRegistrationStr
                 })
                 .then();
     }
-
 
     @Override
     public Mono<KardexEntity> registrarKardex(ItemKardexDTO itemKardex){

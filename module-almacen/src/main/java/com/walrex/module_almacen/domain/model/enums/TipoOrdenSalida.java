@@ -5,5 +5,6 @@ public enum TipoOrdenSalida {
     PROCESO_TELA,
     TRANSFORMACION,
     APPROVE_DELIVERY,
+    APPROVE_MOVEMENT,
     OTRO_TIPO
 }

@@ -4,7 +4,8 @@ import lombok.Getter;
 
 @Getter
 public enum TypeMotivoEgreso {
-    TRANSFORMACION(20, "TRANSFORMACION", 14);
+    TRANSFORMACION(20, "TRANSFORMACION", 14),
+    MOVIMIENTO_ALMACEN( 36, "MOVIMIENTO ALM. INSUMO", 32);
 
     private final int id;
     private final String descMotivo;

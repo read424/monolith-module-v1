@@ -87,5 +87,4 @@ public abstract class BaseInventarioAdapter {
 
         return Mono.just(detalle);
     }
-
 }

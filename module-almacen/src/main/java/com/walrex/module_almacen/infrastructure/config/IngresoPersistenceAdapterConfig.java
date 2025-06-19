@@ -87,6 +87,30 @@ public class IngresoPersistenceAdapterConfig {
     }
 
     @Bean
+    @Qualifier("ingresoMovimiento")
+    public OrdenIngresoLogisticaPort movimientoIngresoAdapter(
+            OrdenIngresoRepository ordenIngresoRepository,
+            ArticuloAlmacenRepository articuloRepository,
+            DetailsIngresoRepository detalleRepository,
+            OrdenIngresoEntityMapper mapper,
+            ArticuloIngresoLogisticaMapper articuloIngresoLogisticaMapper,
+            StandardKardexRegistrationStrategy kardexStrategy,
+            InventoryRepository inventoryRepository,
+            DetalleInventoryRespository detalleInventoryRepository) {
+
+        return new MovimientoIngresoAdapter(
+                ordenIngresoRepository,
+                articuloRepository,
+                detalleRepository,
+                mapper,
+                articuloIngresoLogisticaMapper,
+                kardexStrategy,
+                inventoryRepository,
+                detalleInventoryRepository
+        );
+    }
+
+    @Bean
     public OrdenIngresoAdapterFactory ordenIngresoAdapterFactory(
             OrdenIngresoLogisticaPort ordenIngresoLogisticaAdapter,
             @Qualifier("telaCruda") OrdenIngresoLogisticaPort ordenIngresoTelaCrudaAdapter,

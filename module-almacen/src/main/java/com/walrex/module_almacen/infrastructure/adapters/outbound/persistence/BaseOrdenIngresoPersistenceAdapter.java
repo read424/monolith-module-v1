@@ -14,6 +14,7 @@ import io.r2dbc.spi.R2dbcBadGrammarException;
 import io.r2dbc.spi.R2dbcDataIntegrityViolationException;
 import io.r2dbc.spi.R2dbcException;
 import io.r2dbc.spi.R2dbcTransientResourceException;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @SuperBuilder
+@RequiredArgsConstructor
 @Slf4j
 public abstract class BaseOrdenIngresoPersistenceAdapter implements OrdenIngresoLogisticaPort {
     protected final OrdenIngresoRepository ordenIngresoRepository;

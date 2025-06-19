@@ -3,8 +3,6 @@ package com.walrex.module_almacen.application.ports.output;
 import com.walrex.module_almacen.domain.model.dto.OrdenEgresoDTO;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
-
 public interface OrdenSalidaLogisticaPort {
     /**
      * Guarda una orden de salida con sus detalles
