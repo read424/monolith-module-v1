@@ -35,6 +35,7 @@ public class OrdenIngresoEntity {
     private String nu_serie;
     private String cod_ingreso;
     private Integer id_almacen;
+    private Integer id_orden;
     private String descripcion;
     private String comprobante_ref;
     private Integer condicion;

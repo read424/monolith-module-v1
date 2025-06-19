@@ -24,6 +24,7 @@ public interface OrdenIngresoEntityMapper {
     @Mapping(source = "fechaComprobante", target = "fec_referencia")
     @Mapping(source = "codSerie", target = "nu_serie")
     @Mapping(source = "almacen.idAlmacen", target = "id_almacen")
+    @Mapping(source = "idOrdenCompra", target = "id_orden")
     @Mapping(source = "comprobanteRef", target = "comprobante_ref")
     @Mapping(source = "idOrdServ", target = "idOrdenServ")
     OrdenIngresoEntity toEntity(OrdenIngreso ordenIngreso);
