@@ -1,5 +1,5 @@
 server:
-  port: ${API_PORT}
+  port: 8088
 spring:
   application:
     name: module-core
