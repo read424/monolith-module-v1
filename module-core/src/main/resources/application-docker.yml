@@ -1,5 +1,5 @@
 server:
-  port: 8088
+  port: ${API_PORT}
 spring:
   application:
     name: module-core
@@ -54,14 +54,14 @@ spring:
             waitDurationInOpenState: 30000
             automaticTransitionFromOpenToHalfOpenEnabled: true
   r2dbc:
-    url: r2dbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:12345}
+    url: r2dbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:kafka-1:9094}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0}
     properties:
       auto.create.topics.enabled: true
-      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
+      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER}:${SCHEMA_REGISTRY_PORT}
       security:
         protocol: PLAINTEXT
     consumer:
@@ -74,13 +74,13 @@ spring:
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
         max.partition.fetch.bytes: 10485760
-        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER}:${SCHEMA_REGISTRY_PORT}
         specific.avro.reader: true
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
       properties:
-        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:schema-registry}:${SCHEMA_REGISTRY_PORT:8081}
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER}:${SCHEMA_REGISTRY_PORT}
         auto.registry.schemas: true
         use.latest.version: true
         specific.avro.reader: true
@@ -90,10 +90,10 @@ spring:
     time:
       period: 300
   mail:
-    host: mail.texlamerced.com
-    port: 465
-    username: raybar@texlamerced.com
-    password: Sistemas2023@.
+    host: ${MAIL_DOMAIN}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USER}
+    password: ${MAIL_PASSWORD}
     properties:
       mail:
         debug: true
@@ -106,19 +106,18 @@ spring:
             class: javax.net.ssl.SSLSocketFactory
         transport:
           protocol: smtp
-      from: noreply@texlamerced.com
+      from: ${MAIL_NOREPLY}
   graphql:
     graphiql:
       enabled: true
     schema:
       printer:
         enabled: true
-    #path: /graphql
   flyway:
     enabled: true
-    url: jdbc:postgresql://${DB_HOST:postgresql-testing}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
-    user: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:12345}
+    url: jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}
+    user: ${DB_USER}
+    password: ${DB_PASSWORD}
     locations: classpath:db/migration
     baseline-version: 0
     baseline-on-migrate: true
@@ -144,7 +143,7 @@ reactor:
       enabled: false
 security:
   jwt:
-    secret-key: ${SECRET_KEY_JWT:l7kP8lgYRt/PyIh/tBDYlg4QWCLf2RSOJ8oLPNV6O34=}
+    secret-key: ${SECRET_KEY_JWT}
     expiration-time: 36000
     refresh-toke:
       expiration: 604800000
@@ -159,7 +158,6 @@ kafka:
     almacen:
       create-ingreso-ajuste: ajuste-ingreso-message
       create-ingreso-ajuste-response: ajuste-ingreso-response
-
 app:
   mail:
     templates:
