@@ -3,8 +3,22 @@ server:
 spring:
   application:
     name: module-core
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+  cache:
+    type: REDIS
+    redis:
+      time-to-live: 15m
+  data:
+    redis:
+      host: ${HOST_REDIS:127.0.0.1}
+      port: ${PORT_REDIS:6379}
+      password: ${PASSWORD_REDIS:}
+      database: ${DB_REDIS:0}
+      timeout: 2000ms
   main:
     web-application-type: reactive
     banner-mode: console

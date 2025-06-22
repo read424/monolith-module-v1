@@ -3,6 +3,18 @@ server:
 spring:
   application:
     name: module-core
+  cache:
+    type: REDIS
+    redis:
+      time-to-live: 15m
+  data:
+    redis:
+      host: ${HOST_REDIS:127.0.0.1}
+      port: ${PORT_REDIS:6379}
+      password: ${PASSWORD_REDIS:}
+      database: ${DB_REDIS:0}
+      timeout: 2000ms
+      time-to-live: 15m
   main:
     web-application-type: reactive
     banner-mode: console

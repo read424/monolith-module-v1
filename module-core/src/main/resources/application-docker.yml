@@ -1,13 +1,21 @@
 server:
-  port: 8088
+  port: ${API_PORT:8088}
 spring:
-  application:
-    name: module-core
   main:
-    web-application-type: reactive
     banner-mode: console
   security:
     enabled: false
+  cache:
+    type: REDIS
+    redis:
+      time-to-live: 15m
+  data:
+    redis:
+      host: ${HOST_REDIS}
+      port: ${PORT_REDIS}
+      password: ${PASSWORD_REDIS}
+      database: ${DB_REDIS}
+      timeout: 2000ms
   cloud:
     gateway:
       enabled: true
