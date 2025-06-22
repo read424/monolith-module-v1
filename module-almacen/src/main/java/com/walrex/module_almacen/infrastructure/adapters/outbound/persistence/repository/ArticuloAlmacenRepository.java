@@ -1,6 +1,7 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository;
 
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.ArticuloEntity;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
@@ -17,5 +18,5 @@ public interface ArticuloAlmacenRepository extends ReactiveCrudRepository<Articu
             "LEFT OUTER JOIN logistica.tbfamilia AS fam ON fam.id_familia=art.id_familia " +
             "LEFT OUTER JOIN almacenes.inventario AS inv ON inv.id_articulo=art.id_articulo AND inv.id_almacen=:idAlmacen " +
             "WHERE art.id_articulo=:idArticulo")
-    Mono<ArticuloEntity> getInfoConversionArticulo(Integer idAlmacen, Integer idArticulo);
+    Mono<ArticuloInventory> getInfoConversionArticulo(Integer idAlmacen, Integer idArticulo);
 }

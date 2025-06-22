@@ -14,12 +14,11 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode
-@ToString
 @Table("almacenes.ordensalida")
 public class OrdenSalidaEntity {
     @Id
-    private Long id_ordensalida;
+    @Column("id_ordensalida")
+    private Long id;
     private Integer id_motivo;
     private Integer is_interno;
     private Integer id_tipo_comprobante;

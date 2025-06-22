@@ -3,13 +3,12 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.p
 import lombok.Builder;
 import lombok.Data;
 
-import java.time.LocalDate;
-
 @Data
 @Builder
-public class DocMovimientoIngresoKardex {
+public class LoteMovimientoIngreso {
+    private Integer id_lote;
     private Integer id_ordeningreso;
+    private Integer id_detordeningreso;
     private String cod_ingreso;
-    private LocalDate fec_ingreso;
     private String no_motivo;
 }

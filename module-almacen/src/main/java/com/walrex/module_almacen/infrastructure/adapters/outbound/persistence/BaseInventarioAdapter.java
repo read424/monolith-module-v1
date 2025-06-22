@@ -2,7 +2,7 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 
 import com.walrex.module_almacen.domain.model.dto.DetalleEgresoDTO;
 import com.walrex.module_almacen.domain.model.dto.OrdenEgresoDTO;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.ArticuloEntity;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.ArticuloAlmacenRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +30,7 @@ public abstract class BaseInventarioAdapter {
     /**
      * Busca información de conversión por artículo
      */
-    protected Mono<ArticuloEntity> buscarInfoConversion(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenEgreso) {
+    protected Mono<ArticuloInventory> buscarInfoConversion(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenEgreso) {
         // ✅ Validaciones
         if (detalle == null) {
             return Mono.error(new IllegalArgumentException("El detalle no puede ser null"));
@@ -68,7 +68,7 @@ public abstract class BaseInventarioAdapter {
     /**
      * Aplica conversión de unidades
      */
-    protected Mono<DetalleEgresoDTO> aplicarConversion(DetalleEgresoDTO detalle, ArticuloEntity infoConversion) {
+    protected Mono<DetalleEgresoDTO> aplicarConversion(DetalleEgresoDTO detalle, ArticuloInventory infoConversion) {
         if (detalle.getIdUnidad() == null) {
             String errorMsg = String.format("ID de unidad no puede ser null para el detalle %d del artículo %d",
                     detalle.getId(), detalle.getArticulo().getId());

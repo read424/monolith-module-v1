@@ -3,6 +3,7 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 import com.walrex.module_almacen.domain.model.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.ItemKardexDTOToKardexEntityMapper;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.KardexRepository;
 import io.r2dbc.spi.R2dbcException;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +42,7 @@ public class StandardKardexRegistrationStrategyTest {
     private Articulo articulo;
     private DetalleOrdenIngreso detalle;
     private DetailsIngresoEntity detalleEntity;
-    private ArticuloEntity articuloEntity;
+    private ArticuloInventory articuloEntity;
     private MotivoEntity motivoEntity;
     private AlmacenEntity almacenEntity;
 

@@ -3,7 +3,6 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 import com.walrex.module_almacen.application.ports.output.KardexRegistrationStrategy;
 import com.walrex.module_almacen.application.ports.output.OrdenSalidaLogisticaPort;
 import com.walrex.module_almacen.domain.model.Articulo;
-import com.walrex.module_almacen.domain.model.DetalleOrdenIngreso;
 import com.walrex.module_almacen.domain.model.dto.ItemKardexDTO;
 import com.walrex.module_almacen.domain.model.exceptions.StockInsuficienteException;
 import com.walrex.module_almacen.domain.model.dto.DetalleEgresoDTO;
@@ -13,6 +12,7 @@ import com.walrex.module_almacen.domain.model.mapper.DetEgresoLoteEntityToItemKa
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.DetailSalidaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenSalidaEntityMapper;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,8 +24,6 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.Date;
 
 @RequiredArgsConstructor
@@ -63,7 +61,7 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
 
         return ordenSalidaRepository.save(entity)
                 .map(savedEntity -> {
-                    ordenSalida.setId(savedEntity.getId_ordensalida());
+                    ordenSalida.setId(savedEntity.getId());
                     ordenSalida.setCodEgreso(savedEntity.getCod_salida());
                     return ordenSalida;
                 })
@@ -141,7 +139,7 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
     }
 
     // Método para buscar información de conversión por articulo
-    protected Mono<ArticuloEntity> buscarInfoConversion(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenEgreso) {
+    protected Mono<ArticuloInventory> buscarInfoConversion(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenEgreso) {
         // ✅ Validar que detalle no sea null
         if (detalle == null) {
             return Mono.error(new IllegalArgumentException("El detalle no puede ser null"));
@@ -196,11 +194,11 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
     /**
      * Actualiza la información del artículo en el detalle con datos de conversión
      */
-    private void actualizarInfoArticulo(DetalleEgresoDTO detalle, ArticuloEntity articuloInfo) {
+    private void actualizarInfoArticulo(DetalleEgresoDTO detalle, ArticuloInventory articuloInfo) {
         if (detalle.getArticulo() == null) {
             detalle.setArticulo(Articulo.builder().id(articuloInfo.getIdArticulo()).build());
         }
-        // ✅ Setear información de conversión desde ArticuloEntity
+        // ✅ Setear información de conversión desde ArticuloInventory
         Articulo articulo =detalle.getArticulo();
 
         articulo.setIdUnidad(articuloInfo.getIdUnidad());
@@ -212,7 +210,7 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
                 articulo.getStock(), articulo.getIdUnidad(), articulo.getValor_conv());
     }
 
-    private Mono<ArticuloEntity> validarStockDisponible(DetalleEgresoDTO detalle, ArticuloEntity articuloInfo){
+    private Mono<ArticuloInventory> validarStockDisponible(DetalleEgresoDTO detalle, ArticuloInventory articuloInfo){
         BigDecimal stockDisponible = detalle.getArticulo().getStock();
         BigDecimal cantidadSalidaSolicitada= BigDecimal.valueOf(detalle.getCantidad());
         if(stockDisponible==null){

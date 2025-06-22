@@ -45,6 +45,8 @@
 		<janino.version>3.1.12</janino.version>
 		<micrometer.version>1.13.5</micrometer.version>
 		<testcontainers.version>1.19.3</testcontainers.version>
+		<springwolf.version>1.5.0</springwolf.version>
+		<jackson-datatype.version>2.19.0</jackson-datatype.version>
 	</properties>
 	<repositories>
 		<repository>
@@ -77,6 +79,10 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-aop</artifactId>
 		</dependency>
 		<dependency>
@@ -87,6 +93,24 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+			<version>3.4.0</version>
+		</dependency>
+		<!--dependency>
+			<groupId>io.lettuce</groupId>
+			<artifactId>lettuce-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jsr310</artifactId>
+			<version>${jackson-datatype.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency-->
 		<!-- Logback y SLF4J -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -208,6 +232,30 @@
 			<artifactId>mapstruct</artifactId>
 			<version>${org.mapstruct.version}</version>
 		</dependency>
+		<!--documentacion-->
+		<!--dependency>
+			<groupId>io.github.springwolf</groupId>
+			<artifactId>springwolf-core</artifactId>
+			<version>${springwolf.version}</version>
+		</dependency-->
+		<!-- Para Kafka -->
+		<!--dependency>
+			<groupId>io.github.springwolf</groupId>
+			<artifactId>springwolf-kafka</artifactId>
+			<version>${springwolf.version}</version>
+		</dependency-->
+		<!-- Para RabbitMQ -->
+		<!--dependency>
+			<groupId>io.github.springwolf</groupId>
+			<artifactId>springwolf-amqp</artifactId>
+			<version>${springwolf.version}</version>
+		</dependency-->
+		<!-- UI Web (opcional pero recomendado) -->
+		<!--dependency>
+			<groupId>io.github.springwolf</groupId>
+			<artifactId>springwolf-ui</artifactId>
+			<version>${springwolf.version}</version>
+		</dependency-->
 		<!--Test-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

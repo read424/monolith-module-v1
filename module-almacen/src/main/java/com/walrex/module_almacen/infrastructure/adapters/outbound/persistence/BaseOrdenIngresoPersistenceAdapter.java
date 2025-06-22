@@ -4,11 +4,11 @@ import com.walrex.module_almacen.application.ports.output.OrdenIngresoLogisticaP
 import com.walrex.module_almacen.common.Exception.OrdenIngresoException;
 import com.walrex.module_almacen.domain.model.DetalleOrdenIngreso;
 import com.walrex.module_almacen.domain.model.OrdenIngreso;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.ArticuloEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetailsIngresoEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.OrdenIngresoEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.ArticuloIngresoLogisticaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenIngresoEntityMapper;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.*;
 import io.r2dbc.spi.R2dbcBadGrammarException;
 import io.r2dbc.spi.R2dbcDataIntegrityViolationException;
@@ -53,7 +53,7 @@ public abstract class BaseOrdenIngresoPersistenceAdapter implements OrdenIngreso
                 )
                 // ✅ AGREGAR: Buscar la entidad completa después del save
                 .flatMap(savedEntity ->
-                        ordenIngresoRepository.findById(savedEntity.getId_ordeningreso())
+                        ordenIngresoRepository.findById(savedEntity.getId())
                                 .doOnSuccess(refreshedEntity ->
                                         log.info("🔄 Información de orden refrescada: {}", refreshedEntity)
                                 )
@@ -84,7 +84,7 @@ public abstract class BaseOrdenIngresoPersistenceAdapter implements OrdenIngreso
     // Método para procesar detalles, que ahora delega en el método específico
     private Mono<OrdenIngreso> procesarDetalles(OrdenIngreso ordenIngreso, OrdenIngresoEntity savedEntity) {
         // Actualizar IDs en la orden
-        ordenIngreso.setId(savedEntity.getId_ordeningreso().intValue());
+        ordenIngreso.setId(savedEntity.getId().intValue());
         ordenIngreso.setCod_ingreso(savedEntity.getCod_ingreso());
 
         // Procesar cada detalle
@@ -114,7 +114,7 @@ public abstract class BaseOrdenIngresoPersistenceAdapter implements OrdenIngreso
     }
 
     // Método para buscar información de conversión
-    protected Mono<ArticuloEntity> buscarInfoConversion(DetalleOrdenIngreso detalle, OrdenIngreso ordenIngreso) {
+    protected Mono<ArticuloInventory> buscarInfoConversion(DetalleOrdenIngreso detalle, OrdenIngreso ordenIngreso) {
         return articuloRepository.getInfoConversionArticulo(
                     ordenIngreso.getAlmacen().getIdAlmacen(),
                     detalle.getArticulo().getId()
@@ -129,7 +129,7 @@ public abstract class BaseOrdenIngresoPersistenceAdapter implements OrdenIngreso
     }
 
     // Método para aplicar conversión
-    protected Mono<DetalleOrdenIngreso> aplicarConversion(DetalleOrdenIngreso detalle, ArticuloEntity infoConversion) {
+    protected Mono<DetalleOrdenIngreso> aplicarConversion(DetalleOrdenIngreso detalle, ArticuloInventory infoConversion) {
         if (!detalle.getIdUnidad().equals(infoConversion.getIdUnidadConsumo())) {
             detalle.setIdUnidadSalida(infoConversion.getIdUnidadConsumo());
             detalle.getArticulo().setIs_multiplo(infoConversion.getIsMultiplo());

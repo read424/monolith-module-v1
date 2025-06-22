@@ -36,7 +36,7 @@ public class OrdenIngresoPersistenceAdapter implements OrdenIngresoPersistencePo
 
     private OrdenIngresoDTO mapToDto(OrdenIngresoEntity entity) {
         return OrdenIngresoDTO.builder()
-                .id(entity.getId_ordeningreso())
+                .id(entity.getId())
                 .idMotivo(entity.getId_motivo())
                 .idAlmacen(entity.getId_almacen())
                 .observacion(entity.getObservacion())

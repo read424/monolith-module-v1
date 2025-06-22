@@ -47,7 +47,7 @@ public class IngresoAdapter implements RegistrarIngresoPort {
         return ordenIngresoRepository.agregarIngreso(idMotivo, observacion, fecha, idAlmacen)
                 .doOnSubscribe(s -> log.debug("Creando orden de ingreso en base de datos [transactionId={}]", transactionId))
                 .flatMap(result->{
-                    Long idOrdenIngreso = result.getId_ordeningreso();
+                    Long idOrdenIngreso = result.getId();
                     log.info("Orden de ingreso creada con ID: {} [transactionId={}]",
                             idOrdenIngreso, transactionId);
 

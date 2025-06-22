@@ -54,7 +54,7 @@ public class EgresoAdapter implements RegistrarEgresoPort {
         return ordenEgresoRepository.agregarOrdenSalida(idMotivo, idAlmacen, idUsuario, fecha, entregado)
             .doOnSubscribe(s -> log.debug("Creando orden de salida en base de datos. TransactionId: {}", transactionId))
             .flatMap(result -> {
-                Integer idOrdenSalida = result.getId_ordensalida().intValue();
+                Integer idOrdenSalida = result.getId().intValue();
                 log.info("Orden de egreso creada con ID: {}, transactionId: {}", idOrdenSalida, transactionId);
                 // Asignamos el ID de la orden a cada item
                 items.forEach(item -> item.setIdOrdenEgreso(idOrdenSalida.longValue()));
@@ -69,7 +69,7 @@ public class EgresoAdapter implements RegistrarEgresoPort {
                         //Convertimos el DTO a entidad
                         DetailSalidaEntity detalleEntity = detailSalidaMapper.toEntity(item);
 
-                        detalleEntity.setId_ordensalida(result.getId_ordensalida());
+                        detalleEntity.setId_ordensalida(result.getId());
                         detalleEntity.setEntregado(entregado);
                         detalleEntity.setStatus(1);
                         return registrarDetalleSalida(detalleEntity)

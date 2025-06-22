@@ -11,6 +11,7 @@ import com.walrex.module_almacen.domain.model.mapper.DetEgresoLoteEntityToItemKa
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.DetailSalidaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenSalidaEntityMapper;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -564,7 +565,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
                         .build())
                 .build();
 
-        ArticuloEntity infoConversion = ArticuloEntity.builder()
+        ArticuloInventory infoConversion = ArticuloInventory.builder()
                 .idUnidadConsumo(2)
                 .build();
 
@@ -584,7 +585,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
     @Test
     void deberiaBuscarInfoConversionExitosamente() {
 
-        ArticuloEntity infoConversion = ArticuloEntity.builder()
+        ArticuloInventory infoConversion = ArticuloInventory.builder()
                 .idArticulo(617)
                 .idUnidadConsumo(6)
                 .isMultiplo("1")
@@ -596,7 +597,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
                 .thenReturn(Mono.just(infoConversion));
 
         // When
-        Mono<ArticuloEntity> resultado = adapter.buscarInfoConversion(detalle, ordenSalida);
+        Mono<ArticuloInventory> resultado = adapter.buscarInfoConversion(detalle, ordenSalida);
 
         // Then
         StepVerifier.create(resultado)
@@ -613,7 +614,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
                 .thenReturn(Mono.empty()); // ✅ No se encuentra
 
         // When
-        Mono<ArticuloEntity> resultado = adapter.buscarInfoConversion(detalle, ordenSalida);
+        Mono<ArticuloInventory> resultado = adapter.buscarInfoConversion(detalle, ordenSalida);
 
         // Then
         StepVerifier.create(resultado)
@@ -629,7 +630,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
         // Given
         OrdenEgresoDTO orden = OrdenEgresoDTO.builder().build();
         // When
-        Mono<ArticuloEntity> resultado = adapter.buscarInfoConversion(null, orden);
+        Mono<ArticuloInventory> resultado = adapter.buscarInfoConversion(null, orden);
         // Then
         StepVerifier.create(resultado)
                 .expectErrorMatches(throwable ->
@@ -646,7 +647,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
         DetalleEgresoDTO detalle = DetalleEgresoDTO.builder().build();
 
         // When
-        Mono<ArticuloEntity> resultado = adapter.buscarInfoConversion(detalle, null);
+        Mono<ArticuloInventory> resultado = adapter.buscarInfoConversion(detalle, null);
 
         // Then
         StepVerifier.create(resultado)
@@ -669,7 +670,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
                 .build();
 
         // When
-        Mono<ArticuloEntity> resultado = adapter.buscarInfoConversion(detalle, orden);
+        Mono<ArticuloInventory> resultado = adapter.buscarInfoConversion(detalle, orden);
 
         // Then
         StepVerifier.create(resultado)
@@ -694,7 +695,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
                 .build();
 
         // When
-        Mono<ArticuloEntity> resultado = adapter.buscarInfoConversion(detalle, orden);
+        Mono<ArticuloInventory> resultado = adapter.buscarInfoConversion(detalle, orden);
 
         // Then
         StepVerifier.create(resultado)
@@ -717,7 +718,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
                 .build();
 
         // When
-        Mono<ArticuloEntity> resultado = adapter.buscarInfoConversion(detalle, orden);
+        Mono<ArticuloInventory> resultado = adapter.buscarInfoConversion(detalle, orden);
 
         // Then
         StepVerifier.create(resultado)
@@ -742,7 +743,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
                 .build();
 
         // When
-        Mono<ArticuloEntity> resultado = adapter.buscarInfoConversion(detalle, orden);
+        Mono<ArticuloInventory> resultado = adapter.buscarInfoConversion(detalle, orden);
 
         // Then
         StepVerifier.create(resultado)
@@ -768,7 +769,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
                 .thenReturn(Mono.error(new RuntimeException("Error de base de datos")));
 
         // When
-        Mono<ArticuloEntity> resultado = adapter.buscarInfoConversion(detalle, orden);
+        Mono<ArticuloInventory> resultado = adapter.buscarInfoConversion(detalle, orden);
 
         // Then
         StepVerifier.create(resultado)
@@ -803,7 +804,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
                 .thenReturn(Mono.just(detalleActualizado));
 
         // Mock de buscarInfoConversion
-        ArticuloEntity infoConversion = ArticuloEntity.builder()
+        ArticuloInventory infoConversion = ArticuloInventory.builder()
                 .idUnidadConsumo(6) // Unidad diferente para aplicar conversión
                 .isMultiplo("1")
                 .valorConv(3)

@@ -2,11 +2,11 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 
 import com.walrex.module_almacen.common.Exception.OrdenIngresoException;
 import com.walrex.module_almacen.domain.model.*;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.ArticuloEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetailsIngresoEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.OrdenIngresoEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.ArticuloIngresoLogisticaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenIngresoEntityMapper;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.ArticuloAlmacenRepository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.DetailsIngresoRepository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.OrdenIngresoRepository;
@@ -58,7 +58,7 @@ public class BaseOrdenIngresoPersistenceAdapterTest {
 
     private OrdenIngresoEntity ordenIngresoEntity;
     private DetailsIngresoEntity detalleEntity;
-    private ArticuloEntity articuloEntity;
+    private ArticuloInventory articuloEntity;
 
     // Orden de ingreso base para las pruebas
     private OrdenIngreso crearOrdenIngresoBase() {
@@ -147,7 +147,7 @@ public class BaseOrdenIngresoPersistenceAdapterTest {
                 .idMoneda(2)
                 .build();
 
-        articuloEntity = ArticuloEntity.builder()
+        articuloEntity = ArticuloInventory.builder()
                 .idArticulo(289)
                 .idUnidad(1)
                 .idUnidadConsumo(6)
@@ -369,7 +369,7 @@ public class BaseOrdenIngresoPersistenceAdapterTest {
                 .thenReturn(Mono.empty());
 
         // Invocar directamente el método privado
-        Mono<ArticuloEntity> resultado = adapter.testBuscarInfoConversion(detalle, ordenIngreso);
+        Mono<ArticuloInventory> resultado = adapter.testBuscarInfoConversion(detalle, ordenIngreso);
 
         // Act & Assert
         StepVerifier.create(resultado)
@@ -507,11 +507,11 @@ public class BaseOrdenIngresoPersistenceAdapterTest {
             return procesarDetalle(detalle, ordenIngreso);
         }
 
-        public Mono<ArticuloEntity> testBuscarInfoConversion(DetalleOrdenIngreso detalle, OrdenIngreso ordenIngreso) {
+        public Mono<ArticuloInventory> testBuscarInfoConversion(DetalleOrdenIngreso detalle, OrdenIngreso ordenIngreso) {
             return buscarInfoConversion(detalle, ordenIngreso);
         }
 
-        public Mono<DetalleOrdenIngreso> testAplicarConversion(DetalleOrdenIngreso detalle, ArticuloEntity infoConversion) {
+        public Mono<DetalleOrdenIngreso> testAplicarConversion(DetalleOrdenIngreso detalle, ArticuloInventory infoConversion) {
             return aplicarConversion(detalle, infoConversion);
         }
 

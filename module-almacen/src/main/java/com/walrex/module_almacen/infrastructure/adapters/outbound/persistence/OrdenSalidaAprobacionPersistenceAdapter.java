@@ -9,6 +9,7 @@ import com.walrex.module_almacen.domain.model.mapper.ArticuloRequerimientoToDeta
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.DetailSalidaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenSalidaEntityMapper;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -331,12 +332,12 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
     /**
      * Actualiza la información del artículo en el detalle con datos de conversión
      */
-    private void actualizarInfoArticulo(DetalleEgresoDTO detalle, ArticuloEntity articuloInfo) {
-        log.info("actualizarInfoArticulo: detalle {} -> articuloEntity: {} ", detalle, articuloInfo);
+    private void actualizarInfoArticulo(DetalleEgresoDTO detalle, ArticuloInventory articuloInfo) {
+        log.info("actualizarInfoArticulo: detalle {} -> articuloInventory: {} ", detalle, articuloInfo);
         if (detalle.getArticulo() == null) {
             detalle.setArticulo(Articulo.builder().id(articuloInfo.getIdArticulo()).build());
         }
-        // ✅ Setear información de conversión desde ArticuloEntity
+        // ✅ Setear información de conversión desde ArticuloInventory
         Articulo articulo =detalle.getArticulo();
 
         articulo.setIdUnidad(articuloInfo.getIdUnidad());
@@ -348,7 +349,7 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
                 articulo.getStock(), articulo.getIdUnidad(), articulo.getValor_conv());
     }
 
-    private Mono<ArticuloEntity> validarStockDisponible(DetalleEgresoDTO detalle, ArticuloEntity articuloInfo){
+    private Mono<ArticuloInventory> validarStockDisponible(DetalleEgresoDTO detalle, ArticuloInventory articuloInfo){
         BigDecimal stockDisponible = articuloInfo.getStock();
         BigDecimal cantidadSalidaSolicitada= BigDecimal.valueOf(detalle.getCantidad());
         if(stockDisponible==null){

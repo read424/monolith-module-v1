@@ -10,6 +10,7 @@ import com.walrex.module_almacen.domain.model.mapper.ArticuloRequerimientoToDeta
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.DetailSalidaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenSalidaEntityMapper;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -1232,7 +1233,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .entregado(0)
                 .build();
 
-        ArticuloEntity infoConversion = ArticuloEntity.builder()
+        ArticuloInventory infoConversion = ArticuloInventory.builder()
                 .idArticulo(200)
                 .idUnidadConsumo(6)
                 .stock(BigDecimal.valueOf(2000))
@@ -1312,7 +1313,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         lenient().when(detailSalidaMapper.toDto(any(DetailSalidaEntity.class)))
                 .thenReturn(DetalleEgresoDTO.builder().id(1L).build());
         lenient().when(articuloRepository.getInfoConversionArticulo(any(Integer.class), any(Integer.class)))
-                .thenReturn(Mono.just(ArticuloEntity.builder().build()));
+                .thenReturn(Mono.just(ArticuloInventory.builder().build()));
         lenient().when(detalleSalidaLoteRepository.findByIdDetalleOrden(any(Long.class)))
                 .thenReturn(Flux.empty());
 
@@ -1358,7 +1359,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         lenient().when(detailSalidaMapper.toDto(any(DetailSalidaEntity.class)))
                 .thenReturn(DetalleEgresoDTO.builder().id(1L).build());
         lenient().when(articuloRepository.getInfoConversionArticulo(any(Integer.class), any(Integer.class)))
-                .thenReturn(Mono.just(ArticuloEntity.builder().build()));
+                .thenReturn(Mono.just(ArticuloInventory.builder().build()));
         lenient().when(detalleSalidaLoteRepository.findByIdDetalleOrden(any(Long.class)))
                 .thenReturn(Flux.empty());
 
@@ -1409,7 +1410,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         lenient().when(detalleSalidaRepository.assignedDelivered(any(Integer.class)))
                 .thenReturn(Mono.just(DetailSalidaEntity.builder().build()));
         lenient().when(articuloRepository.getInfoConversionArticulo(any(Integer.class), any(Integer.class)))
-                .thenReturn(Mono.just(ArticuloEntity.builder().build()));
+                .thenReturn(Mono.just(ArticuloInventory.builder().build()));
         lenient().when(detalleSalidaLoteRepository.findByIdDetalleOrden(any(Long.class)))
                 .thenReturn(Flux.empty());
 
@@ -1462,7 +1463,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
 
         // ✅ Mocks lenient para métodos posteriores que pueden evaluarse
         lenient().when(articuloRepository.getInfoConversionArticulo(any(Integer.class), any(Integer.class)))
-                .thenReturn(Mono.just(ArticuloEntity.builder().build()));
+                .thenReturn(Mono.just(ArticuloInventory.builder().build()));
         lenient().when(detalleSalidaLoteRepository.findByIdDetalleOrden(any(Long.class)))
                 .thenReturn(Flux.empty());
         lenient().when(detalleInventoryRespository.getStockLote(any(Integer.class)))
@@ -1521,7 +1522,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .entregado(1)
                 .build();
 
-        ArticuloEntity infoConversion = ArticuloEntity.builder()
+        ArticuloInventory infoConversion = ArticuloInventory.builder()
                 .idArticulo(200)
                 .idUnidadConsumo(6)
                 .stock(BigDecimal.valueOf(-10)) // ✅ Stock negativo

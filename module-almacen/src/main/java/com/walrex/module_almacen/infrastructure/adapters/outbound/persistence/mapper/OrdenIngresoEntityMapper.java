@@ -14,7 +14,7 @@ import java.util.Date;
 public interface OrdenIngresoEntityMapper {
     OrdenIngresoEntityMapper INSTANCE = Mappers.getMapper(OrdenIngresoEntityMapper.class);
 
-    @Mapping(source = "id", target = "id_ordeningreso", qualifiedByName = "integerToLong")
+    @Mapping(source = "id", target = "id", qualifiedByName = "integerToLong")
     @Mapping(source = "idCliente", target = "id_cliente")
     @Mapping(source = "motivo.idMotivo", target = "id_motivo")
     @Mapping(source = "idOrigen", target = "id_origen")
@@ -30,7 +30,7 @@ public interface OrdenIngresoEntityMapper {
     OrdenIngresoEntity toEntity(OrdenIngreso ordenIngreso);
 
     @InheritInverseConfiguration(name = "toEntity")
-    @Mapping(source = "id_ordeningreso", target = "id", qualifiedByName = "longToInteger")
+    @Mapping(source = "id", target = "id", qualifiedByName = "longToInteger")
     @Mapping(source = "fec_ingreso", target = "fechaIngreso", qualifiedByName = "dateToLocalDate")
     @Mapping(source = "fec_referencia", target = "fechaComprobante", qualifiedByName = "dateToLocalDate")
     @Mapping(target = "almacen", expression = "java(buildAlmacen(entity.getId_almacen()))")
