@@ -1,16 +1,17 @@
 version: '3.9'
 name: walrex
 services:
-  app-monolito-module:
+  api-monolith:
     build:
       context: .
       dockerfile: Dockerfile
     image: read424/api-monolith-module:latest
-    container_name: spring-modular-app
+    container_name: api-monolith
     restart: always
     ports:
       - "8088:8088"
     environment:
+      SPRING_PROFILES_ACTIVE: docker
       KAFKA_BOOTSTRAP_SERVER_0: kafka-1:9092
       SCHEMA_REGISTRY_SERVER: schema-registry
       SCHEMA_REGISTRY_PORT: 8081
@@ -22,6 +23,7 @@ services:
       SECRET_KEY_JWT: l7kP8lgYRt/PyIh/tBDYlg4QWCLf2RSOJ8oLPNV6O34=
     volumes:
       - app_logs:/app/logs
+      - app_traces:/app/traces
     #healthcheck:
       #  test: ["CMD", "curl", "-f", "http://localhost:8088/actuator/health"]
       #  interval: 30s

@@ -59,6 +59,7 @@ WORKDIR /app
 RUN apk add --no-cache curl jq netcat-openbsd
 
 # Variables de entorno comunes
+ENV API_PORT=8088
 ENV JAVA_OPTS="-Xms512m -Xmx1024m"
 ENV SPRING_PROFILES_ACTIVE="prod"
 ENV KAFKA_BOOTSTRAP_SERVER_0="kafka-1:9092"
