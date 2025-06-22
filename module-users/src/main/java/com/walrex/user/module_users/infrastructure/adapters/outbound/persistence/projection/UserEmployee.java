@@ -1,15 +1,14 @@
-package com.walrex.user.module_users.infrastructure.adapters.outbound.persistence.entity;
+package com.walrex.user.module_users.infrastructure.adapters.outbound.persistence.projection;
 
-import lombok.*;
-import org.springframework.data.relational.core.mapping.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode
 @Builder
-@ToString
 public class UserEmployee {
     private Long id;
     private Long id_usuario;

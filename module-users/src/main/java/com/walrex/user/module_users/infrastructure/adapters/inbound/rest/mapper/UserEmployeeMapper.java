@@ -1,11 +1,9 @@
 package com.walrex.user.module_users.infrastructure.adapters.inbound.rest.mapper;
 
 import com.walrex.user.module_users.infrastructure.adapters.inbound.rest.dto.UserDetailsResponseDTO;
-import com.walrex.user.module_users.infrastructure.adapters.outbound.persistence.entity.UserEmployee;
 import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
+import com.walrex.user.module_users.infrastructure.adapters.outbound.persistence.projection.UserEmployee;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
