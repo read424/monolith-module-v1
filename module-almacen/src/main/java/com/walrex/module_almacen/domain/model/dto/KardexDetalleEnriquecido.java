@@ -15,6 +15,7 @@ public class KardexDetalleEnriquecido {
     private BigDecimal valorTotal;
     private LocalDate fechaMovimiento;
     private Integer idArticulo;
+    private String codArticulo;
     private String descArticulo;
     private Integer status;
     private Integer idUnidad;

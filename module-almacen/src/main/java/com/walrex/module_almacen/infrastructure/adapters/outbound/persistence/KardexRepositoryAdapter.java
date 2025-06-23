@@ -257,6 +257,7 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
 
         return KardexArticuloDTO.builder()
                 .idArticulo(idArticulo)
+                .codArticulo(detalles.get(0).getCodArticulo())
                 .descArticulo(detalles.get(0).getDescArticulo())
                 .precioAvg(precioPromedio)
                 .totalValorizado(totalValorizado)
@@ -306,7 +307,7 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
 
     private static final String BASE_QUERY_TEMPLATE = """
        SELECT k.id_kardex, k.tipo_kardex, k.detalle, k.cantidad, k.valor_unidad, k.valor_total
-       , k.fecha_movimiento,  k.id_articulo, art.desc_articulo, k.status
+       , k.fecha_movimiento,  k.id_articulo, art.cod_articulo, art.desc_articulo, k.status
        , k.id_unidad, unidad.abrev_unidad, unidad.desc_unidad
        , k.id_unidad_salida, unidad_salida.abrev_unidad AS abrev_salida, unidad_salida.desc_unidad AS desc_unidad_salida 
        , k.id_almacen, k.saldo_stock, k.saldo_lote, k.id_lote
