@@ -15,7 +15,8 @@ spring:
       port: ${PORT_REDIS}
       password: ${PASSWORD_REDIS}
       database: ${DB_REDIS}
-      timeout: 2000ms
+      timeout: 80000ms
+      connect-timeout: 8000ms
   cloud:
     gateway:
       enabled: true
