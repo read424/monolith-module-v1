@@ -26,6 +26,7 @@ public class KardexArticuloDTO {
     private BigDecimal precioAvg;
     private BigDecimal totalValorizado;
     private BigDecimal stockDisponible;
+    private BigDecimal totalCantidadSalida;
     private List<KardexDetalleDTO> detalles;
 
     @JsonPOJOBuilder(withPrefix = "")

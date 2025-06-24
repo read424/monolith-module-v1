@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConsultarKardexRequest {
-    @JsonProperty("id_arriculo")
+    @JsonProperty("id_articulo")
     private Integer idArticulo;
 
     @JsonProperty("id_almacen")

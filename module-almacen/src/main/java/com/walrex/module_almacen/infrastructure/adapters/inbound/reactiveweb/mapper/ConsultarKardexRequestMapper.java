@@ -13,12 +13,17 @@ public class ConsultarKardexRequestMapper {
     public ConsultarKardexRequest extractFromQuery(ServerRequest request) {
         ConsultarKardexRequest kardexRequest = new ConsultarKardexRequest();
 
-        /*
         kardexRequest.setIdArticulo(
-                Integer.valueOf(request.queryParam("id_articulo")
-                        .orElseThrow(() -> new IllegalArgumentException("id_articulo es requerido")))
+                request.queryParam("id_articulo")
+                        .map(value->{
+                            try {
+                                return Integer.valueOf(value);
+                            } catch (NumberFormatException e) {
+                                return null; // Si no puede parsear, devuelve null
+                            }
+                        })
+                        .orElse(null)
         );
-         */
 
         kardexRequest.setIdAlmacen(
                 Integer.valueOf(request.queryParam("id_almacen")

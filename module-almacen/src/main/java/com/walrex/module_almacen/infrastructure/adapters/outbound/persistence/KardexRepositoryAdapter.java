@@ -47,7 +47,6 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
 
     @Override
     public Mono<List<KardexArticuloDTO>> consultarMovimientosKardex(CriteriosBusquedaKardex criterios) {
-        log.info("🔍 Consultando movimientos kardex para: {}", criterios);
 
         return consultarKardexBase(criterios)
                 .flatMap(this::enriquecerRegistrosKardexOptimizado)
@@ -56,7 +55,6 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
 
     private Mono<List<KardexDetalleProjection>> consultarKardexBase(CriteriosBusquedaKardex criterios) {
         String query = buildDynamicQuery(criterios);
-        log.info("🔧 Query construido: {}", query);
 
         var spec = databaseClient.sql(query);
         spec = bindParameters(spec, criterios);
@@ -64,7 +62,9 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
         return spec.map((row, metadata) -> mapRowToProjection(row))
                 .all()
                 .collectList()
-                .doOnNext(results -> log.info("📊 {} registros encontrados", results.size()));
+                .doOnNext(results -> {
+                    log.info("📊 registros encontrados {} ", results.size());
+                });
     }
 
     /**
@@ -78,14 +78,8 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
         Map<Integer, LoteMovimientoIngreso> cacheLotes = new ConcurrentHashMap<>();
 
         return Flux.fromIterable(registrosKardex)
-                .doOnNext(kardex -> log.debug("🔍 Procesando: ID={}, Tipo={}, Doc={}, Lote={}",
-                        kardex.getIdKardex(), kardex.getTipoKardex(), kardex.getDetalle(), kardex.getIdLote()))
                 .flatMap(kardex -> enriquecerRegistroKardexConCache(kardex, cacheIngresos, cacheSalidas, cacheLotes))
-                .collectList()
-                .doOnNext(resultados -> {
-                    log.info("🚀 Enriquecimiento completado. Ingresos: {}, Salidas: {}, Lotes: {}",
-                            cacheIngresos.size(), cacheSalidas.size(), cacheLotes.size());
-                });
+                .collectList();
     }
 
     /**
@@ -99,32 +93,17 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
             ) {
 
         KardexDetalleEnriquecido enriquecido = kardexEnriquecidoMapper.toEnriquecido(kardex);
-
         return switch (kardex.getTipoKardex()) {
-            case 1 -> consultarIngresoConCache(kardex.getIdDocumento(), cacheIngresos)
+            case 1 -> consultarIngresoConCache(kardex.getIdLote(), cacheIngresos)
                     .doOnNext(detalle -> {
                         enriquecido.setCodigoDocumento(detalle.getCod_ingreso());
-                        enriquecido.setDescDocumentoIngreso(String.format(" %s %s", detalle.getNo_motivo(), detalle.getCod_ingreso()).toUpperCase());
-                        log.debug("🔍 item ingreso enriquecido: ID={}, Tipo={}, Detalle={}, Lote={}",
-                                enriquecido.getIdKardex(), enriquecido.getTipoKardex(), enriquecido.getDetalle(), enriquecido.getIdLote());
+                        enriquecido.setDescDocumentoIngreso(String.format(" %s %s", detalle.getNo_motivo(), detalle.getCod_ingreso()));
                     })
                     .thenReturn(enriquecido);
-
             case 2 -> consultarSalidaConCache(kardex.getIdDocumento(), cacheSalidas)
                     .flatMap(detalleEgreso->{
                         enriquecido.setCodigoDocumento(detalleEgreso.getCod_egreso());
-
-                        return consultarLoteIngresoConCache(kardex.getIdLote(), cacheLotes)
-                                .doOnNext(loteInfo->{
-                                    String descIngreso = String.format("%s %s",
-                                            loteInfo.getNo_motivo(),
-                                            loteInfo.getCod_ingreso()
-                                    ).toUpperCase();
-                                    enriquecido.setDescDocumentoIngreso(descIngreso);
-                                    log.debug("🔍 item salida enriquecido: ID={}, Tipo={}, Detalle={}, Lote={}",
-                                            enriquecido.getIdKardex(), enriquecido.getTipoKardex(), enriquecido.getDetalle(), enriquecido.getIdLote());
-                                })
-                                .thenReturn(enriquecido);
+                        return obtenerDescripcionLote(kardex.getIdLote(), cacheIngresos, cacheLotes, enriquecido);
                     })
                     .onErrorReturn(enriquecido);
             default -> {
@@ -144,7 +123,6 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
 
         // Si ya está en caché, devuelve directamente
         if (cache.containsKey(idLote)) {
-            log.debug("💾 Cache hit para id_lote ID: {}", idLote);
             return Mono.just(cache.get(idLote));
         }
 
@@ -154,21 +132,19 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
             LEFT OUTER JOIN almacenes.detordeningreso AS det_ing ON det_ing.id_detordeningreso=det_inv.id_detordeningreso 
             LEFT OUTER JOIN almacenes.ordeningreso AS ord_ing ON ord_ing.id_ordeningreso=det_ing.id_ordeningreso 
             LEFT OUTER JOIN almacenes.tbmotivos AS mot ON mot.id_motivo=ord_ing.id_motivo 
-            WHERE det_inv.id_loge=:idLote
+            WHERE det_inv.id_lote=:idLote
             """;
 
-        // Si no está en caché, consulta y almacena
-        log.debug("🔍 Cache miss para ingreso por IDLOTE: {}, consultando BD", idLote);
         return r2dbcTemplate.getDatabaseClient()
                 .sql(query)
                 .bind("idLote", idLote)
                 .map(row -> LoteMovimientoIngreso.builder()
-                        .id_lote(row.get("id_lote", Integer.class))
-                        .id_ordeningreso(row.get("id_ordeningreso", Integer.class))
-                        .id_detordeningreso(row.get("id_detordeningreso", Integer.class))
-                        .cod_ingreso(row.get("cod_ingreso", String.class))
-                        .no_motivo(row.get("no_motivo", String.class))
-                        .build())
+                            .id_lote(row.get("id_lote", Integer.class))
+                            .id_ordeningreso(row.get("id_ordeningreso", Integer.class))
+                            .id_detordeningreso(row.get("id_detordeningreso", Integer.class))
+                            .cod_ingreso(row.get("cod_ingreso", String.class))
+                            .no_motivo(row.get("no_motivo", String.class))
+                            .build())
                 .one()
                 .doOnNext(detalle -> cache.put(idLote, detalle));
     }
@@ -177,31 +153,34 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
      * Consulta detalle de ingreso con caché local
      */
     private Mono<DocMovimientoIngresoKardex> consultarIngresoConCache(
-            Integer idDocumento,
+            Integer idLote,
             Map<Integer, DocMovimientoIngresoKardex> cache) {
 
-        if (cache.containsKey(idDocumento)) {
-            return Mono.just(cache.get(idDocumento));
+        if (cache.containsKey(idLote)) {
+            return Mono.just(cache.get(idLote));
         }
 
         String query = """
-            SELECT ord_ing.id_ordeningreso, ord_ing.cod_ingreso, ord_ing.fec_ingreso, mot.no_motivo 
-            FROM almacenes.ordeningreso AS ord_ing 
-            LEFT OUTER JOIN almacenes.tbmotivos AS mot ON mot.id_motivo=ord_ing.id_motivo 
-            WHERE ord_ing.status=1 AND ord_ing.id_ordeningreso=:idOrdeningreso
+            SELECT det_inv.id_lote, ord_ing.id_ordeningreso, ord_ing.cod_ingreso, ord_ing.fec_ingreso, mot.no_motivo 
+            FROM almacenes.detalle_inventario AS det_inv
+            INNER JOIN almacenes.detordeningreso AS det_ing ON det_ing.id_detordeningreso=det_inv.id_detordeningreso AND det_ing.status=1
+            INNER JOIN almacenes.ordeningreso AS ord_ing ON ord_ing.id_ordeningreso=det_ing.id_ordeningreso AND ord_ing.status=1 AND ord_ing.condicion=1
+            LEFT OUTER JOIN almacenes.tbmotivos AS mot ON mot.id_motivo=ord_ing.id_motivo
+            WHERE det_inv.id_lote=:idLote
             """;
 
         return r2dbcTemplate.getDatabaseClient()
                 .sql(query)
-                .bind("idOrdeningreso", idDocumento)
+                .bind("idLote", idLote)
                 .map(row -> DocMovimientoIngresoKardex.builder()
+                        .id_lote(row.get("id_lote", Integer.class))
                         .id_ordeningreso(row.get("id_ordeningreso", Integer.class))
                         .cod_ingreso(row.get("cod_ingreso", String.class))
                         .fec_ingreso(row.get("fec_ingreso", LocalDate.class))
                         .no_motivo(row.get("no_motivo", String.class))
                         .build())
                 .one()
-                .doOnNext(detalle -> cache.put(idDocumento, detalle));
+                .doOnNext(detalle -> cache.put(idLote, detalle));
     }
 
     /**
@@ -213,18 +192,53 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
 
         // Si ya está en caché, devuelve directamente
         if (cache.containsKey(idDocumento)) {
-            log.debug("💾 Cache hit para salida ID: {}", idDocumento);
             return Mono.just(cache.get(idDocumento));
         }
+        String query = """
+        SELECT ord_sal.id_ordensalida, ord_sal.cod_salida, ord_sal.fec_entrega, mot.no_motivo
+        FROM almacenes.ordensalida AS ord_sal
+        LEFT OUTER JOIN almacenes.tbmotivosingresos AS motsal ON motsal.id_motivos_ingreso=ord_sal.id_motivo
+        LEFT OUTER JOIN almacenes.tbmotivos AS mot ON mot.id_motivo=motsal.id_motivo
+        WHERE ord_sal.status=1 AND ord_sal.id_ordensalida=:idOrdenSalida
+        """;
 
-        // Si no está en caché, consulta y almacena
-        log.debug("🔍 Cache miss para salida ID: {}, consultando BD", idDocumento);
-        return ordenSalidaRepository.detalleDocumentoEgreso(idDocumento)
+        return r2dbcTemplate.getDatabaseClient()
+                .sql(query)
+                .bind("idOrdenSalida", idDocumento)
+                .map(row -> DocumentoMovimientoEgresoKardex.builder()
+                            .id_ordensalida(idDocumento)
+                            .cod_egreso(row.get("cod_salida", String.class))
+                            .fec_egreso(row.get("fec_entrega", LocalDate.class))
+                            .no_motivo(row.get("no_motivo", String.class))
+                            .build()
+                )
+                .one()
                 .doOnNext(detalle -> cache.put(idDocumento, detalle))
-                .doOnError(error -> log.error("❌ Error consultando salida ID: {}", idDocumento, error));
+                .switchIfEmpty(Mono.error(new RuntimeException("Documento salida no encontrado: " + idDocumento)));
+    }
+
+    private Mono<KardexDetalleEnriquecido> obtenerDescripcionLote(
+            Integer idLote,
+            Map<Integer, DocMovimientoIngresoKardex> cacheIngresos,
+            Map<Integer, LoteMovimientoIngreso> cacheLotes,
+            KardexDetalleEnriquecido enriquecido) {
+        if (cacheIngresos.containsKey(idLote)) {
+            DocMovimientoIngresoKardex loteInfo = cacheIngresos.get(idLote);
+            String descIngreso = String.format("%s %s", loteInfo.getNo_motivo(), loteInfo.getCod_ingreso()).toUpperCase();
+            enriquecido.setDescDocumentoIngreso(descIngreso);
+            return Mono.just(enriquecido);
+        } else {
+            return consultarLoteIngresoConCache(idLote, cacheLotes)
+                    .doOnNext(loteInfo -> {
+                        String descIngreso = String.format("%s %s", loteInfo.getNo_motivo(), loteInfo.getCod_ingreso()).toUpperCase();
+                        enriquecido.setDescDocumentoIngreso(descIngreso);
+                    })
+                    .thenReturn(enriquecido);
+        }
     }
 
     private List<KardexArticuloDTO> agruparPorArticulo(List<KardexDetalleEnriquecido> detallesEnriquecidos) {
+
         return detallesEnriquecidos.stream()
                 .collect(Collectors.groupingBy(KardexDetalleEnriquecido::getIdArticulo))
                 .entrySet().stream()
@@ -233,23 +247,17 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
     }
 
     private KardexArticuloDTO construirReporteArticulo(Integer idArticulo, List<KardexDetalleEnriquecido> detalles) {
+        // 📊 PRECIO PROMEDIO SOLO DE SALIDAS (tipo_kardex = 2)
+        BigDecimal precioPromedio = calcularPrecioPromedioSalidas(detalles);
 
-        // 1. precioAvg: suma de precios / cantidad de items
-        BigDecimal precioPromedio = detalles.stream()
-                .map(KardexDetalleEnriquecido::getValorUnidad)
-                .filter(Objects::nonNull)
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .divide(BigDecimal.valueOf(detalles.size()), RoundingMode.HALF_UP);
+        // 📦 TOTAL CANTIDAD DE SALIDAS
+        BigDecimal totalCantidadSalida = calcularTotalCantidadSalidas(detalles);
 
-        // 2. totalValorizado: type_kardex 1 suma, type_kardex 2 resta
-        BigDecimal totalValorizado = detalles.stream()
-                .map(detalle->{
-                    BigDecimal valor = detalle.getValorTotal();
-                    return detalle.getTipoKardex()==1? valor: valor.negate();
-                })
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal stockDisponible = detalles.getLast().getSaldoStock();
 
-        BigDecimal stockDisponible = detalles.get(detalles.size()-1).getSaldoStock();
+        // 💰 TOTAL VALORIZADO = Precio Promedio × Stock Disponible
+        BigDecimal totalValorizado = precioPromedio.multiply(stockDisponible);
+        log.debug("💰 Total valorizado: {} × {} = {}", precioPromedio, stockDisponible, totalValorizado);
 
         List<KardexDetalleDTO> detallesReporte = detalles.stream()
                 .map(kardexDetalleMapper::toDTO)
@@ -257,13 +265,54 @@ public class KardexRepositoryAdapter implements KardexRepositoryPort {
 
         return KardexArticuloDTO.builder()
                 .idArticulo(idArticulo)
-                .codArticulo(detalles.get(0).getCodArticulo())
-                .descArticulo(detalles.get(0).getDescArticulo())
+                .codArticulo(detalles.getFirst().getCodArticulo())
+                .descArticulo(detalles.getFirst().getDescArticulo())
                 .precioAvg(precioPromedio)
                 .totalValorizado(totalValorizado)
                 .stockDisponible(stockDisponible)
+                .totalCantidadSalida(totalCantidadSalida)
                 .detalles(detallesReporte)
                 .build();
+    }
+
+    private BigDecimal calcularPrecioPromedioSalidas(List<KardexDetalleEnriquecido> detalles) {
+        log.debug("📊 === CALCULANDO PRECIO PROMEDIO SOLO SALIDAS ===");
+
+        List<BigDecimal> preciosSalidas = detalles.stream()
+                .filter(detalle -> detalle.getTipoKardex() == 2) // Solo salidas
+                .map(KardexDetalleEnriquecido::getValorUnidad)
+                .filter(Objects::nonNull)
+                .filter(precio -> precio.compareTo(BigDecimal.ZERO) > 0) // Solo precios > 0
+                .collect(Collectors.toList());
+
+        log.debug("📊 Precios de salidas: {}", preciosSalidas);
+        log.debug("📊 Cantidad de salidas para promedio: {}", preciosSalidas.size());
+
+        if (preciosSalidas.isEmpty()) {
+            log.warn("📊 No hay precios de salidas válidos para promediar");
+            return BigDecimal.ZERO;
+        }
+
+        BigDecimal suma = preciosSalidas.stream()
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal promedio = suma.divide(BigDecimal.valueOf(preciosSalidas.size()), 6, RoundingMode.HALF_UP);
+        log.debug("📊 Precio promedio salidas: {}", promedio);
+
+        return promedio;
+    }
+
+    private BigDecimal calcularTotalCantidadSalidas(List<KardexDetalleEnriquecido> detalles) {
+        log.debug("📦 === CALCULANDO TOTAL CANTIDAD SALIDAS ===");
+
+        BigDecimal totalCantidad = detalles.stream()
+                .filter(detalle -> detalle.getTipoKardex() == 2) // Solo salidas
+                .map(KardexDetalleEnriquecido::getCantidad)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        log.debug("📦 Total cantidad salidas: {}", totalCantidad);
+        return totalCantidad;
     }
 
     private KardexDetalleProjection mapRowToProjection(Row row) {
