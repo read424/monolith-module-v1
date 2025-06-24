@@ -68,14 +68,28 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
                         try{
                             // Extraer datos del claim 'data'
                             Map<String, Object> data = jwt.getClaimAsMap("data");
+                            if (data != null) {
+                                log.info("🎫 === CAMPOS INDIVIDUALES ===");
+                                data.forEach((key, value) -> {
+                                    log.info("🎫 Key: '{}', Value: '{}', Class: {}",
+                                            key, value, value != null ? value.getClass().getSimpleName() : "NULL");
+                                });
+                            }
+
                             String userId = getClaimAsString(data, "id");
                             String username = (String) data.get("username");
                             String idRol = getClaimAsString(data, "idrol");
                             String empleado = (String) data.get("apenom_employee");
+                            @SuppressWarnings("unchecked")
                             String role = (String) data.get("role");
 
-                            @SuppressWarnings("unchecked")
-                            List<String> permissions = (List<String>) data.get("permission");
+                            List<String> permissions = null;
+                            Object permissionsObj = data.get("permission");
+                            if(permissionsObj instanceof List){
+                                @SuppressWarnings("unchecked")
+                                List<String> permissionsList = (List<String>) permissionsObj;
+                                permissions=permissionsList;
+                            }
                             // Validar campos requeridos
                             if (userId == null || username == null) {
                                 log.error("Claims requeridos faltantes en JWT");
