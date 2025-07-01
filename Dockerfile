@@ -58,20 +58,6 @@ WORKDIR /app
 # Instalar herramientas de monitorización y depuración
 RUN apk add --no-cache curl jq netcat-openbsd
 
-# Variables de entorno comunes
-ENV API_PORT=8088
-ENV JAVA_OPTS="-Xms512m -Xmx1024m"
-ENV SPRING_PROFILES_ACTIVE="prod"
-ENV KAFKA_BOOTSTRAP_SERVER_0="kafka-1:9092"
-ENV SCHEMA_REGISTRY_SERVER="schema-registry"
-ENV SCHEMA_REGISTRY_PORT=8081
-ENV DB_HOST="127.0.0.1"
-ENV DB_PORT="5432"
-ENV DB_NAME="erp_tlm_2021"
-ENV DB_USER="postgres"
-ENV DB_PASSWORD=12345
-ENV SECRET_KEY_JWT="l7kP8lgYRt/PyIh/tBDYlg4QWCLf2RSOJ8oLPNV6O34="
-
 # Crear usuario no privilegiado para ejecutar la aplicación
 RUN addgroup -g ${GROUP_ID} -S appgroup && \
     adduser -u ${USER_ID} -S appuser -G appgroup && \
