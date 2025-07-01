@@ -1,0 +1,1 @@
+INSERT INTO seguridad.win_sistemas (idwin_state, no_state, type_state, id_parent_win) VALUES (902, 'dashboard.despacho.devoluciones', 0, 43) ON CONFLICT ON CONSTRAINT win_sistemas_pkey DO NOTHING;
