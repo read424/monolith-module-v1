@@ -1,13 +1,10 @@
 package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.time.LocalDate;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.*;
 
 @Data
 @Builder
