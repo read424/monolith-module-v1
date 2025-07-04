@@ -19,8 +19,8 @@ public class ConsultarRollosDisponiblesRequestMapper {
         var queryParams = request.queryParams();
 
         return ConsultarRollosDisponiblesRequest.builder()
-                .idCliente(extraerParametroInteger(queryParams.getFirst("idCliente")))
-                .idArticulo(extraerParametroInteger(queryParams.getFirst("idArticulo")))
+                .idCliente(extraerParametroInteger(queryParams.getFirst("id_cliente")))
+                .idArticulo(extraerParametroInteger(queryParams.getFirst("id_articulo")))
                 .build();
     }
 

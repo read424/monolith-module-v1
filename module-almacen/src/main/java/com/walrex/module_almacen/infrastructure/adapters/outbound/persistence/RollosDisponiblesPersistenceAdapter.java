@@ -13,7 +13,6 @@ import reactor.core.publisher.Flux;
 
 /**
  * Adapter de persistencia para consultar rollos disponibles para devolución
- * Implementa el patrón Repository Pattern en la capa de infraestructura
  */
 @Component
 @RequiredArgsConstructor

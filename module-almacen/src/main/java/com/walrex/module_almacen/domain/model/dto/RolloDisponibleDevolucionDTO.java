@@ -13,9 +13,9 @@ import lombok.Data;
 @Builder
 public class RolloDisponibleDevolucionDTO {
     // Datos del rollo de ingreso
-    private Integer idDetordeningresopeso;
-    private Integer idDetordeningreso;
     private Integer idOrdeningreso;
+    private Integer idDetordeningreso;
+    private Integer idDetordeningresopeso;
     private String codigoOrdenIngreso;
     private LocalDate fechaIngreso;
     private String numComprobante;
@@ -26,18 +26,23 @@ public class RolloDisponibleDevolucionDTO {
 
     // Datos del rollo
     private String codRollo;
+    private Double pesoRollo;
 
     // Datos del rollo en almacén
+    private Integer idOrdeningresoAlmacen;
+    private Integer idDetordeningresoAlmacen;
+    private Integer idDetordeningresopesoAlmacen;
     private Integer statusRolloAlmacen;
-
-    // Datos de partida
-    private Integer idDetallePartida;
-    private Integer idPartida;
-    private String codPartida;
-    private Integer statusRollPartida;
 
     // Datos del almacén
     private String codIngresoAlmacen;
     private Integer idIngresoAlmacen;
     private String noAlmacen;
+
+    // Datos de partida
+    private Integer idPartida;
+    private String codPartida;
+    private String sinCobro;
+    private Integer idDetallePartida;
+    private Integer statusRollPartida;
 }

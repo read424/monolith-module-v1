@@ -14,9 +14,9 @@ import lombok.*;
 @AllArgsConstructor
 public class RolloDisponibleDevolucionProjection {
     // Datos del rollo de ingreso
-    private Integer idDetordeningresopeso;
-    private Integer idDetordeningreso;
     private Integer idOrdeningreso;
+    private Integer idDetordeningreso;
+    private Integer idDetordeningresopeso;
     private String codIngreso;
     private LocalDate fechaIngreso;
     private String nuComprobante;
@@ -27,18 +27,23 @@ public class RolloDisponibleDevolucionProjection {
 
     // Datos del rollo
     private String codRollo;
+    private Double pesoRollo;
 
     // Datos del rollo en almacén
+    private Integer idOrdeningresoAlmacen;
+    private Integer idDetordeningresoAlmacen;
+    private Integer idDetordeningresopesoAlmacen;
     private Integer statusAlmacen;
-
-    // Datos de partida
-    private Integer idDetPartida;
-    private Integer idPartida;
-    private String codPartida;
-    private Integer statusRollPartida;
 
     // Datos del almacén
     private String codIngresoAlmacen;
     private Integer idAlmacen;
     private String noAlmacen;
+
+    // Datos de partida
+    private Integer idPartida;
+    private String codPartida;
+    private Integer sinCobro;
+    private Integer idDetPartida;
+    private Integer statusRollPartida;
 }
