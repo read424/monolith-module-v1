@@ -36,6 +36,7 @@ public interface DetalleRolloRepository extends ReactiveCrudRepository<DetalleRo
                          CASE WHEN COALESCE(tp.type_reprocess, 1) = 1 THEN 'RT' ELSE 'RA' END ||
                          tp.num_reproceso::varchar
                 END AS cod_partida,
+                COALESCE(tp.sin_cobro, '0') AS sin_cobro,
                 tdp.status AS status_roll_partida,
                 o2.cod_ingreso AS cod_ingreso_almacen,
                 o2.id_almacen,
