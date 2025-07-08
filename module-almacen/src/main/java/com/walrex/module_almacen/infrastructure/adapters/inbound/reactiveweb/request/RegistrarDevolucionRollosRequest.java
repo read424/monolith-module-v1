@@ -1,5 +1,6 @@
 package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.request;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import jakarta.validation.Valid;
@@ -16,14 +17,14 @@ import lombok.*;
 @AllArgsConstructor
 public class RegistrarDevolucionRollosRequest {
 
+    @NotNull(message = "El ID del cliente es obligatorio")
+    private Integer idCliente;
+
     @NotNull(message = "El ID del motivo es obligatorio")
     private Integer idMotivo;
 
-    @NotNull(message = "El ID del almacén destino es obligatorio")
-    private Integer idAlmacenDestino;
-
-    @NotNull(message = "El ID del cliente es obligatorio")
-    private Integer idCliente;
+    @NotNull(message = "La fecha de devolución es obligatoria")
+    private LocalDate fechaDevolucion;
 
     private String observacion;
 

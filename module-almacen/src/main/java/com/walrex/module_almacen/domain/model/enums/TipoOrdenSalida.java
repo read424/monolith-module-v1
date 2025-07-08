@@ -6,5 +6,6 @@ public enum TipoOrdenSalida {
     TRANSFORMACION,
     APPROVE_DELIVERY,
     APPROVE_MOVEMENT,
+    DEVOLUCION_ROLLOS,
     OTRO_TIPO
 }

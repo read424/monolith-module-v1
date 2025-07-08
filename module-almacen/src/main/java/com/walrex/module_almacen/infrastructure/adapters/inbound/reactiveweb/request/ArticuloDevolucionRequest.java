@@ -15,8 +15,8 @@ public class ArticuloDevolucionRequest {
     @NotNull(message = "El ID del articulo es obligatorio")
     private Integer idArticulo;
 
-    @NotNull(message = "El ID de la unidad es obligatorio")
-    private Integer idUnidad;
+    @NotNull(message = "Cantidad es obligatorio")
+    private Integer cantidad;
 
     @NotNull(message = "El total de peso es obligatorio")
     private Double totalPeso;

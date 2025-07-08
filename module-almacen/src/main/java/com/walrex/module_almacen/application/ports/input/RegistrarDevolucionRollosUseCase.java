@@ -1,6 +1,6 @@
 package com.walrex.module_almacen.application.ports.input;
 
-import com.walrex.module_almacen.domain.model.dto.DevolucionRollosDTO;
+import com.walrex.module_almacen.domain.model.dto.SalidaDevolucionDTO;
 
 import reactor.core.publisher.Mono;
 
@@ -22,5 +22,5 @@ public interface RegistrarDevolucionRollosUseCase {
      * @param idUsuario        ID del usuario que realiza la devolución
      * @return Mono con el resultado de la operación
      */
-    Mono<DevolucionRollosDTO> registrarDevolucionRollos(DevolucionRollosDTO devolucionRollos, Integer idUsuario);
+    Mono<SalidaDevolucionDTO> registrarDevolucionRollos(SalidaDevolucionDTO devolucionRollos, Integer idUsuario);
 }

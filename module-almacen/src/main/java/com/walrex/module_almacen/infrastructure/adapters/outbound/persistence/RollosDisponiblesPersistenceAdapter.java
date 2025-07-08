@@ -28,8 +28,31 @@ public class RollosDisponiblesPersistenceAdapter implements ConsultarRollosDispo
 
         return detalleRolloRepository.buscarRollosDisponiblesParaDevolucion(idCliente, idArticulo)
                 .map(rolloMapper::projectionToDto)
-                .doOnNext(rollo -> log.debug("✅ Rollo disponible encontrado en BD: {}", rollo.getCodRollo()))
+                .filter(this::esAlmacenPermitidoParaDevolucion)
+                .doOnNext(rollo -> log.debug("✅ Rollo disponible encontrado en BD (almacén permitido): {} - Almacén: {}", 
+                    rollo.getCodRollo(), rollo.getIdIngresoAlmacen()))
                 .doOnError(error -> log.error("❌ Error al consultar rollos disponibles en BD: {}", error.getMessage()))
                 .onErrorMap(throwable -> new RuntimeException("Error al consultar rollos disponibles", throwable));
+    }
+
+    /**
+     * Valida si el rollo pertenece a un almacén permitido para devolución
+     * Almacenes permitidos: 2 (Tela Cruda), 10 (Almacén de Devolución), 32 (Almacén de Preparado)
+     */
+    private boolean esAlmacenPermitidoParaDevolucion(RolloDisponibleDevolucionDTO rollo) {
+        if (rollo.getIdIngresoAlmacen() == null) {
+            log.warn("⚠️ Rollo {} sin ID de almacén, se excluye de devolución", rollo.getCodRollo());
+            return false;
+        }
+
+        Integer idAlmacen = rollo.getIdIngresoAlmacen();
+        boolean esPermitido = idAlmacen.equals(2) || idAlmacen.equals(10) || idAlmacen.equals(32);
+
+        if (!esPermitido) {
+            log.debug("🚫 Rollo {} del almacén {} no está permitido para devolución", 
+                rollo.getCodRollo(), idAlmacen);
+        }
+
+        return esPermitido;
     }
 }

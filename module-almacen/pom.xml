@@ -233,6 +233,12 @@
 			<version>${org.mapstruct.version}</version>
 		</dependency>
 		<!--documentacion-->
+		<!-- OpenAPI/Swagger para WebFlux -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-webflux-ui</artifactId>
+			<version>1.8.0</version>
+		</dependency>		
 		<!--dependency>
 			<groupId>io.github.springwolf</groupId>
 			<artifactId>springwolf-core</artifactId>
@@ -276,6 +282,12 @@
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
 			<version>3.27.3</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.tngtech.archunit</groupId>
+			<artifactId>archunit-junit5</artifactId>
+			<version>1.2.1</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- Dependencias TestContainers -->

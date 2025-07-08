@@ -1,0 +1,1 @@
+INSERT INTO almacenes.tbmotivosingresos (id_motivos_ingreso, id_motivo, id_tipo_almacen, id_tipo_movimiento, isoc, status) VALUES (37, 33, 5, 2, 0, 1) ON CONFLICT ON CONSTRAINT tbmotivosalmacen_pkey DO NOTHING;

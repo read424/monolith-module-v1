@@ -16,6 +16,7 @@ public interface RolloDisponibleDevolucionMapper {
 
     /**
      * Convierte una projection de persistencia a DTO de dominio
+     * Aplica validaciones para evitar duplicación de IDs
      */
     @Mapping(source = "codIngreso", target = "codigoOrdenIngreso")
     @Mapping(source = "nuComprobante", target = "numComprobante")
@@ -24,4 +25,37 @@ public interface RolloDisponibleDevolucionMapper {
     @Mapping(source = "idAlmacen", target = "idIngresoAlmacen")
     @Mapping(source = "idDetPartida", target = "idDetallePartida")
     RolloDisponibleDevolucionDTO projectionToDto(RolloDisponibleDevolucionProjection projection);
+
+    /**
+     * Post-procesamiento para aplicar validaciones de campos duplicados
+     * Si los IDs del almacén son iguales a los IDs originales, se setean a NULL
+     */
+    @AfterMapping
+    default void aplicarValidacionCamposDuplicados(@MappingTarget RolloDisponibleDevolucionDTO dto, 
+                                                   RolloDisponibleDevolucionProjection projection) {
+        if (dto == null) {
+            return;
+        }
+
+        // Si id_ordeningreso_almacen == id_ordeningreso, setear id_ordeningreso_almacen a NULL
+        if (dto.getIdOrdeningresoAlmacen() != null && 
+            dto.getIdOrdeningreso() != null && 
+            dto.getIdOrdeningresoAlmacen().equals(dto.getIdOrdeningreso())) {
+            dto.setIdOrdeningresoAlmacen(null);
+        }
+
+        // Si id_detordeningreso_almacen == id_detordeningreso, setear id_detordeningreso_almacen a NULL
+        if (dto.getIdDetordeningresoAlmacen() != null && 
+            dto.getIdDetordeningreso() != null && 
+            dto.getIdDetordeningresoAlmacen().equals(dto.getIdDetordeningreso())) {
+            dto.setIdDetordeningresoAlmacen(null);
+        }
+
+        // Si id_detordeningresopeso_almacen == id_detordeningresopeso, setear id_detordeningresopeso_almacen a NULL
+        if (dto.getIdDetordeningresopesoAlmacen() != null && 
+            dto.getIdDetordeningresopeso() != null && 
+            dto.getIdDetordeningresopesoAlmacen().equals(dto.getIdDetordeningresopeso())) {
+            dto.setIdDetordeningresopesoAlmacen(null);
+        }
+    }
 }

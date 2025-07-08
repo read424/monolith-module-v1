@@ -14,15 +14,17 @@ import lombok.*;
 @AllArgsConstructor
 public class RolloDevolucionRequest {
 
-    @NotBlank(message = "El código del rollo es obligatorio")
-    private String codRollo;
+    @NotNull(message = "El ID Orden de Ingreso es obligatorio")
+    private Integer idOrdenIngreso;
 
-    @NotNull(message = "El peso del rollo es obligatorio")
-    @Positive(message = "El peso del rollo debe ser positivo")
-    private BigDecimal pesoRollo;
+    @NotNull(message = "El ID Detalle de Orden de Ingreso es obligatorio")
+    private Integer idDetOrdenIngreso;
 
-    @NotNull(message = "El ID del rollo de ingreso es obligatorio")
-    private Integer idRolloIngreso;
+    @NotNull(message = "El ID Detalle de Orden de Ingreso Peso es obligatorio")
+    private Integer idDetOrdenIngresoPeso;
+
+    @NotNull(message = "El Status de Rollo en Orden de Ingreso es obligatorio")
+    private Integer statusRolloIngreso;
 
     @NotNull(message = "El ID de partida es obligatorio")
     private Integer idPartida;
@@ -30,19 +32,27 @@ public class RolloDevolucionRequest {
     @NotNull(message = "El ID de detalle de partida es obligatorio")
     private Integer idDetPartida;
 
-    @NotNull(message = "El campo isCobro de partida es obligatorio")
-    private String isCobro;
+    @NotNull(message = "El campo sinCobro de partida es obligatorio")
+    private String sinCobro;
 
-    @NotNull(message = "El campo Status de partida es obligatorio")
-    private String statusPartida;
+    @NotNull(message = "El Status de Rollo en partida es obligatorio")
+    private String statusRolloPartida;
 
-    private Integer idOrdenIngreso;
+    @NotBlank(message = "El código del rollo es obligatorio")
+    private String codRollo;
 
-    private Integer idDetOrdenIngreso;
+    @NotNull(message = "El peso del rollo es obligatorio")
+    @Positive(message = "El peso del rollo debe ser positivo")
+    private BigDecimal peso;
 
-    private Integer idDetOrdenIngresoPeso;
+    @NotNull(message = "El ID Orden de Ingreso Almacen es obligatorio")
+    private Integer idOrdeningresoAlmacen;
 
-    private Integer idAlmacen;
+    @NotNull(message = "El ID Detalle Orden de Ingreso Almacen es obligatorio")
+    private Integer idDetordeningresoAlmacen;
 
-    private String statusAlmacen;
+    @NotNull(message = "El ID Detalle Peso Orden de Ingreso Almacen es obligatorio")
+    private String idDetordeningresopesoAlmacen;
+
+    private Boolean selected;
 }

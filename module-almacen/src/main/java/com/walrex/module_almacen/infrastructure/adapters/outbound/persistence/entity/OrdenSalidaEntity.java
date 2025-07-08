@@ -1,14 +1,12 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity;
 
-import lombok.*;
+import java.time.*;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.util.Date;
+import lombok.*;
 
 @Data
 @Builder

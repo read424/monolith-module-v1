@@ -8,6 +8,7 @@ import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.en
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.RolloDisponibleDevolucionProjection;
 
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Repository
 public interface DetalleRolloRepository extends ReactiveCrudRepository<DetalleRolloEntity, Integer> {
@@ -57,4 +58,7 @@ public interface DetalleRolloRepository extends ReactiveCrudRepository<DetalleRo
     Flux<RolloDisponibleDevolucionProjection> buscarRollosDisponiblesParaDevolucion(
             Integer idCliente,
             Integer idArticulo);
+
+    @Query("UPDATE almacenes.detordeningresopeso SET status = 2 WHERE id_detordeningresopeso = :idDetOrdenIngresoPeso AND status = 1")
+    Mono<DetalleRolloEntity> assignedStatusPorDespachar(Integer idDetOrdenIngresoPeso);
 }
