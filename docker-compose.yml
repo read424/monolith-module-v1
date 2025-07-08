@@ -37,6 +37,23 @@ services:
       - walrex-network-app
       - postgres-network
 
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+      - SONARQUBE_JDBC_USERNAME=sonar
+      - SONARQUBE_JDBC_PASSWORD=sonar
+      - SONARQUBE_JDBC_URL=jdbc:postgresql://127.0.0.1:5432/sonar
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    networks:
+      - walrex-network-app
+      - postgres-network
+
 networks:
   walrex-network-app:
     external: true
@@ -47,4 +64,6 @@ networks:
 
 volumes:
   app_logs:
-
+  app_traces:
+  sonarqube_data:
+  sonarqube_extensions:
