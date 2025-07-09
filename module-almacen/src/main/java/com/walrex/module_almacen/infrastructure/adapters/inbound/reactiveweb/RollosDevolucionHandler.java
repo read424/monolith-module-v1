@@ -111,16 +111,28 @@ public class RollosDevolucionHandler {
         private Mono<ServerResponse> manejarErrores(Throwable error) {
                 log.error("❌ Error al consultar rollos disponibles: {}", error.getMessage(), error);
 
+                HttpStatus status;
+                String mensaje;
+
+                // Manejo específico para errores de validación
+                if (error instanceof ServerWebInputException) {
+                        status = HttpStatus.BAD_REQUEST;
+                        mensaje = error.getMessage();
+                        log.info("🔍 Error de validación detectado: {}", mensaje);
+                } else if (error instanceof IllegalArgumentException) {
+                        status = HttpStatus.BAD_REQUEST;
+                        mensaje = error.getMessage();
+                } else {
+                        status = HttpStatus.INTERNAL_SERVER_ERROR;
+                        mensaje = "Error interno del servidor: " + error.getMessage();
+                }
+
                 var response = ConsultarRollosDisponiblesResponse.builder()
                                 .rollosDisponibles(java.util.List.of())
                                 .totalRollos(0)
                                 .success(false)
-                                .mensaje("Error al consultar rollos disponibles: " + error.getMessage())
+                                .mensaje(mensaje)
                                 .build();
-
-                HttpStatus status = error instanceof IllegalArgumentException
-                                ? HttpStatus.BAD_REQUEST
-                                : HttpStatus.INTERNAL_SERVER_ERROR;
 
                 return ServerResponse.status(status)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -130,15 +142,28 @@ public class RollosDevolucionHandler {
         private Mono<ServerResponse> manejarErroresDevolucion(Throwable error) {
                 log.error("❌ Error al crear devolución: {}", error.getMessage(), error);
 
+                HttpStatus status;
+                String mensaje;
+
+                // Manejo específico para errores de validación
+                if (error instanceof ServerWebInputException) {
+                        status = HttpStatus.BAD_REQUEST;
+                        mensaje = error.getMessage();
+                        log.info("🔍 Error de validación detectado: {}", mensaje);
+                } else if (error instanceof IllegalArgumentException) {
+                        status = HttpStatus.BAD_REQUEST;
+                        mensaje = error.getMessage();
+                } else {
+                        status = HttpStatus.INTERNAL_SERVER_ERROR;
+                        mensaje = "Error interno del servidor: " + error.getMessage();
+                }
+
                 var response = RegistrarDevolucionRollosResponse.builder()
                                 .codSalida("ERROR")
                                 .totalKg(0.0)
                                 .totalRollos(0)
+                                .mensaje(mensaje)
                                 .build();
-
-                HttpStatus status = error instanceof IllegalArgumentException
-                                ? HttpStatus.BAD_REQUEST
-                                : HttpStatus.INTERNAL_SERVER_ERROR;
 
                 return ServerResponse.status(status)
                                 .contentType(MediaType.APPLICATION_JSON)
