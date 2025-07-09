@@ -28,6 +28,7 @@ public class DevolucionRollosPersistenceAdapter implements DevolucionRollosPort 
         private final DetailOrdenSalidaPesoRepository detailOrdenSalidaPesoRepository;
         private final DevolucionRollosRepository devolucionRollosRepository;
         private final DetalleRolloRepository detalleRolloRepository;
+        private final DevolucionServiciosRepository devolucionServiciosRepository;
         private final SalidaDevolucionEntityMapper salidaDevolucionEntityMapper;
 
         @Override
@@ -38,6 +39,7 @@ public class DevolucionRollosPersistenceAdapter implements DevolucionRollosPort 
 
                 return crearOrdenSalida(devolucionRollos)
                                 .flatMap(ordenSalida -> procesarRollosPorArticulo(devolucionRollos))
+                                .flatMap(this::registrarDevolucionServicios)
                                 .doOnNext(resultado -> log.info("✅ Devolución registrada en BD - ID: {}, Código: {}",
                                                 resultado.getIdOrdenSalida(), resultado.getCodSalida()))
                                 .doOnError(error -> log.error("❌ Error al registrar devolución en BD: {}",
@@ -87,15 +89,24 @@ public class DevolucionRollosPersistenceAdapter implements DevolucionRollosPort 
 
                 return ordenSalidaRepository.save(ordenSalida)
                                 .doOnNext(saved -> {
-                                        log.debug("✅ Orden de salida creada - ID: {}, Código: {}",
-                                                        saved.getId(), saved.getCod_salida());
-
-                                        // ✅ Setear el código generado por trigger al DTO original
-                                        devolucionRollos.setCodSalida(saved.getCod_salida());
+                                        log.debug("✅ Orden de salida creada - ID: {}", saved.getId());
                                         devolucionRollos.setIdOrdenSalida(saved.getId());
                                 })
+                                .flatMap(saved -> {
+                                        // ✅ Actualizar entregado=1 para disparar trigger que genera código
+                                        log.debug("🔄 Actualizando orden para generar código de salida");
+                                        return ordenSalidaRepository.updateForGenerateCodigo(saved.getId().intValue())
+                                                        .then(ordenSalidaRepository.findById(saved.getId()))
+                                                        .doOnNext(ordenActualizada -> {
+                                                                log.debug("✅ Código de salida generado: {}", 
+                                                                        ordenActualizada.getCod_salida());
+                                                                devolucionRollos.setCodSalida(ordenActualizada.getCod_salida());
+                                                        })
+                                                        .switchIfEmpty(Mono.error(new IllegalStateException(
+                                                                        "Orden no encontrada después de generar código: " + saved.getId())));
+                                })
                                 .onErrorMap(throwable -> {
-                                        log.error("❌ Error al guardar orden de salida para devolución: {}",
+                                        log.error("❌ Error al crear orden de salida para devolución: {}",
                                                         throwable.getMessage(), throwable);
 
                                         // ✅ Lanzar excepción específica para errores de persistencia
@@ -110,9 +121,38 @@ public class DevolucionRollosPersistenceAdapter implements DevolucionRollosPort 
                 log.debug("🔄 Procesando rollos agrupados por artículo");
 
                 return Flux.fromIterable(devolucionRollos.getArticulos())
+                                .doOnNext(articulo -> {
+                                        // ✅ Setear idOrdenSalida en cada artículo antes de procesarlo
+                                        articulo.setIdOrdenSalida(devolucionRollos.getIdOrdenSalida().intValue());
+                                        log.debug("🔄 Artículo preparado - ID: {}, IdOrdenSalida: {}",
+                                                articulo.getIdArticulo(), articulo.getIdOrdenSalida());
+                                })
                                 .flatMap(this::procesarArticulo)
                                 .collectList()
                                 .thenReturn(devolucionRollos);
+        }
+
+        private Mono<SalidaDevolucionDTO> registrarDevolucionServicios(SalidaDevolucionDTO devolucionRollos) {
+                log.debug("🔄 Registrando devolución en tabla devolucion_servicios");
+
+                DevolucionServiciosEntity devolucionServicios = DevolucionServiciosEntity.builder()
+                                .idOrdenSalida(devolucionRollos.getIdOrdenSalida().intValue())
+                                .idMotivo(devolucionRollos.getIdMotivo())
+                                .idUsuario(devolucionRollos.getIdUsuario())
+                                .build();
+
+                return devolucionServiciosRepository.save(devolucionServicios)
+                                .doOnNext(saved -> log.debug("✅ Devolución de servicios registrada - ID: {}, OrdenSalida: {}, Motivo: {}, Usuario: {}",
+                                                saved.getId(), saved.getIdOrdenSalida(), saved.getIdMotivo(), saved.getIdUsuario()))
+                                .thenReturn(devolucionRollos)
+                                .onErrorMap(throwable -> {
+                                        log.error("❌ Error al registrar devolución en tabla devolucion_servicios: {}",
+                                                        throwable.getMessage(), throwable);
+                                        return new RuntimeException(
+                                                        "Error al registrar devolución de servicios: "
+                                                                        + throwable.getMessage(),
+                                                        throwable);
+                                });
         }
 
         private Mono<DetailSalidaEntity> procesarArticulo(DevolucionArticuloDTO articulo) {
@@ -120,7 +160,6 @@ public class DevolucionRollosPersistenceAdapter implements DevolucionRollosPort 
 
                 // Mappear el articulo a DetailSalidaEntity usando el mapper
                 DetailSalidaEntity detalleSalida = salidaDevolucionEntityMapper.toDetailSalidaEntity(articulo);
-
                 return detailSalidaRepository.save(detalleSalida)
                                 .doOnNext(detalleGuardado -> {
                                         articulo.setIdDetOrdenSalida(detalleGuardado.getId_detalle_orden().intValue());
