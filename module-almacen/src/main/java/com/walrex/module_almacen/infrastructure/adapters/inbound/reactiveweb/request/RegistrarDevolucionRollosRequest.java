@@ -22,13 +22,17 @@ public class RegistrarDevolucionRollosRequest {
     @JsonProperty("id_cliente")
     private Integer idCliente;
 
-    @NotNull(message = "El ID del motivo es obligatorio")
+    @NotNull(message = "El ID de Tipo de Devolucion es obligatorio")
     @JsonProperty("id_motivo")
     private Integer idMotivo;
 
     @NotNull(message = "La fecha de devolución es obligatoria")
     @JsonProperty("fecha_devolucion")
     private LocalDate fechaDevolucion;
+
+    @NotNull(message = "El ID motivo de Devolucion es obligatorio")
+    @JsonProperty("id_motivo_devolucion")
+    private Integer idMotivoDevolucion;
 
     private String observacion;
 
