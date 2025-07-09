@@ -15,6 +15,7 @@ import lombok.*;
 public class SalidaDevolucionDTO {
     private Long idOrdenSalida;
     private Integer idMotivo;
+    private Integer idMotivoDevolucion;
     private Integer idAlmacenOrigen;
     private String codSalida;
     private Integer idAlmacenDestino;
