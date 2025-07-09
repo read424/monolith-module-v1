@@ -2,6 +2,7 @@ package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.re
 
 import java.math.BigDecimal;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.*;
 import lombok.*;
 
