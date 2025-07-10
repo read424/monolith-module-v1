@@ -43,7 +43,7 @@ build/
 Thumbs.db
 
 # Spring Boot
-application-local.properties
+*/application-local.properties
 application-dev.properties
 application-secrets.properties
 
@@ -63,3 +63,9 @@ logs/
 # M2 Cache
 .m2/
 
+checkstyle.xml
+quality-rules.xml
+
+.cursorrules
+.editorconfig
+.gitmessage
