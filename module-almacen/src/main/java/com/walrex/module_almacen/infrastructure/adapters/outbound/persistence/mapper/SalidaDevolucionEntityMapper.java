@@ -29,7 +29,7 @@ public interface SalidaDevolucionEntityMapper {
     @Mapping(source = "idAlmacenDestino", target = "id_store_target")
     @Mapping(source = "fechaRegistro", target = "create_at", qualifiedByName = "localDateToOffsetDateTime")
     @Mapping(source = "idUsuario", target = "id_usuario")
-    @Mapping(target = "entregado", constant = "1")
+    @Mapping(target = "entregado", constant = "0")
     @Mapping(source = "idCliente", target = "id_cliente")
     @Mapping(source = "observacion", target = "observacion")
     OrdenSalidaEntity toOrdenSalidaEntity(SalidaDevolucionDTO salidaDevolucion);
@@ -39,7 +39,7 @@ public interface SalidaDevolucionEntityMapper {
      */
     @Mapping(source = "idOrdenSalida", target = "id_ordensalida")
     @Mapping(source = "idArticulo", target = "id_articulo")
-    @Mapping(source = "idUnidad", target = "id_unidad")
+    @Mapping(source = "idUnidad", target = "id_unidad", defaultValue = "1")
     @Mapping(source = "cantidad", target = "cantidad", qualifiedByName = "integerToDouble")
     @Mapping(source = "totalPeso", target = "tot_kilos", qualifiedByName = "bigDecimalToDouble")
     @Mapping(target = "tot_monto", constant = "0.0")

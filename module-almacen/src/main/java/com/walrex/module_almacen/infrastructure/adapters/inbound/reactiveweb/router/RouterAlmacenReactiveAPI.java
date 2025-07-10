@@ -20,6 +20,7 @@ public class RouterAlmacenReactiveAPI {
         private final ApproveDeliveryHandler approveDeliveryHandler;
         private final KardexHandler kardexHandler;
         private final RollosDevolucionHandler rollosDevolucionHandler;
+        private final OrdenSalidaDevolucionHandler ordenSalidaDevolucionHandler;
         private static final String PATH_ALMACEN = "almacen";
 
         @Bean
@@ -42,7 +43,10 @@ public class RouterAlmacenReactiveAPI {
                                                                 rollosDevolucionHandler::consultarRollosDisponibles)
                                                 .POST("/devolucion-rollos",
                                                                 RequestPredicates.accept(MediaType.APPLICATION_JSON),
-                                                                rollosDevolucionHandler::crearDevolucionRollos))
+                                                                rollosDevolucionHandler::crearDevolucionRollos)
+                                                .GET("/ordenes-salida-devolucion",
+                                                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                                                ordenSalidaDevolucionHandler::consultarOrdenSalidaDevolucion))
                                 .before(request -> {
                                         log.info("🔄 Router {} recibió solicitud: {} {}", PATH_ALMACEN,
                                                         request.method(), request.path());

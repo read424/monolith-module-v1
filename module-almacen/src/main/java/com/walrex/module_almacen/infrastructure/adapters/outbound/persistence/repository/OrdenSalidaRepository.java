@@ -28,4 +28,9 @@ public interface OrdenSalidaRepository extends ReactiveCrudRepository<OrdenSalid
             "LEFT OUTER JOIN almacenes.tbmotivos AS mot ON mot.id_motivo=motsal.id_motivo "+
             "WHERE ord_sal.status=1 AND ord_sal.id_ordensalida=:idOrdenSalida")
     Mono<DocumentoMovimientoEgresoKardex> detalleDocumentoEgreso(Integer idOrdenSalida);
+
+    @Query("UPDATE almacenes.ordensalida "+
+        "SET entregado=1 "+
+        "WHERE id_ordensalida=:id_ordensalida")
+    Mono<Integer> updateForGenerateCodigo(Integer idOrdenSalida);
 }

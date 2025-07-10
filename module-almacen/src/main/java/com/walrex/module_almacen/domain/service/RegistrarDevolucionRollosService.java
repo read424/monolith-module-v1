@@ -60,19 +60,33 @@ public class RegistrarDevolucionRollosService implements RegistrarDevolucionRoll
      * REGLA DE NEGOCIO: Un rollo solo puede ser devuelto una vez
      */
     private Mono<SalidaDevolucionDTO> validarRollosSeleccionadosNoDevueltos(SalidaDevolucionDTO salidaDevolucion) {
-        log.debug("🔍 Validando que los rollos seleccionados no hayan sido devueltos anteriormente");
+        log.debug("🔍 Filtrando rollos seleccionados que no hayan sido devueltos anteriormente");
 
         return Flux.fromIterable(salidaDevolucion.getArticulos())
                 .filter(articulo -> articulo.getRollos() != null && !articulo.getRollos().isEmpty())
                 .flatMap(articulo -> Flux.fromIterable(articulo.getRollos())
-                        .filter(rollo -> rollo.getSelected() != null && rollo.getSelected())
-                        .filter(rollo -> rollo.getDelete() == null || !rollo.getDelete())
-                        .flatMap(rollo -> devolucionRollosPort
+                        .filter(rollo -> Boolean.TRUE.equals(rollo.getSelected()))
+                        .filterWhen(rollo -> devolucionRollosPort
                                 .verificarRolloYaDevuelto(rollo.getIdDetOrdenIngresoPeso())
-                                .filter(Boolean::booleanValue)
-                                .flatMap(yaDevuelto -> Mono.<RolloDevolucionDTO>error(new StockInsuficienteException(
-                                        "El rollo " + rollo.getCodRollo() + " ya fue devuelto anteriormente")))
-                                .switchIfEmpty(Mono.just(rollo))))
+                                .map(yaDevuelto -> {
+                                        if (yaDevuelto) {
+                                                // Si ya fue devuelto (true) → omitir rollo
+                                                log.debug("⚠️ Rollo {} ya fue devuelto - omitiendo del procesamiento", rollo.getCodRollo());
+                                                return false; // No incluir en el procesamiento
+                                        } else {
+                                                // Si NO fue devuelto (false) → incluir rollo
+                                                log.debug("✅ Rollo {} válido para devolución", rollo.getCodRollo());
+                                                return true; // Incluir en el procesamiento
+                                        }
+                                }))
+                        .collectList()
+                        .doOnNext(rollosValidos -> {
+                                int totalOriginal = articulo.getRollos().size();
+                                articulo.setRollos(rollosValidos); // ✅ Actualizar la lista con solo rollos válidos
+                                log.debug("🔄 Artículo {}: {} rollos válidos de {} originales", 
+                                        articulo.getIdArticulo(), rollosValidos.size(), totalOriginal);
+                        })
+                        .then(Mono.just(articulo)))
                 .then(Mono.just(salidaDevolucion));
     }
 
@@ -138,7 +152,7 @@ public class RegistrarDevolucionRollosService implements RegistrarDevolucionRoll
     private Mono<SalidaDevolucionDTO> procesarDevolucion(SalidaDevolucionDTO salidaDevolucion) {
         int totalRollos = salidaDevolucion.getArticulos().stream()
                 .mapToInt(articulo -> (int) articulo.getRollos().stream()
-                        .filter(rollo -> rollo.getSelected() && !rollo.getDelete())
+                        .filter(rollo -> rollo.getSelected())
                         .count())
                 .sum();
 

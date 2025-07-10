@@ -6,6 +6,8 @@ import org.mapstruct.factory.Mappers;
 import com.walrex.module_almacen.domain.model.dto.SalidaDevolucionDTO;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.response.RegistrarDevolucionRollosResponse;
 
+import java.math.RoundingMode;
+
 /**
  * 🔄 Mapper para transformar SalidaDevolucionDTO a
  * RegistrarDevolucionRollosResponse
@@ -17,7 +19,7 @@ public interface RegistrarDevolucionRollosResponseMapper {
 
     /**
      * 🔄 Mapea SalidaDevolucionDTO a RegistrarDevolucionRollosResponse
-     * 
+     *
      * @param devolucionDTO DTO de dominio con la información de devolución
      * @return Response simplificado con código, total kg y total rollos
      */
@@ -33,7 +35,7 @@ public interface RegistrarDevolucionRollosResponseMapper {
     default Double calcularTotalKg(SalidaDevolucionDTO devolucionDTO) {
         return devolucionDTO.getArticulos().stream()
                 .flatMap(articulo -> articulo.getRollos().stream())
-                .mapToDouble(rollo -> rollo.getPesoRollo().doubleValue())
+                .mapToDouble(rollo -> rollo.getPesoRollo().setScale(2, RoundingMode.HALF_UP).doubleValue())
                 .sum();
     }
 

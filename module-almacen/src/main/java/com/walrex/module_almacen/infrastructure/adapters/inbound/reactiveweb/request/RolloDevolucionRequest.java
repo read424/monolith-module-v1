@@ -16,12 +16,15 @@ import lombok.*;
 public class RolloDevolucionRequest {
 
     @NotNull(message = "El ID Orden de Ingreso es obligatorio")
+    @JsonProperty("idOrdeningreso")
     private Integer idOrdenIngreso;
 
     @NotNull(message = "El ID Detalle de Orden de Ingreso es obligatorio")
+    @JsonProperty("idDetordeningreso")
     private Integer idDetOrdenIngreso;
 
     @NotNull(message = "El ID Detalle de Orden de Ingreso Peso es obligatorio")
+    @JsonProperty("idDetordeningresopeso")
     private Integer idDetOrdenIngresoPeso;
 
     @NotNull(message = "El Status de Rollo en Orden de Ingreso es obligatorio")
@@ -31,12 +34,14 @@ public class RolloDevolucionRequest {
     private Integer idPartida;
 
     @NotNull(message = "El ID de detalle de partida es obligatorio")
+    @JsonProperty("idDetallePartida")
     private Integer idDetPartida;
 
     @NotNull(message = "El campo sinCobro de partida es obligatorio")
     private String sinCobro;
 
     @NotNull(message = "El Status de Rollo en partida es obligatorio")
+    @JsonProperty("statusRollPartida")
     private String statusRolloPartida;
 
     @NotBlank(message = "El código del rollo es obligatorio")
@@ -55,5 +60,9 @@ public class RolloDevolucionRequest {
     @NotNull(message = "El ID Detalle Peso Orden de Ingreso Almacen es obligatorio")
     private String idDetordeningresopesoAlmacen;
 
+    @NotNull(message = "El Status de Rollo en almacen es obligatorio")
+    private String statusRolloAlmacen;
+
     private Boolean selected;
 }
+

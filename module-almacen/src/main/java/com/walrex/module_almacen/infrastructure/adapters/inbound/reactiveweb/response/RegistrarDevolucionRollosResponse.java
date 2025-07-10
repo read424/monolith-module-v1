@@ -14,4 +14,5 @@ public class RegistrarDevolucionRollosResponse {
     private String codSalida;
     private Double totalKg;
     private Integer totalRollos;
+    private String mensaje; // Campo agregado para mostrar errores de validación
 }
