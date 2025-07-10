@@ -32,6 +32,11 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
+            log.error("🔴 [GATEWAY-JWT] Procesando: {} {} - Thread: {}", 
+                exchange.getRequest().getMethod(), 
+                exchange.getRequest().getPath().value(), 
+                Thread.currentThread().getName());
+
             String path = exchange.getRequest().getPath().value();
             String fullUri = exchange.getRequest().getURI().toString();
             String originalPath = exchange.getAttribute("ORIGINAL_PATH");
