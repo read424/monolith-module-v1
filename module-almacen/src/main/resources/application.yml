@@ -3,8 +3,6 @@ spring:
     name: module-almacen
   profiles:
     active: dev
-  main:
-    web-application-type: none # Deshabilita completamente la aplicación web
 management:
   endpoints:
     web:
