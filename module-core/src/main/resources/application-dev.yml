@@ -9,10 +9,10 @@ spring:
       time-to-live: 15m
   data:
     redis:
-      host: ${HOST_REDIS:127.0.0.1}
-      port: ${PORT_REDIS:6379}
-      password: ${PASSWORD_REDIS:}
-      database: ${DB_REDIS:0}
+      host: 127.0.0.1
+      port: 6379
+      password:
+      database: 0
       timeout: 2000ms
       time-to-live: 15m
   main:
@@ -66,9 +66,9 @@ spring:
             waitDurationInOpenState: 30000
             automaticTransitionFromOpenToHalfOpenEnabled: true
   r2dbc:
-    url: r2dbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
-    username: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:12345}
+    url: r2dbc:postgresql://127.0.0.1:5432/erp_tlm_2021
+    username: postgres
+    password: 12345
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:127.0.0.1:9092}
     properties:
@@ -127,9 +127,9 @@ spring:
         enabled: true
   flyway:
     enabled: true
-    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
-    user: ${DB_USER:postgres}
-    password: ${DB_PASSWORD:12345}
+    url: jdbc:postgresql://127.0.0.1:5432/erp_tlm_2021
+    user: postgres
+    password: 12345
     locations: classpath:db/migration
     baseline-version: 0
     baseline-on-migrate: true
@@ -155,7 +155,7 @@ reactor:
       enabled: false
 security:
   jwt:
-    secret-key: ${SECRET_KEY_JWT:l7kP8lgYRt/PyIh/tBDYlg4QWCLf2RSOJ8oLPNV6O34=}
+    secret-key: l7kP8lgYRt/PyIh/tBDYlg4QWCLf2RSOJ8oLPNV6O34=
     expiration-time: 36000
     refresh-toke:
       expiration: 604800000
@@ -175,3 +175,16 @@ app:
   mail:
     templates:
       recovery: "reset-password.html"
+
+# Configuración OpenAPI/Swagger
+springdoc:
+  api-docs:
+    path: /document
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+  group-configs:
+    - group: motivos-devolucion
+      display-name: "Motivos de Devolución"
+      paths-to-match: /almacen/motivos-devolucion/**
