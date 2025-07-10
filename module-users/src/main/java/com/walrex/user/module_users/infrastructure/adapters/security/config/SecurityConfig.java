@@ -27,6 +27,9 @@ public class SecurityConfig {
 
     @PostConstruct
     public void init() {
+        log.error("🟡 [USERS-SECURITY] Configuración inicializada con Order: {}", 
+            this.getClass().getAnnotation(Order.class) != null ? 
+            this.getClass().getAnnotation(Order.class).value() : "Sin Order");
         log.info("Configuración de seguridad inicializada - Todas las rutas permitidas");
     }
 

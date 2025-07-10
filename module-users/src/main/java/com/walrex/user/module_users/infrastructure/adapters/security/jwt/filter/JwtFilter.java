@@ -17,6 +17,10 @@ public class JwtFilter implements WebFilter {
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain){
         ServerHttpRequest request = exchange.getRequest();
+        log.error("🔵 [USERS-JWT] Procesando: {} {} - Thread: {}", 
+            request.getMethod(), 
+            request.getPath().value(), 
+            Thread.currentThread().getName());
         String path = request.getPath().value();
 
         // ✅ SALTEAR JWT para requests OPTIONS (preflight)
