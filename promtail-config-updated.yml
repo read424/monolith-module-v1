@@ -1,0 +1,143 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /var/log/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Logs principales de la aplicación (JSON estructurado)
+  - job_name: "walrex-monolith-app"
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: "walrex-monolith"
+          service: "walrex-monolith"
+          environment: "dev"
+          __path__: /home/developer01/monolith-module-v1/logs/application.json
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: "@timestamp"
+            level: level
+            logger: logger
+            message: message
+            thread: thread
+            correlationId: correlationId
+            traceId: traceId
+            spanId: spanId
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02T15:04:05.000Z07:00"
+      - labels:
+          level:
+          logger:
+          service:
+          environment:
+      - output:
+          source: message
+
+  # Logs de errores (alta prioridad)
+  - job_name: "walrex-errors"
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: "walrex-errors"
+          service: "walrex-monolith"
+          severity: "error"
+          environment: "dev"
+          __path__: /home/developer01/monolith-module-v1/logs/error.json
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: "@timestamp"
+            level: level
+            logger: logger
+            message: message
+            exception: exception
+            correlationId: correlationId
+            traceId: traceId
+            spanId: spanId
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02T15:04:05.000Z07:00"
+      - labels:
+          level:
+          logger:
+          service:
+          environment:
+          severity:
+      - output:
+          source: message
+
+  # Logs por módulos
+  - job_name: "walrex-module-almacen"
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: "walrex-module-almacen"
+          service: "walrex-monolith"
+          module: "almacen"
+          environment: "dev"
+          __path__: /home/developer01/monolith-module-v1/logs/module-almacen.json
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: "@timestamp"
+            level: level
+            logger: logger
+            message: message
+            module: module
+            correlationId: correlationId
+            traceId: traceId
+            spanId: spanId
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02T15:04:05.000Z07:00"
+      - labels:
+          level:
+          logger:
+          service:
+          environment:
+          module:
+      - output:
+          source: message
+
+  # Logs existentes (mantener compatibilidad)
+  - job_name: "existing-app-logs"
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: "existing-logs"
+          service: "walrex-monolith"
+          environment: "dev"
+          __path__: /home/developer01/monolith-module-v1/logs/*.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) \[(?P<thread>.*?)\] \[(?P<correlationId>.*?)\] (?P<level>\w+)\s+(?P<logger>\S+) - (?P<message>.*)'
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02 15:04:05.000"
+      - labels:
+          level:
+          logger:
+          thread:
+          correlationId:
+      - output:
+          source: message
+
+  # Logs del sistema (mantener los existentes)
+  - job_name: "system-logs"
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: "system-logs"
+          __path__: /var/log/*.log

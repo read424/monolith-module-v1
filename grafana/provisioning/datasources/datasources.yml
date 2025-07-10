@@ -1,0 +1,48 @@
+apiVersion: 1
+
+datasources:
+  # Loki para logs
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    uid: loki
+    isDefault: false
+    version: 1
+    editable: true
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        - datasourceUid: tempo
+          matcherRegex: '"traceId":"([^"]+)"'
+          name: TraceID
+          url: "$${__value.raw}"
+    orgId: 1
+
+  # Prometheus para métricas
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    uid: prometheus
+    isDefault: true
+    version: 1
+    editable: true
+    jsonData:
+      httpMethod: POST
+      queryTimeout: 60s
+      timeInterval: 15s
+      exemplarTraceIdDestinations:
+        - datasourceUid: tempo
+          name: TraceID
+    orgId: 1
+
+  # TestData para desarrollo
+  - name: TestData
+    type: testdata
+    access: proxy
+    uid: testdata
+    isDefault: false
+    version: 1
+    editable: true
+    orgId: 1

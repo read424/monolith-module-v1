@@ -1,0 +1,222 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    tenant_id: walrex
+
+scrape_configs:
+  # Logs principales de la aplicación (JSON estructurado)
+  - job_name: walrex-monolith-json
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: walrex-monolith
+          service: walrex-monolith
+          __path__: /app/logs/application.json
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: "@timestamp"
+            level: level
+            logger: logger
+            message: message
+            thread: thread
+            environment: environment
+            service: service
+            correlationId: correlationId
+            traceId: traceId
+            spanId: spanId
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02T15:04:05.000Z07:00"
+      - labels:
+          level:
+          logger:
+          service:
+          environment:
+          thread:
+      - output:
+          source: message
+
+  # Logs de errores (alta prioridad)
+  - job_name: walrex-errors
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: walrex-errors
+          service: walrex-monolith
+          severity: error
+          __path__: /app/logs/error.json
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: "@timestamp"
+            level: level
+            logger: logger
+            message: message
+            exception: exception
+            service: service
+            environment: environment
+            correlationId: correlationId
+            traceId: traceId
+            spanId: spanId
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02T15:04:05.000Z07:00"
+      - labels:
+          level:
+          logger:
+          service:
+          environment:
+          severity:
+      - output:
+          source: message
+
+  # Logs del módulo almacén
+  - job_name: walrex-module-almacen
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: walrex-module-almacen
+          service: walrex-monolith
+          module: almacen
+          __path__: /app/logs/module-almacen.json
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: "@timestamp"
+            level: level
+            logger: logger
+            message: message
+            module: module
+            service: service
+            environment: environment
+            correlationId: correlationId
+            traceId: traceId
+            spanId: spanId
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02T15:04:05.000Z07:00"
+      - labels:
+          level:
+          logger:
+          service:
+          environment:
+          module:
+      - output:
+          source: message
+
+  # Logs del módulo users
+  - job_name: walrex-module-users
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: walrex-module-users
+          service: walrex-monolith
+          module: users
+          __path__: /app/logs/module-users.json
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: "@timestamp"
+            level: level
+            logger: logger
+            message: message
+            module: module
+            service: service
+            environment: environment
+            correlationId: correlationId
+            traceId: traceId
+            spanId: spanId
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02T15:04:05.000Z07:00"
+      - labels:
+          level:
+          logger:
+          service:
+          environment:
+          module:
+      - output:
+          source: message
+
+  # Logs del gateway
+  - job_name: walrex-module-gateway
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: walrex-module-gateway
+          service: walrex-monolith
+          module: gateway
+          __path__: /app/logs/module-gateway.json
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: "@timestamp"
+            level: level
+            logger: logger
+            message: message
+            module: module
+            service: service
+            environment: environment
+            correlationId: correlationId
+            traceId: traceId
+            spanId: spanId
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02T15:04:05.000Z07:00"
+      - labels:
+          level:
+          logger:
+          service:
+          environment:
+          module:
+      - output:
+          source: message
+
+  # Logs archivados con patrón de fecha
+  - job_name: walrex-archived-logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: walrex-archived
+          service: walrex-monolith
+          __path__: /app/logs/archived/*.json
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: "@timestamp"
+            level: level
+            logger: logger
+            message: message
+            service: service
+            environment: environment
+            correlationId: correlationId
+            traceId: traceId
+            spanId: spanId
+      - timestamp:
+          source: timestamp
+          format: "2006-01-02T15:04:05.000Z07:00"
+      - labels:
+          level:
+          logger:
+          service:
+          environment:
+      - output:
+          source: message
+
+# Configuración de límites para evitar sobrecarga
+limits_config:
+  readline_rate: 10000
+  readline_burst: 20000
