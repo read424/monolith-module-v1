@@ -3,6 +3,19 @@ spring:
     url: r2dbc:postgresql://127.0.0.1:5432/erp_tlm_2021
     username: postgres
     password: 12345
+    pool:
+      enabled: true
+      initial-size: 5
+      max-size: 20
+      max-idle-time: 30m
+      max-life-time: 60m
+      validation-query: SELECT 1
+    properties:
+      timezone: America/Lima
+      application-name: module-ecomprobantes
+      connect-timeout: 10000
+      socket-timeout: 0
+      tcp-keep-alive: true
   # ✅ RESILIENCE4J - CONFIGURACIÓN COMPLETA
   resilience4j:
     circuitbreaker:
@@ -130,3 +143,32 @@ app:
       timeout: 45s
       max-retries: 3
       batch-size: 20
+
+# ✅ CONFIGURACIÓN DE LOGGING
+logging:
+  level:
+    com.walrex.module_ecomprobantes.infrastructure.adapters.outbound.persistence: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    io.r2dbc.postgresql.QUERY: DEBUG
+    io.r2dbc.postgresql.PARAM: DEBUG
+    reactor.netty: INFO
+    org.springframework.transaction: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level [%X{correlationId}] %logger{36} - %msg%n"
+
+# ✅ CONFIGURACIÓN DE AUDITORÍA
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: module-ecomprobantes
