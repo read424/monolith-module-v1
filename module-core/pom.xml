@@ -133,11 +133,21 @@
 			<scope>runtime</scope>
 		</dependency>
 		<!--depedencies modules-->
+        <dependency>
+            <groupId>com.walrex</groupId>
+            <artifactId>avro-schemas</artifactId>
+            <version>0.0.2-SNAPSHOT</version>
+        </dependency>
 		<dependency>
 			<groupId>com.walrex.gateway</groupId>
 			<artifactId>gateway</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+        <dependency>
+            <groupId>com.walrex</groupId>
+            <artifactId>module-ecomprobantes</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
 		<dependency>
 			<groupId>com.walrex.user</groupId>
 			<artifactId>module-users</artifactId>
