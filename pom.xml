@@ -37,6 +37,7 @@
 		<module>module-articulos</module>
 		<module>module-partidas</module>
 		<module>module-core</module>
+		<module>module-ecomprobantes</module>
 	</modules>
 	<properties>
 		<java.version>21</java.version>
@@ -138,6 +139,12 @@
 				<artifactId>mapstruct</artifactId>
 				<version>${mapstruct.version}</version>
 			</dependency>
+            <dependency>
+                <groupId>com.walrex</groupId>
+                <artifactId>avro-schemas</artifactId>
+                <version>0.0.2-SNAPSHOT</version>
+            </dependency>
+
 			<!-- Resiliencia -->
 			<!--dependency>
 				<groupId>io.github.resilience4j</groupId>
