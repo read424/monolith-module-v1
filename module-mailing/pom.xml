@@ -82,7 +82,7 @@
 		<dependency>
 			<groupId>com.walrex</groupId>
 			<artifactId>avro-schemas</artifactId>
-			<version>1.0.0</version>
+			<version>0.0.2-SNAPSHOT</version>
 		</dependency>
 		<!--Kafka-->
 		<dependency>
