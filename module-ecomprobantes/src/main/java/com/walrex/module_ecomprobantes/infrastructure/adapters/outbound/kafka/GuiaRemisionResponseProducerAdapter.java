@@ -15,7 +15,6 @@ import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import io.github.resilience4j.reactor.ratelimiter.operator.RateLimiterOperator;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -23,20 +22,24 @@ import reactor.kafka.sender.*;
 import reactor.util.retry.Retry;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class GuiaRemisionResponseProducerAdapter {
 
     private final ComprobantesKafkaProperties properties;
-
-    @Qualifier("comprobanteCreateAvroSender")
     private final KafkaSender<String, Object> kafkaSender;
-
-    @Qualifier("comprobantesKafkaProducerCircuitBreaker")
     private final CircuitBreaker producerCircuitBreaker;
-
-    @Qualifier("comprobantesProcessingRateLimiter")
     private final RateLimiter rateLimiter;
+
+    public GuiaRemisionResponseProducerAdapter(
+            ComprobantesKafkaProperties properties,
+            @Qualifier("comprobanteCreateAvroSender") KafkaSender<String, Object> kafkaSender,
+            @Qualifier("comprobantesKafkaProducerCircuitBreaker") CircuitBreaker producerCircuitBreaker,
+            @Qualifier("comprobantesProcessingRateLimiter") RateLimiter rateLimiter) {
+        this.properties = properties;
+        this.kafkaSender = kafkaSender;
+        this.producerCircuitBreaker = producerCircuitBreaker;
+        this.rateLimiter = rateLimiter;
+    }
 
     private static final String RESPONSE_TOPIC = "response-create-guia-remision";
 

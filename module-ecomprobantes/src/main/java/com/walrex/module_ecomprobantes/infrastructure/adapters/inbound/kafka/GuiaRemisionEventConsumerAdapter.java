@@ -16,7 +16,6 @@ import io.github.resilience4j.reactor.bulkhead.operator.BulkheadOperator;
 import io.github.resilience4j.reactor.circuitbreaker.operator.CircuitBreakerOperator;
 import io.github.resilience4j.reactor.ratelimiter.operator.RateLimiterOperator;
 import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -25,23 +24,27 @@ import reactor.kafka.receiver.*;
 import reactor.util.retry.Retry;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class GuiaRemisionEventConsumerAdapter {
 
     private final ComprobantesKafkaProperties properties;
-
-    @Qualifier("comprobanteModuleReceiveOptions")
     private final ReceiverOptions<String, Object> receiverOptions;
-
-    @Qualifier("comprobantesKafkaConsumerCircuitBreaker")
     private final CircuitBreaker consumerCircuitBreaker;
-
-    @Qualifier("comprobantesKafkaEventsRateLimiter")
     private final RateLimiter rateLimiter;
-
-    @Qualifier("comprobantesKafkaProcessingBulkhead")
     private final Bulkhead processingBulkhead;
+
+    public GuiaRemisionEventConsumerAdapter(
+            ComprobantesKafkaProperties properties,
+            @Qualifier("comprobanteModuleReceiveOptions") ReceiverOptions<String, Object> receiverOptions,
+            @Qualifier("comprobantesKafkaConsumerCircuitBreaker") CircuitBreaker consumerCircuitBreaker,
+            @Qualifier("comprobantesKafkaEventsRateLimiter") RateLimiter rateLimiter,
+            @Qualifier("comprobantesKafkaProcessingBulkhead") Bulkhead processingBulkhead) {
+        this.properties = properties;
+        this.receiverOptions = receiverOptions;
+        this.consumerCircuitBreaker = consumerCircuitBreaker;
+        this.rateLimiter = rateLimiter;
+        this.processingBulkhead = processingBulkhead;
+    }
 
     private static final String TOPIC_NAME = "create-comprobante-guia-remision";
 
