@@ -1,17 +1,17 @@
 package com.walrex.module_articulos.config.kafka.producer.config;
 
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import reactor.kafka.sender.SenderOptions;
 
-import java.util.HashMap;
-import java.util.Map;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import reactor.kafka.sender.SenderOptions;
 
 @Configuration
 public class ProductKafkaProducerConfig {
@@ -22,12 +22,13 @@ public class ProductKafkaProducerConfig {
     private String bootstrapServers;
 
     // Inyección por constructor con Qualifier específico
-    public ProductKafkaProducerConfig(@Qualifier("productModuleSchemaRegistryConfig") Map<String, Object> schemaRegistryConfig) {
+    public ProductKafkaProducerConfig(
+            @Qualifier("productModuleSchemaRegistryConfig") Map<String, Object> schemaRegistryConfig) {
         this.schemaRegistryConfig = schemaRegistryConfig;
     }
 
     @Bean(name = "productModuleProducerConfigs")
-    public Map<String, Object> productModuleProducerConfigs(){
+    public Map<String, Object> productModuleProducerConfigs() {
         Map<String, Object> producerProps = new HashMap<>();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);

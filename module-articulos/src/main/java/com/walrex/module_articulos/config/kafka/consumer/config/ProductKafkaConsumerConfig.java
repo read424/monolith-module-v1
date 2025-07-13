@@ -1,18 +1,18 @@
 package com.walrex.module_articulos.config.kafka.consumer.config;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import reactor.kafka.receiver.ReceiverOptions;
 
-import java.util.HashMap;
-import java.util.Map;
+import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import reactor.kafka.receiver.ReceiverOptions;
 
 @Configuration
 public class ProductKafkaConsumerConfig {
@@ -31,14 +31,13 @@ public class ProductKafkaConsumerConfig {
     // Constructor con Qualifiers específicos
     public ProductKafkaConsumerConfig(
             @Qualifier("ProductSchemaRegistryClient") SchemaRegistryClient schemaRegistryClient,
-            @Qualifier("ProductSchemaRegistryConfig") Map<String, Object> schemaRegistryConfig
-    ) {
+            @Qualifier("ProductSchemaRegistryConfig") Map<String, Object> schemaRegistryConfig) {
         this.schemaRegistryClient = schemaRegistryClient;
         this.schemaRegistryConfig = schemaRegistryConfig;
     }
 
     @Bean(name = "productModuleConsumerProps")
-    public Map<String, Object> productModuleConsumerProps(){
+    public Map<String, Object> productModuleConsumerProps() {
         Map<String, Object> consumerProps = new HashMap<>();
         consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
