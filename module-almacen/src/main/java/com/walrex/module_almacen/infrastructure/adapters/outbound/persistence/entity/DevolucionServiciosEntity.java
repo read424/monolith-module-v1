@@ -21,7 +21,7 @@ import lombok.*;
 @ToString
 @Table("almacenes.devolucion_servicios")
 public class DevolucionServiciosEntity {
-    
+
     @Id
     @Column("id_devolucion")
     private Long id;
@@ -58,9 +58,13 @@ public class DevolucionServiciosEntity {
     @Column("id_usuario")
     private Integer idUsuario;
 
+    private Integer entregado;
+
+    private Integer status;
+
     @Column("create_at")
     private OffsetDateTime createAt;
 
     @Column("update_at")
     private OffsetDateTime updateAt;
-} 
+}
