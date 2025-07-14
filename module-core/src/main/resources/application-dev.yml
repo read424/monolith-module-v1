@@ -18,6 +18,33 @@ spring:
   main:
     web-application-type: reactive
     banner-mode: console
+  resilience4j:
+    circuitbreaker:
+      instances:
+        kafkaProducer:
+          failureRateThreshold: 50
+          waitDurationInOpenState: 5000
+          permittedNumberOfCallsInHalfOpenState: 2
+          slidingWindowSize: 5
+          minimumNumberOfCalls: 2
+          automaticTransitionFromOpenToHalfOpenEnabled: true
+          recordExceptions:
+            - java.io.IOException
+            - java.util.concurrent.TimeoutException
+            - org.apache.kafka.common.errors.TimeoutException
+        guiaRemisionKafkaProducer:
+          failureRateThreshold: 60
+          waitDurationInOpenState: 10000
+          permittedNumberOfCallsInHalfOpenState: 3
+          slidingWindowSize: 10
+          minimumNumberOfCalls: 5
+          automaticTransitionFromOpenToHalfOpenEnabled: true
+          recordExceptions:
+            - java.io.IOException
+            - java.util.concurrent.TimeoutException
+            - org.apache.kafka.common.errors.TimeoutException
+            - org.apache.kafka.common.errors.NetworkException
+            - org.apache.kafka.common.errors.RetriableException
   security:
     enabled: false
   cloud:
@@ -159,7 +186,6 @@ security:
     expiration-time: 36000
     refresh-toke:
       expiration: 604800000
-
 kafka:
   topics:
     password-recovery: "email-requests-topic"
@@ -170,12 +196,11 @@ kafka:
     almacen:
       create-ingreso-ajuste: ajuste-ingreso-message
       create-ingreso-ajuste-response: ajuste-ingreso-response
-
+      create-comprobante-guia-remision: create-comprobante-guia-remision
 app:
   mail:
     templates:
       recovery: "reset-password.html"
-
 # Configuración OpenAPI/Swagger
 springdoc:
   api-docs:
