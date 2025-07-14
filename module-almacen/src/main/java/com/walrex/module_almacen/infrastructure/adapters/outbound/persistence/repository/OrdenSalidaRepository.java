@@ -45,4 +45,8 @@ public interface OrdenSalidaRepository extends ReactiveCrudRepository<OrdenSalid
                         "fec_entrega=:fecEntrega " +
                         "WHERE id_ordensalida=:idOrdenSalida")
         Mono<Integer> assignedEntregadoDevolucion(LocalDate fecEntrega, Integer idOrdenSalida);
+
+        @Query("SELECT * FROM almacenes.ordensalida WHERE id_ordensalida = :idOrdenSalida AND status = 1")
+        Mono<OrdenSalidaEntity> findByIdOrdenSalidaEnabled(Integer idOrdenSalida);
+
 }

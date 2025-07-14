@@ -7,8 +7,10 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.walrex.module_almacen.application.ports.input.GenerarGuiaRemisionUseCase;
+import com.walrex.module_almacen.domain.model.JwtUserInfo;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.mapper.GuiaRemisionRequestMapper;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.request.GenerarGuiaRemisionRequest;
+import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.JwtUserContextService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,13 +23,16 @@ public class GuiaRemisionHandler {
 
     private final GuiaRemisionRequestMapper guiaRemisionRequestMapper;
     private final GenerarGuiaRemisionUseCase generarGuiaRemisionUseCase;
+    private final JwtUserContextService jwtService;
 
     public Mono<ServerResponse> generarGuiaRemision(ServerRequest request) {
         log.info("📥 POST /almacen/ordenes-salida-devolucion/generar-guia");
+        JwtUserInfo user = jwtService.getCurrentUser(request);
 
         return request.bodyToMono(GenerarGuiaRemisionRequest.class)
                 .doOnNext(req -> log.debug("📥 Request recibido: {}", req))
                 .map(guiaRemisionRequestMapper::toDomainDTO)
+                .doOnNext(dto -> dto.setIdUsuario(Integer.valueOf(user.getUserId())))
                 .flatMap(generarGuiaRemisionUseCase::generarGuiaRemision)
                 .flatMap(resultado -> {
                     log.info("✅ Guía de remisión generada exitosamente para orden: {}", resultado.getIdOrdenSalida());

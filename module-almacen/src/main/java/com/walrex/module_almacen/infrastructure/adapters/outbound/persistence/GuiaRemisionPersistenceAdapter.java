@@ -1,15 +1,18 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 
+import java.util.List;
+
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.walrex.module_almacen.application.ports.output.GuiaRemisionPersistencePort;
+import com.walrex.module_almacen.domain.model.dto.DetailItemGuiaRemisionDTO;
 import com.walrex.module_almacen.domain.model.dto.GuiaRemisionGeneradaDTO;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DevolucionServiciosEntity;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.DevolucionServicioEntityMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.GuiaRemisionEntityMapper;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.DevolucionServiciosRepository;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.OrdenSalidaRepository;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +24,9 @@ import reactor.core.publisher.Mono;
 public class GuiaRemisionPersistenceAdapter implements GuiaRemisionPersistencePort {
         private final DevolucionServiciosRepository devolucionServiciosRepository;
         private final OrdenSalidaRepository ordenSalidaRepository;
+        private final DetailSalidaRepository detailSalidaRepository;
         private final GuiaRemisionEntityMapper guiaRemisionEntityMapper;
+        private final DevolucionServicioEntityMapper devolucionServicioEntityMapper;
 
         @Override
         @Transactional
@@ -130,28 +135,56 @@ public class GuiaRemisionPersistenceAdapter implements GuiaRemisionPersistencePo
         private Mono<GuiaRemisionGeneradaDTO> obtenerDatosGuiaGenerada(Long idOrdenSalida) {
                 log.info("📋 Obteniendo datos de guía generada para orden: {}", idOrdenSalida);
 
-                return devolucionServiciosRepository.findByIdOrdenSalida(idOrdenSalida.intValue())
+                return devolucionServiciosRepository.findByIdOrdenSalidaEnabled(idOrdenSalida.intValue())
                                 .switchIfEmpty(Mono.error(new IllegalStateException(
                                                 "No se encontraron datos de devolución para la orden: "
                                                                 + idOrdenSalida)))
-                                .flatMap(devolucionEntity -> ordenSalidaRepository.findById(idOrdenSalida)
-                                                .switchIfEmpty(Mono.error(new IllegalStateException(
-                                                                "No se encontró la orden de salida: " + idOrdenSalida)))
-                                                .map(ordenEntity -> GuiaRemisionGeneradaDTO.builder()
-                                                                .idOrdenSalida(ordenEntity.getId())
-                                                                .codigoSalida(ordenEntity.getCod_salida())
-                                                                .fechaEntrega(ordenEntity.getFec_entrega())
-                                                                .idEmpresaTransp(devolucionEntity.getIdEmpresaTransp())
-                                                                .idModalidad(devolucionEntity.getIdModalidad())
-                                                                .idTipDocChofer(devolucionEntity.getIdTipDocChofer())
-                                                                .numDocChofer(devolucionEntity.getNumDocChofer())
-                                                                .numPlaca(devolucionEntity.getNumPlaca())
-                                                                .idLlegada(devolucionEntity.getIdLlegada())
-                                                                .idComprobante(devolucionEntity.getIdComprobante())
-                                                                .entregado(devolucionEntity.getEntregado())
-                                                                .status(devolucionEntity.getStatus())
-                                                                .idUsuario(devolucionEntity.getIdUsuario())
-                                                                .build()))
+                                .flatMap(devolucionEntity -> {
+                                        // ✅ Mapear datos básicos de devolución
+                                        GuiaRemisionGeneradaDTO guiaRemisionGeneradaDTO = devolucionServicioEntityMapper
+                                                        .toDto(devolucionEntity);
+
+                                        // ✅ Obtener datos de orden de salida para completar idCliente y codigoSalida
+                                        return ordenSalidaRepository
+                                                        .findByIdOrdenSalidaEnabled(idOrdenSalida.intValue())
+                                                        .switchIfEmpty(Mono.error(new IllegalStateException(
+                                                                        "No se encontró la orden de salida: "
+                                                                                        + idOrdenSalida)))
+                                                        .flatMap(ordenEntity -> {
+                                                                // ✅ Completar datos de la orden de salida
+                                                                guiaRemisionGeneradaDTO.setIdCliente(
+                                                                                ordenEntity.getId_cliente());
+                                                                // ✅ Obtener artículos devueltos desde
+                                                                // DetailSalidaRepository
+                                                                return detailSalidaRepository
+                                                                                .findByIdOrderSalida(idOrdenSalida)
+                                                                                .collectList()
+                                                                                .map(articulosDevueltos -> {
+                                                                                        log.debug("📦 Artículos devueltos encontrados: {} para orden: {}",
+                                                                                                        articulosDevueltos
+                                                                                                                        .size(),
+                                                                                                        idOrdenSalida);
+
+                                                                                        // ✅ Mapear entidades a DTOs
+                                                                                        // usando el mapper
+                                                                                        List<DetailItemGuiaRemisionDTO> detailItems = articulosDevueltos
+                                                                                                        .stream()
+                                                                                                        .map(devolucionServicioEntityMapper::toDetailItemGuiaRemisionDTO)
+                                                                                                        .toList();
+
+                                                                                        // ✅ Setear la lista de items en
+                                                                                        // el DTO
+                                                                                        guiaRemisionGeneradaDTO
+                                                                                                        .setDetailItems(detailItems);
+
+                                                                                        log.debug("✅ Items mapeados exitosamente: {} items para orden: {}",
+                                                                                                        detailItems.size(),
+                                                                                                        idOrdenSalida);
+
+                                                                                        return guiaRemisionGeneradaDTO;
+                                                                                });
+                                                        });
+                                })
                                 .doOnNext(guiaGenerada -> log.info("✅ Datos de guía obtenidos exitosamente: {}",
                                                 guiaGenerada))
                                 .doOnError(error -> log.error("❌ Error al obtener datos de guía generada: {}",

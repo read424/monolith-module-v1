@@ -32,3 +32,4 @@ kafka:
     almacen:
       create-ingreso-ajuste: ajuste-ingreso-message
       create-ingreso-ajuste-response: ajuste-ingreso-response
+      create-comprobante-guia-remision: create-comprobante-guia-remision

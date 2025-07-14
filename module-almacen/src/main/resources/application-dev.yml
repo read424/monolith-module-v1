@@ -32,6 +32,19 @@ spring:
             - java.util.concurrent.TimeoutException
             - org.apache.kafka.common.errors.TimeoutException
             - org.apache.kafka.common.errors.NetworkException
+        guiaRemisionKafkaProducer:
+          failureRateThreshold: 60
+          waitDurationInOpenState: 10000
+          permittedNumberOfCallsInHalfOpenState: 3
+          slidingWindowSize: 10
+          minimumNumberOfCalls: 5
+          automaticTransitionFromOpenToHalfOpenEnabled: true
+          recordExceptions:
+            - java.io.IOException
+            - java.util.concurrent.TimeoutException
+            - org.apache.kafka.common.errors.TimeoutException
+            - org.apache.kafka.common.errors.NetworkException
+            - org.apache.kafka.common.errors.RetriableException
   r2dbc:
     url: r2dbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
     username: ${DB_USER:postgres}

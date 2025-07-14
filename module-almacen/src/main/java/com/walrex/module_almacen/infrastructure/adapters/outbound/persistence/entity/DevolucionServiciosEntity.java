@@ -1,5 +1,6 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity;
 
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
 import org.springframework.data.annotation.Id;
@@ -52,6 +53,9 @@ public class DevolucionServiciosEntity {
 
     @Column("id_llegada")
     private Integer idLlegada;
+
+    @Column("fec_entrega")
+    private LocalDate fecEntrega;
 
     private String observacion;
 

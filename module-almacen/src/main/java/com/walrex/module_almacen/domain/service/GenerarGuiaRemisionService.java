@@ -1,8 +1,11 @@
 package com.walrex.module_almacen.domain.service;
 
+import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 
 import com.walrex.module_almacen.application.ports.input.GenerarGuiaRemisionUseCase;
+import com.walrex.module_almacen.application.ports.output.EnviarGuiaRemisionEventPort;
 import com.walrex.module_almacen.application.ports.output.GuiaRemisionPersistencePort;
 import com.walrex.module_almacen.domain.model.dto.GuiaRemisionGeneradaDTO;
 
@@ -16,10 +19,13 @@ import reactor.core.publisher.Mono;
 public class GenerarGuiaRemisionService implements GenerarGuiaRemisionUseCase {
 
     private final GuiaRemisionPersistencePort guiaRemisionPersistencePort;
+    private final EnviarGuiaRemisionEventPort enviarGuiaRemisionEventPort;
 
     @Override
     public Mono<GuiaRemisionGeneradaDTO> generarGuiaRemision(GuiaRemisionGeneradaDTO request) {
-        log.info("🚚 Iniciando generación de guía de remisión para orden: {}", request.getIdOrdenSalida());
+        String correlationId = UUID.randomUUID().toString();
+        log.info("🚚 Iniciando generación de guía de remisión para orden: {} - CorrelationId: {}",
+                request.getIdOrdenSalida(), correlationId);
 
         return validarRequest(request)
                 .then(guiaRemisionPersistencePort.validarOrdenSalidaParaGuia(request.getIdOrdenSalida()))
@@ -32,10 +38,29 @@ public class GenerarGuiaRemisionService implements GenerarGuiaRemisionUseCase {
                     return guiaRemisionPersistencePort.generarGuiaRemision(request);
                 })
                 .doOnNext(resultado -> log.info(
-                        "✅ Guía de remisión generada exitosamente para orden: {} - Fecha entrega: {}",
-                        resultado.getIdOrdenSalida(), resultado.getFechaEntrega()))
-                .doOnError(error -> log.error("❌ Error al generar guía de remisión para orden: {} - Error: {}",
-                        request.getIdOrdenSalida(), error.getMessage()));
+                        "✅ Guía de remisión generada exitosamente para orden: {} - Fecha entrega: {} - CorrelationId: {}",
+                        resultado.getIdOrdenSalida(), resultado.getFechaEntrega(), correlationId))
+                .flatMap(resultado -> enviarEventoKafka(resultado, correlationId))
+                .doOnError(error -> log.error(
+                        "❌ Error al generar guía de remisión para orden: {} - Error: {} - CorrelationId: {}",
+                        request.getIdOrdenSalida(), error.getMessage(), correlationId));
+    }
+
+    /**
+     * Envía el evento Kafka de forma asíncrona sin bloquear el flujo principal
+     */
+    private Mono<GuiaRemisionGeneradaDTO> enviarEventoKafka(GuiaRemisionGeneradaDTO resultado, String correlationId) {
+        return enviarGuiaRemisionEventPort.enviarEventoGuiaRemision(resultado, correlationId)
+                .doOnSuccess(v -> log.info("✅ Evento Kafka enviado exitosamente para orden: {} - CorrelationId: {}",
+                        resultado.getIdOrdenSalida(), correlationId))
+                .onErrorResume(kafkaError -> {
+                    // El error de Kafka NO debe afectar el flujo principal
+                    log.error(
+                            "⚠️ Error al enviar evento Kafka (continuando con flujo principal). Orden: {}, Error: {}, CorrelationId: {}",
+                            resultado.getIdOrdenSalida(), kafkaError.getMessage(), correlationId);
+                    return Mono.empty(); // Continuar sin error
+                })
+                .thenReturn(resultado); // Devolver el resultado original
     }
 
     private Mono<Void> validarRequest(GuiaRemisionGeneradaDTO request) {

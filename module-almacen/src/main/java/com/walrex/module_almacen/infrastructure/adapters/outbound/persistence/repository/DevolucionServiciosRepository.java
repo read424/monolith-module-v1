@@ -65,4 +65,10 @@ public interface DevolucionServiciosRepository extends R2dbcRepository<Devolucio
        @Query("SELECT COUNT(*) > 0 FROM almacenes.devolucion_servicios WHERE id_ordensalida = :idOrdenSalida")
        Mono<Boolean> existsByIdOrdenSalida(Integer idOrdenSalida);
 
+       /**
+        * Buscar devoluciones por ID de orden de salida habilitado
+        */
+       @Query("SELECT * FROM almacenes.devolucion_servicios WHERE id_ordensalida = :idOrdenSalida AND status = 1")
+       Mono<DevolucionServiciosEntity> findByIdOrdenSalidaEnabled(Integer idOrdenSalida);
+
 }
