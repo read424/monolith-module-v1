@@ -1,17 +1,17 @@
 package com.walrex.module_ecomprobantes.infrastructure.adapters.config.kafka.consumer.config;
 
-import io.confluent.kafka.schemaregistry.client.SchemaRegistryClient;
-import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import reactor.kafka.receiver.ReceiverOptions;
 
-import java.util.HashMap;
-import java.util.Map;
+import io.confluent.kafka.serializers.KafkaAvroDeserializer;
+import reactor.kafka.receiver.ReceiverOptions;
 
 @Configuration
 public class ComprobanteKafkaConsumerConfig {
@@ -27,7 +27,7 @@ public class ComprobanteKafkaConsumerConfig {
     private String offset_reset;
 
     public ComprobanteKafkaConsumerConfig(
-        @Qualifier("ComprobanteSchemaRegistryConfig") Map<String, Object> schemaRegistryConfig) {
+            @Qualifier("ComprobanteSchemaRegistryConfig") Map<String, Object> schemaRegistryConfig) {
         this.schemaRegistryConfig = schemaRegistryConfig;
     }
 

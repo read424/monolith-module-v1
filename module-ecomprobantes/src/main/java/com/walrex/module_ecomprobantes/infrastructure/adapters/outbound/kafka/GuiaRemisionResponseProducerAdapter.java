@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.walrex.avro.schemas.GuiaRemisionRemitenteResponse;
+import com.walrex.module_ecomprobantes.application.ports.output.EnviarRespuestaGuiaRemisionPort;
 import com.walrex.module_ecomprobantes.infrastructure.adapters.config.properties.ComprobantesKafkaProperties;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
@@ -23,7 +24,7 @@ import reactor.util.retry.Retry;
 
 @Component
 @Slf4j
-public class GuiaRemisionResponseProducerAdapter {
+public class GuiaRemisionResponseProducerAdapter implements EnviarRespuestaGuiaRemisionPort {
 
     private final ComprobantesKafkaProperties properties;
     private final KafkaSender<String, Object> kafkaSender;
@@ -41,7 +42,12 @@ public class GuiaRemisionResponseProducerAdapter {
         this.rateLimiter = rateLimiter;
     }
 
-    private static final String RESPONSE_TOPIC = "response-create-guia-remision";
+    private static final String RESPONSE_TOPIC = "response-create-comprobante-grr";
+
+    @Override
+    public Mono<Void> enviarRespuesta(GuiaRemisionRemitenteResponse response, String correlationId) {
+        return sendGuiaRemisionResponse(response, correlationId);
+    }
 
     /**
      * Envía respuesta de creación de guía de remisión con resiliencia completa
