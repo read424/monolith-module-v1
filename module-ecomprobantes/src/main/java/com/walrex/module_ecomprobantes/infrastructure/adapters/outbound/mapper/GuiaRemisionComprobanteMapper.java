@@ -19,12 +19,15 @@ import com.walrex.module_ecomprobantes.domain.model.enums.TypeComprobante;
  * - Sigue principios de arquitectura hexagonal
  */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE, imports = {
-        TypeComprobante.class })
+        TypeComprobante.class }, uses = { DetalleComprobantePersistenceMapper.class })
 public interface GuiaRemisionComprobanteMapper {
 
-    @Mapping(source = "message.idCliente", target = "idCliente")
-    @Mapping(source = "message.idMotivo", target = "idMotivo")
-    @Mapping(source = "message.fechaEmision", target = "fechaEmision", qualifiedByName = "stringToLocalDate")
+    @Mapping(source = "idCliente", target = "idCliente")
+    @Mapping(source = "idMotivo", target = "idMotivo")
+    @Mapping(source = "tipoComprobante", target = "idTipoComprobante")
+    @Mapping(source = "tipoSerie", target = "tipoSerie")
+    @Mapping(source = "fechaEmision", target = "fechaEmision", qualifiedByName = "stringToLocalDate")
+    @Mapping(source = "detailItems", target = "detalles") // ✅ Mapeo automático de detalles
     ComprobanteDTO toComprobanteDTO(CreateGuiaRemisionRemitenteMessage message);
 
     /**
