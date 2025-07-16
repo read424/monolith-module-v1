@@ -70,7 +70,7 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
       properties:
-        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
         auto.registry.schemas: true
         use.latest.version: true
         specific.avro.reader: true
