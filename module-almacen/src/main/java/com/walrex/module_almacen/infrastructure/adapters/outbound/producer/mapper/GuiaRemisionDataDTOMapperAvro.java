@@ -1,5 +1,7 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.producer.mapper;
 
+import java.time.LocalDate;
+
 import org.mapstruct.*;
 
 import com.walrex.avro.schemas.CreateGuiaRemisionRemitenteMessage;
@@ -12,7 +14,7 @@ public interface GuiaRemisionDataDTOMapperAvro {
 
     @Mapping(source = "idCliente", target = "idCliente")
     @Mapping(source = "idMotivo", target = "idMotivo")
-    @Mapping(source = "fechaEmision", target = "fechaEmision")
+    @Mapping(source = "fechaEmision", target = "fechaEmision", qualifiedByName = "localDateToString")
     @Mapping(source = "detailItems", target = "detailItems")
     CreateGuiaRemisionRemitenteMessage toAvro(GuiaRemisionGeneradaDataDTO guiaRemisionGenerada);
 
@@ -26,4 +28,9 @@ public interface GuiaRemisionDataDTOMapperAvro {
     @Mapping(source = "idUnidad", target = "idUnidad")
     @Mapping(source = "idTipoServicio", target = "tipoServicio")
     ItemGuiaRemisionRemitenteMessage toAvroItem(DetailItemGuiaRemisionDTO detailItem);
+
+    @Named("localDateToString")
+    default String localDateToString(LocalDate date) {
+        return date != null ? date.toString() : LocalDate.now().toString();
+    }
 }
