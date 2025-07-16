@@ -1,17 +1,18 @@
 package com.walrex.module_almacen.common.kafka.producer.factory;
 
-import com.walrex.avro.schemas.GetCodesArticulosEvents;
-import jakarta.annotation.PostConstruct;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.kafka.clients.admin.AdminClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+
+import com.walrex.avro.schemas.GetCodesArticulosEvents;
+
+import jakarta.annotation.PostConstruct;
+import lombok.extern.slf4j.Slf4j;
 import reactor.kafka.sender.KafkaSender;
 import reactor.kafka.sender.SenderOptions;
-
-import java.util.concurrent.TimeUnit;
 
 @Component("AlmacenKafkaProducerFactory")
 @Slf4j
@@ -19,7 +20,8 @@ public class AlmacenKafkaProducerFactory {
     private final SenderOptions<String, Object> kafkaProducerOptions;
 
     // Constructor con Qualifier específico
-    public AlmacenKafkaProducerFactory(@Qualifier("almacenModuleProducerOptions") SenderOptions<String, Object> kafkaProducerOptions) {
+    public AlmacenKafkaProducerFactory(
+            @Qualifier("almacenModuleProducerOptions") SenderOptions<String, Object> kafkaProducerOptions) {
         this.kafkaProducerOptions = kafkaProducerOptions;
     }
 
@@ -34,7 +36,7 @@ public class AlmacenKafkaProducerFactory {
     }
 
     // Nuevo método genérico para crear KafkaSender con Avro
-    @Bean(name="almacenCreateAvroSender")
+    @Bean(name = "almacenCreateAvroSender")
     public <T> KafkaSender<String, T> almacenCreateAvroSender() {
         // Usar directamente las opciones de productor ya configuradas
         SenderOptions<String, T> options = SenderOptions.<String, T>create(
@@ -55,7 +57,7 @@ public class AlmacenKafkaProducerFactory {
         }
     }
 
-    public void validateTopicExists(String topicName){
+    public void validateTopicExists(String topicName) {
         try (var admin = AdminClient.create(kafkaProducerOptions.producerProperties())) {
             if (!admin.listTopics().names().get().contains(topicName)) {
                 throw new IllegalArgumentException("❌ Topic does not exist: " + topicName);
