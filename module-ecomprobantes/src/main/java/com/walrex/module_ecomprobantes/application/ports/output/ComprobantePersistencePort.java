@@ -17,36 +17,4 @@ public interface ComprobantePersistencePort {
      */
     Mono<ComprobanteDTO> crearComprobante(ComprobanteDTO comprobante);
 
-    /**
-     * Busca un comprobante por su ID (sin detalles)
-     * 
-     * @param idComprobante ID del comprobante
-     * @return Mono con el comprobante encontrado
-     */
-    Mono<ComprobanteDTO> buscarComprobantePorId(Long idComprobante);
-
-    /**
-     * Busca un comprobante por su ID incluyendo sus detalles
-     * 
-     * @param idComprobante ID del comprobante
-     * @return Mono con el comprobante completo con detalles
-     */
-    Mono<ComprobanteDTO> buscarComprobanteConDetallesPorId(Long idComprobante);
-
-    /**
-     * Actualiza el estado de un comprobante
-     * 
-     * @param idComprobante ID del comprobante
-     * @param nuevoEstado   Nuevo estado del comprobante
-     * @return Mono que completa cuando la actualización termina
-     */
-    Mono<Void> actualizarEstadoComprobante(Long idComprobante, Integer nuevoEstado);
-
-    /**
-     * Actualiza un comprobante completo incluyendo sus detalles
-     * 
-     * @param comprobante ComprobanteDTO con datos actualizados y detalles
-     * @return Mono con el comprobante actualizado
-     */
-    Mono<ComprobanteDTO> actualizarComprobanteCompleto(ComprobanteDTO comprobante);
 }
