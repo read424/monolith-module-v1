@@ -199,6 +199,8 @@ public class GuiaRemisionPersistenceAdapter implements GuiaRemisionPersistencePo
                                                                                                                         .intValue())
                                                                                                         .idMotivo(devolucionEntity
                                                                                                                         .getIdMotivoComprobante())
+                                                                                                        .fechaEmision(devolucionEntity
+                                                                                                                        .getFecEntrega())
                                                                                                         .detailItems(detailItems)
                                                                                                         .build();
 
