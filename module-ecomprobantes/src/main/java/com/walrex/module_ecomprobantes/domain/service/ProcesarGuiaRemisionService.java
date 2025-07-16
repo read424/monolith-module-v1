@@ -9,8 +9,6 @@ import com.walrex.module_ecomprobantes.application.ports.input.ProcesarGuiaRemis
 import com.walrex.module_ecomprobantes.application.ports.output.ComprobantePersistencePort;
 import com.walrex.module_ecomprobantes.application.ports.output.EnviarRespuestaGuiaRemisionPort;
 import com.walrex.module_ecomprobantes.domain.model.dto.ComprobanteDTO;
-import com.walrex.module_ecomprobantes.domain.model.enums.TypeComprobante;
-import com.walrex.module_ecomprobantes.infrastructure.adapters.outbound.mapper.DetalleComprobantePersistenceMapper;
 import com.walrex.module_ecomprobantes.infrastructure.adapters.outbound.mapper.GuiaRemisionComprobanteMapper;
 
 import lombok.RequiredArgsConstructor;
@@ -25,7 +23,6 @@ public class ProcesarGuiaRemisionService implements ProcesarGuiaRemisionUseCase 
         private final ComprobantePersistencePort comprobantePersistencePort;
         private final EnviarRespuestaGuiaRemisionPort enviarRespuestaPort;
         private final GuiaRemisionComprobanteMapper guiaRemisionComprobanteMapper;
-        private final DetalleComprobantePersistenceMapper detalleMapper;
 
         @Override
         public Mono<Void> procesarGuiaRemision(CreateGuiaRemisionRemitenteMessage message, String correlationId) {
@@ -71,28 +68,19 @@ public class ProcesarGuiaRemisionService implements ProcesarGuiaRemisionUseCase 
                 log.debug("📝 Creando comprobante completo para cliente: {} con {} items - CorrelationId: {}",
                                 message.getIdCliente(), message.getDetailItems().size(), correlationId);
 
-                return Mono.fromCallable(() -> {
-                        // ✅ Mapear mensaje a ComprobanteDTO
-                        ComprobanteDTO comprobante = guiaRemisionComprobanteMapper.toComprobanteDTO(message);
-                        comprobante.setIdTipoComprobante(
-                                        TypeComprobante.GUIA_REMISION_REMITENTE_SUNAT.getId_comprobante());
-                        comprobante.setTipoSerie(TypeComprobante.GUIA_REMISION_REMITENTE_SUNAT.getId_serie());
-                        comprobante.setObservacion("Comprobante generado desde guía de remisión - " + correlationId);
+                // ✅ Mapear mensaje a ComprobanteDTO con detalles automáticos
+                ComprobanteDTO comprobante = guiaRemisionComprobanteMapper.toComprobanteDTO(message);
 
-                        // ✅ Mapear items a DetalleComprobanteDTO y agregar al comprobante
-                        var detalles = detalleMapper.toDTOList(message.getDetailItems());
+                log.debug("📋 Comprobante preparado - Cliente: {}, Detalles: {}, Subtotal: {}",
+                                comprobante.getIdCliente(), comprobante.getDetalles().size(),
+                                comprobante.getSubtotal());
 
-                        log.debug("📋 Comprobante preparado - Cliente: {}, Detalles: {}, Subtotal: {}",
-                                        comprobante.getIdCliente(), comprobante.getDetalles(),
-                                        comprobante.getSubtotal());
-
-                        return comprobante;
-                })
-                                .flatMap(comprobantePersistencePort::crearComprobante)
-                                .doOnNext(comprobante -> log.info(
+                // ✅ Crear comprobante en base de datos (operación reactiva)
+                return comprobantePersistencePort.crearComprobante(comprobante)
+                                .doOnNext(comprobanteCreado -> log.info(
                                                 "✅ Comprobante completo creado - ID: {}, Cliente: {}, Items: {}, CorrelationId: {}",
-                                                comprobante.getIdComprobante(), comprobante.getIdCliente(),
-                                                comprobante.getDetalles(), correlationId))
+                                                comprobanteCreado.getIdComprobante(), comprobanteCreado.getIdCliente(),
+                                                comprobanteCreado.getDetalles().size(), correlationId))
                                 .doOnError(error -> log.error(
                                                 "❌ Error creando comprobante completo - CorrelationId: {}, Error: {}",
                                                 correlationId, error.getMessage()));
