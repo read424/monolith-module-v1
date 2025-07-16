@@ -5,16 +5,16 @@ import org.mapstruct.*;
 import com.walrex.avro.schemas.CreateGuiaRemisionRemitenteMessage;
 import com.walrex.avro.schemas.ItemGuiaRemisionRemitenteMessage;
 import com.walrex.module_almacen.domain.model.dto.DetailItemGuiaRemisionDTO;
-import com.walrex.module_almacen.domain.model.dto.GuiaRemisionGeneradaDTO;
+import com.walrex.module_almacen.domain.model.dto.GuiaRemisionGeneradaDataDTO;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)
-public interface GuiaRemisionDTOMapperAvro {
+public interface GuiaRemisionDataDTOMapperAvro {
 
     @Mapping(source = "idCliente", target = "idCliente")
     @Mapping(source = "idMotivo", target = "idMotivo")
-    @Mapping(source = "fechaEntrega", target = "fechaEmision")
+    @Mapping(source = "fechaEmision", target = "fechaEmision")
     @Mapping(source = "detailItems", target = "detailItems")
-    CreateGuiaRemisionRemitenteMessage toAvro(GuiaRemisionGeneradaDTO guiaRemisionGenerada);
+    CreateGuiaRemisionRemitenteMessage toAvro(GuiaRemisionGeneradaDataDTO guiaRemisionGenerada);
 
     @Mapping(source = "idProducto", target = "idProducto")
     @Mapping(source = "idOrdenSalida", target = "idOrdensalida")

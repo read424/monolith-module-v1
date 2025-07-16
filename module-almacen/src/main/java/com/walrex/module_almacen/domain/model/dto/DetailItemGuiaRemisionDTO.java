@@ -9,13 +9,13 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class DetailItemGuiaRemisionDTO {
-    private Integer idDetalleOrden;
-    private Integer idOrdenSalida;
     private Integer idProducto;
-    private Integer idUnidad;
+    private Integer idOrdenSalida;
     private BigDecimal cantidad;
     private BigDecimal precio;
     private BigDecimal total;
+    private Integer idDetalleOrden;
     private BigDecimal peso;
+    private Integer idUnidad;
     private Integer idTipoServicio;
 }

@@ -1,5 +1,9 @@
 package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.request;
 
+import java.time.LocalDate;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
 
@@ -9,24 +13,40 @@ import lombok.*;
 @AllArgsConstructor
 public class GenerarGuiaRemisionRequest {
 
+    @JsonProperty("guia_sunat")
+    private Boolean isGuiaSunat;
+
     @NotNull(message = "ID de orden de salida es requerido")
+    @JsonProperty("id_orden_salida")
     private Long idOrdenSalida;
 
-    @NotNull(message = "Tipo de empresa transportista es requerido")
-    private Integer idEmpresaTransp;
+    @JsonProperty("motivo_traslado")
+    private Integer idMotivoTraslado;
 
-    @NotNull(message = "Modalidad es requerida")
+    @NotNull(message = "Modalidad Transporte es requerida")
+    @JsonProperty("id_modalidad")
     private Integer idModalidad;
 
+    @NotNull(message = "Tipo de empresa transportista es requerido")
+    @JsonProperty("id_empresa_transp")
+    private Integer idEmpresaTransp;
+
     @NotNull(message = "Tipo de documento del chofer es requerido")
+    @JsonProperty("id_tip_doc_chofer")
     private Integer idTipDocChofer;
 
     @NotNull(message = "Número de documento del chofer es requerido")
+    @JsonProperty("num_doc_chofer")
     private String numDocChofer;
 
     @NotNull(message = "Número de placa es requerido")
+    @JsonProperty("num_placa")
     private String numPlaca;
 
     @NotNull(message = "Llegada es requerida")
+    @JsonProperty("id_direc_entrega")
     private Integer idLlegada;
+
+    @JsonProperty("fecha_entrega")
+    private LocalDate fechaEntrega;
 }

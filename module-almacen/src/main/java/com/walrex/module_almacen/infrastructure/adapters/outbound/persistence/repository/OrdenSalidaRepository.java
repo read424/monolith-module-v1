@@ -41,10 +41,11 @@ public interface OrdenSalidaRepository extends ReactiveCrudRepository<OrdenSalid
         Mono<Integer> updateForGenerateCodigo(Integer idOrdenSalida);
 
         @Query("UPDATE almacenes.ordensalida " +
-                        "SET entregado=1 " +
+                        "SET entregado=1, " +
                         "fec_entrega=:fecEntrega " +
-                        "WHERE id_ordensalida=:idOrdenSalida")
-        Mono<Integer> assignedEntregadoDevolucion(LocalDate fecEntrega, Integer idOrdenSalida);
+                        "WHERE id_ordensalida=:idOrdenSalida " +
+                        "RETURNING *")
+        Mono<OrdenSalidaEntity> assignedEntregadoDevolucion(LocalDate fecEntrega, Integer idOrdenSalida);
 
         @Query("SELECT * FROM almacenes.ordensalida WHERE id_ordensalida = :idOrdenSalida AND status = 1")
         Mono<OrdenSalidaEntity> findByIdOrdenSalidaEnabled(Integer idOrdenSalida);

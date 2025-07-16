@@ -7,9 +7,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.walrex.module_almacen.application.ports.output.GuiaRemisionPersistencePort;
-import com.walrex.module_almacen.domain.model.dto.DetailItemGuiaRemisionDTO;
-import com.walrex.module_almacen.domain.model.dto.GuiaRemisionGeneradaDTO;
+import com.walrex.module_almacen.domain.model.dto.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DevolucionServiciosEntity;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.OrdenSalidaEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.DevolucionServicioEntityMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.GuiaRemisionEntityMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.*;
@@ -35,17 +35,17 @@ public class GuiaRemisionPersistenceAdapter implements GuiaRemisionPersistencePo
 
                 return actualizarDevolucionServicios(request)
                                 .then(actualizarFechaEntregaOrdenSalida(request))
-                                .then(obtenerDatosGuiaGenerada(request.getIdOrdenSalida()))
+                                .then(Mono.just(request))
                                 .doOnNext(guia -> log.info(
-                                                "✅ Guía de remisión generada exitosamente - Orden: {}, Fecha: {}",
-                                                guia.getIdOrdenSalida(), guia.getFechaEntrega()))
-                                .doOnError(error -> log.error("❌ Error al generar guía de remisión en BD: {}",
+                                                "✅ Guía de remisión persistida exitosamente - Orden: {}, Fecha: {}, Cliente: {}",
+                                                guia.getIdOrdenSalida(), guia.getFechaEntrega(), guia.getIdCliente()))
+                                .doOnError(error -> log.error("❌ Error al persistir guía de remisión en BD: {}",
                                                 error.getMessage()));
         }
 
         @Override
-        public Mono<Boolean> validarOrdenSalidaParaGuia(Long idOrdenSalida) {
-                return devolucionServiciosRepository.findByIdOrdenSalida(idOrdenSalida.intValue())
+        public Mono<Boolean> validarOrdenSalidaParaGuia(GuiaRemisionGeneradaDTO ordenSalida) {
+                return devolucionServiciosRepository.findByIdOrdenSalida(ordenSalida.getIdOrdenSalida().intValue())
                                 .switchIfEmpty(
                                                 Mono.error(new IllegalArgumentException(
                                                                 "No se encontro orden de salida para esta devolucion")))
@@ -55,13 +55,17 @@ public class GuiaRemisionPersistenceAdapter implements GuiaRemisionPersistencePo
                                         validarGuiaNoAsignada(devolucionServicio);
                                         validarOrdenNoAnulada(devolucionServicio);
                                         validarOrdenNoDespachada(devolucionServicio);
+                                        ordenSalida.setIdDevolucion(devolucionServicio.getId());
+                                        ordenSalida.setStatus(devolucionServicio.getStatus());
+                                        ordenSalida.setIdComprobante(devolucionServicio.getIdComprobante());
                                 })
                                 .map(devolucionServicio -> {
-                                        log.debug("✅ Orden válida para generar guía: {}", idOrdenSalida);
+                                        log.debug("✅ Orden válida para generar guía: {}",
+                                                        ordenSalida.getIdOrdenSalida());
                                         return true;
                                 })
                                 .doOnError(error -> log.warn("❌ Validación fallida para orden {}: {}",
-                                                idOrdenSalida, error.getMessage()));
+                                                ordenSalida.getIdOrdenSalida(), error.getMessage()));
         }
 
         // ✅ Métodos helper para validaciones específicas
@@ -86,9 +90,19 @@ public class GuiaRemisionPersistenceAdapter implements GuiaRemisionPersistencePo
 
         private Mono<DevolucionServiciosEntity> actualizarDevolucionServicios(GuiaRemisionGeneradaDTO request) {
                 log.info("🔄 Actualizando devolucion_servicios para orden: {}", request);
-                DevolucionServiciosEntity devolucionServiciosEntity = guiaRemisionEntityMapper.DTOtoEntity(request);
 
-                return devolucionServiciosRepository.save(devolucionServiciosEntity)
+                return devolucionServiciosRepository.updateDevolucionServicios(
+                                request.getIdDevolucion(),
+                                request.getIdMotivoComprobante(),
+                                request.getIdComprobante(),
+                                request.getIdEmpresaTransp(),
+                                request.getIdModalidad(),
+                                request.getIdTipDocChofer(),
+                                request.getNumDocChofer(),
+                                request.getNumPlaca(),
+                                request.getIdLlegada(),
+                                request.getFechaEntrega(),
+                                request.getIdUsuario())
                                 .doOnNext(
                                                 savedEntity -> log.info(
                                                                 "✅ DevolucionServicios actualizado exitosamente - ID: {}, Orden: {}",
@@ -105,24 +119,27 @@ public class GuiaRemisionPersistenceAdapter implements GuiaRemisionPersistencePo
          * @param idOrdenSalida ID de la orden de salida
          * @return Mono<Void> confirmación de la actualización
          */
-        private Mono<Void> actualizarFechaEntregaOrdenSalida(GuiaRemisionGeneradaDTO request) {
+        private Mono<OrdenSalidaEntity> actualizarFechaEntregaOrdenSalida(GuiaRemisionGeneradaDTO request) {
                 log.info("📅 Actualizando fecha de entrega en ordensalida con Id: {}", request.getIdOrdenSalida());
 
                 return ordenSalidaRepository
                                 .assignedEntregadoDevolucion(request.getFechaEntrega(),
                                                 request.getIdOrdenSalida().intValue())
-                                .doOnSuccess(
-                                                result -> log.info(
-                                                                "✅ Fecha de entrega actualizada exitosamente para orden: {}",
-                                                                result))
+                                .doOnNext(ordenSalida -> {
+                                        log.info("✅ Fecha de entrega actualizada exitosamente para orden: {}",
+                                                        ordenSalida.getId());
+                                        // ✅ Setear el idCliente en el DTO desde la entidad actualizada
+                                        request.setIdCliente(ordenSalida.getId_cliente());
+                                        log.debug("👤 ID Cliente seteado en DTO: {} para orden: {}",
+                                                        ordenSalida.getId_cliente(), ordenSalida.getId());
+                                })
                                 .doOnError(error -> log.error(
                                                 "❌ Error al actualizar fecha de entrega para orden {}: {}",
                                                 request.getIdOrdenSalida(), error.getMessage()))
                                 .onErrorMap(DataAccessException.class,
                                                 ex -> new RuntimeException(
                                                                 "Error al actualizar fecha de entrega en ordensalida",
-                                                                ex))
-                                .then(); // Convertir cualquier resultado a Mono<Void>
+                                                                ex));
         }
 
         /**
@@ -130,9 +147,10 @@ public class GuiaRemisionPersistenceAdapter implements GuiaRemisionPersistencePo
          * actualizaciones
          *
          * @param idOrdenSalida ID de la orden de salida
-         * @return Mono<GuiaRemisionGeneradaDTO> con los datos actualizados
+         * @return Mono<GuiaRemisionGeneradaDataDTO> con los datos actualizados
          */
-        private Mono<GuiaRemisionGeneradaDTO> obtenerDatosGuiaGenerada(Long idOrdenSalida) {
+        @Override
+        public Mono<GuiaRemisionGeneradaDataDTO> obtenerDatosGuiaGenerada(Long idOrdenSalida) {
                 log.info("📋 Obteniendo datos de guía generada para orden: {}", idOrdenSalida);
 
                 return devolucionServiciosRepository.findByIdOrdenSalidaEnabled(idOrdenSalida.intValue())
@@ -140,20 +158,18 @@ public class GuiaRemisionPersistenceAdapter implements GuiaRemisionPersistencePo
                                                 "No se encontraron datos de devolución para la orden: "
                                                                 + idOrdenSalida)))
                                 .flatMap(devolucionEntity -> {
-                                        // ✅ Mapear datos básicos de devolución
-                                        GuiaRemisionGeneradaDTO guiaRemisionGeneradaDTO = devolucionServicioEntityMapper
-                                                        .toDto(devolucionEntity);
-
-                                        // ✅ Obtener datos de orden de salida para completar idCliente y codigoSalida
+                                        log.info("🔍 Datos de devolución encontrados: {}", devolucionEntity);
+                                        if (devolucionEntity.getIdComprobante() != null) {
+                                                throw new IllegalStateException(
+                                                                "El idComprobante ya fue asignado a la orden de salida");
+                                        }
+                                        // ✅ Obtener datos de la orden de salida para el idCliente
                                         return ordenSalidaRepository
                                                         .findByIdOrdenSalidaEnabled(idOrdenSalida.intValue())
                                                         .switchIfEmpty(Mono.error(new IllegalStateException(
                                                                         "No se encontró la orden de salida: "
                                                                                         + idOrdenSalida)))
                                                         .flatMap(ordenEntity -> {
-                                                                // ✅ Completar datos de la orden de salida
-                                                                guiaRemisionGeneradaDTO.setIdCliente(
-                                                                                ordenEntity.getId_cliente());
                                                                 // ✅ Obtener artículos devueltos desde
                                                                 // DetailSalidaRepository
                                                                 return detailSalidaRepository
@@ -172,21 +188,30 @@ public class GuiaRemisionPersistenceAdapter implements GuiaRemisionPersistencePo
                                                                                                         .map(devolucionServicioEntityMapper::toDetailItemGuiaRemisionDTO)
                                                                                                         .toList();
 
-                                                                                        // ✅ Setear la lista de items en
-                                                                                        // el DTO
-                                                                                        guiaRemisionGeneradaDTO
-                                                                                                        .setDetailItems(detailItems);
+                                                                                        // ✅ Crear el DTO específico
+                                                                                        // para datos de guía generada
+                                                                                        GuiaRemisionGeneradaDataDTO guiaDataDTO = GuiaRemisionGeneradaDataDTO
+                                                                                                        .builder()
+                                                                                                        .idCliente(ordenEntity
+                                                                                                                        .getId_cliente())
+                                                                                                        .idOrdenSalida(ordenEntity
+                                                                                                                        .getId()
+                                                                                                                        .intValue())
+                                                                                                        .idMotivo(devolucionEntity
+                                                                                                                        .getIdMotivoComprobante())
+                                                                                                        .detailItems(detailItems)
+                                                                                                        .build();
 
-                                                                                        log.debug("✅ Items mapeados exitosamente: {} items para orden: {}",
+                                                                                        log.debug("✅ Datos de guía mapeados exitosamente: {} items para orden: {}",
                                                                                                         detailItems.size(),
                                                                                                         idOrdenSalida);
 
-                                                                                        return guiaRemisionGeneradaDTO;
+                                                                                        return guiaDataDTO;
                                                                                 });
                                                         });
                                 })
-                                .doOnNext(guiaGenerada -> log.info("✅ Datos de guía obtenidos exitosamente: {}",
-                                                guiaGenerada))
+                                .doOnNext(guiaData -> log.info("✅ Datos de guía obtenidos exitosamente: {}",
+                                                guiaData))
                                 .doOnError(error -> log.error("❌ Error al obtener datos de guía generada: {}",
                                                 error.getMessage()));
         }

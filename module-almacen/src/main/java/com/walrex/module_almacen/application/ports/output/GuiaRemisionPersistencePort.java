@@ -1,6 +1,7 @@
 package com.walrex.module_almacen.application.ports.output;
 
 import com.walrex.module_almacen.domain.model.dto.GuiaRemisionGeneradaDTO;
+import com.walrex.module_almacen.domain.model.dto.GuiaRemisionGeneradaDataDTO;
 
 import reactor.core.publisher.Mono;
 
@@ -15,5 +16,11 @@ public interface GuiaRemisionPersistencePort {
     /**
      * Verifica si una orden de salida existe y es válida para generar guía
      */
-    Mono<Boolean> validarOrdenSalidaParaGuia(Long idOrdenSalida);
+    Mono<Boolean> validarOrdenSalidaParaGuia(GuiaRemisionGeneradaDTO ordenSalida);
+
+    /**
+     * Obtiene los datos completos de la guía de remisión generada
+     * incluyendo información del cliente, motivo, fecha y artículos
+     */
+    Mono<GuiaRemisionGeneradaDataDTO> obtenerDatosGuiaGenerada(Long idOrdenSalida);
 }

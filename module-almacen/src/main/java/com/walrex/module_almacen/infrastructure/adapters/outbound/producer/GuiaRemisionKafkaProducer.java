@@ -13,8 +13,9 @@ import org.springframework.stereotype.Component;
 
 import com.walrex.avro.schemas.CreateGuiaRemisionRemitenteMessage;
 import com.walrex.module_almacen.application.ports.output.EnviarGuiaRemisionEventPort;
-import com.walrex.module_almacen.domain.model.dto.GuiaRemisionGeneradaDTO;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.producer.mapper.GuiaRemisionDTOMapperAvro;
+import com.walrex.module_almacen.domain.model.dto.GuiaRemisionGeneradaDataDTO;
+import com.walrex.module_almacen.domain.model.enums.TypeComprobante;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.producer.mapper.GuiaRemisionDataDTOMapperAvro;
 
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
@@ -32,32 +33,42 @@ import reactor.kafka.sender.SenderRecord;
 public class GuiaRemisionKafkaProducer implements EnviarGuiaRemisionEventPort {
 
         private final KafkaSender<String, Object> kafkaSender;
-        private final GuiaRemisionDTOMapperAvro guiaRemisionDTOMapperAvro;
+        private final GuiaRemisionDataDTOMapperAvro guiaRemisionDTOMapperAvro;
         @Value("${kafka.topics.almacen.create-comprobante-guia-remision}")
-        private final String guiaRemisionTopic;
+        private String guiaRemisionTopic;
 
         public GuiaRemisionKafkaProducer(
                         @Qualifier("almacenCreateAvroSender") KafkaSender<String, Object> kafkaSender,
-                        GuiaRemisionDTOMapperAvro guiaRemisionDTOMapperAvro,
-                        @Value("${kafka.topics.almacen.create-comprobante-guia-remision}") String guiaRemisionTopic) {
+                        GuiaRemisionDataDTOMapperAvro guiaRemisionDTOMapperAvro) {
                 this.kafkaSender = kafkaSender;
                 this.guiaRemisionDTOMapperAvro = guiaRemisionDTOMapperAvro;
-                this.guiaRemisionTopic = guiaRemisionTopic;
         }
 
         @Override
         @CircuitBreaker(name = "guiaRemisionKafkaProducer", fallbackMethod = "fallbackEnviarEvento")
-        public Mono<Void> enviarEventoGuiaRemision(GuiaRemisionGeneradaDTO guiaRemisionGenerada, String correlationId) {
+        public Mono<Void> enviarEventoGuiaRemision(GuiaRemisionGeneradaDataDTO guiaRemisionGenerada,
+                        String correlationId, Boolean isComprobanteSUNAT) {
                 MDC.put("correlationId", correlationId);
 
                 log.info("📤 Preparando envío de evento guía de remisión. CorrelationId: {}, OrdenSalida: {}, Topic: {}",
-                                correlationId, guiaRemisionGenerada.getIdOrdenSalida(), guiaRemisionTopic);
+                                correlationId, guiaRemisionGenerada, guiaRemisionTopic);
 
                 return Mono.just(guiaRemisionDTOMapperAvro.toAvro(guiaRemisionGenerada))
-                                .doOnNext(message -> log.debug(
-                                                "✅ Mensaje Avro generado para orden: {}, cliente: {}, items: {}",
-                                                guiaRemisionGenerada.getIdOrdenSalida(), message.getIdCliente(),
-                                                message.getDetailItems().size()))
+                                .doOnNext(message -> {
+                                        message.setTipoComprobante(TypeComprobante.GUIA_REMISION_REMITENTE_SUNAT
+                                                        .getId_comprobante());
+                                        if (isComprobanteSUNAT) {
+                                                message.setTipoSerie(TypeComprobante.GUIA_REMISION_REMITENTE_SUNAT
+                                                                .getId_serie());
+                                        } else {
+                                                message.setTipoSerie(
+                                                                TypeComprobante.GUIA_REMISION_REMITENTE.getId_serie());
+                                        }
+                                        log.debug(
+                                                        "✅ Mensaje Avro generado para orden: {}, cliente: {}, items: {}",
+                                                        guiaRemisionGenerada, message.getIdCliente(),
+                                                        message.getDetailItems().size());
+                                })
                                 .flatMap(avroMessage -> enviarMensajeKafka(avroMessage, correlationId,
                                                 guiaRemisionGenerada.getIdOrdenSalida(),
                                                 guiaRemisionGenerada.getIdUsuario()))
@@ -77,10 +88,10 @@ public class GuiaRemisionKafkaProducer implements EnviarGuiaRemisionEventPort {
         }
 
         private Mono<Void> enviarMensajeKafka(CreateGuiaRemisionRemitenteMessage avroMessage, String correlationId,
-                        Long idOrdenSalida, Integer idUsuario) {
+                        Integer idOrdenSalida, Integer idUsuario) {
                 try {
                         // Crear headers del mensaje
-                        List<Header> headers = crearHeaders(correlationId, idOrdenSalida, idUsuario);
+                        List<Header> headers = crearHeaders(correlationId, Long.valueOf(idOrdenSalida), idUsuario);
 
                         // Crear record de productor
                         ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(

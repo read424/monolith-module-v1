@@ -8,6 +8,7 @@ import com.walrex.module_almacen.application.ports.input.GenerarGuiaRemisionUseC
 import com.walrex.module_almacen.application.ports.output.EnviarGuiaRemisionEventPort;
 import com.walrex.module_almacen.application.ports.output.GuiaRemisionPersistencePort;
 import com.walrex.module_almacen.domain.model.dto.GuiaRemisionGeneradaDTO;
+import com.walrex.module_almacen.domain.model.dto.GuiaRemisionGeneradaDataDTO;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,44 +24,63 @@ public class GenerarGuiaRemisionService implements GenerarGuiaRemisionUseCase {
 
     @Override
     public Mono<GuiaRemisionGeneradaDTO> generarGuiaRemision(GuiaRemisionGeneradaDTO request) {
-        String correlationId = UUID.randomUUID().toString();
-        log.info("🚚 Iniciando generación de guía de remisión para orden: {} - CorrelationId: {}",
-                request.getIdOrdenSalida(), correlationId);
+        log.info("Iniciando generación de guía de remisión - Orden: {}",
+                request);
 
         return validarRequest(request)
-                .then(guiaRemisionPersistencePort.validarOrdenSalidaParaGuia(request.getIdOrdenSalida()))
+                .then(validarOrdenSalida(request))
+                .then(persistirGuia(request))
+                .flatMap(resultado -> procesarYEnviarEvento(resultado))
+                .doOnError(error -> log.error(
+                        "Error al generar guía de remisión - Orden: {}, Error: {}",
+                        request.getIdOrdenSalida(), error.getMessage()));
+    }
+
+    private Mono<Boolean> validarOrdenSalida(GuiaRemisionGeneradaDTO request) {
+        return guiaRemisionPersistencePort.validarOrdenSalidaParaGuia(request)
                 .flatMap(esValida -> {
                     if (!esValida) {
                         return Mono.error(new IllegalArgumentException(
                                 "La orden de salida " + request.getIdOrdenSalida()
                                         + " no es válida para generar guía"));
                     }
-                    return guiaRemisionPersistencePort.generarGuiaRemision(request);
-                })
-                .doOnNext(resultado -> log.info(
-                        "✅ Guía de remisión generada exitosamente para orden: {} - Fecha entrega: {} - CorrelationId: {}",
-                        resultado.getIdOrdenSalida(), resultado.getFechaEntrega(), correlationId))
-                .flatMap(resultado -> enviarEventoKafka(resultado, correlationId))
-                .doOnError(error -> log.error(
-                        "❌ Error al generar guía de remisión para orden: {} - Error: {} - CorrelationId: {}",
-                        request.getIdOrdenSalida(), error.getMessage(), correlationId));
+                    return Mono.just(true);
+                });
     }
 
-    /**
-     * Envía el evento Kafka de forma asíncrona sin bloquear el flujo principal
-     */
-    private Mono<GuiaRemisionGeneradaDTO> enviarEventoKafka(GuiaRemisionGeneradaDTO resultado, String correlationId) {
-        return enviarGuiaRemisionEventPort.enviarEventoGuiaRemision(resultado, correlationId)
-                .doOnSuccess(v -> log.info("✅ Evento Kafka enviado exitosamente para orden: {} - CorrelationId: {}",
+    private Mono<GuiaRemisionGeneradaDTO> persistirGuia(GuiaRemisionGeneradaDTO request) {
+        return guiaRemisionPersistencePort.generarGuiaRemision(request)
+                .doOnNext(resultado -> log.info("Guía de remisión persistida - Orden: {}, Fecha: {}",
+                        resultado.getIdOrdenSalida(), resultado.getFechaEntrega()));
+    }
+
+    private Mono<GuiaRemisionGeneradaDTO> procesarYEnviarEvento(GuiaRemisionGeneradaDTO resultado) {
+        String correlationId = UUID.randomUUID().toString();
+        return guiaRemisionPersistencePort.obtenerDatosGuiaGenerada(resultado.getIdOrdenSalida().longValue())
+                .doOnNext(guiaData -> {
+                    guiaData.setIdUsuario(resultado.getIdUsuario());
+                    log.info("Datos completos obtenidos - Orden: {}, Guia: {}, Items: {}",
+                            guiaData
+                                    .getIdOrdenSalida(),
+                            guiaData,
+                            guiaData.getDetailItems() != null ? guiaData.getDetailItems().size() : 0);
+                })
+                .flatMap(guiaData -> enviarEventoKafka(guiaData, correlationId, resultado.getIsGuiaSunat())
+                        .thenReturn(resultado));
+    }
+
+    private Mono<Void> enviarEventoKafka(GuiaRemisionGeneradaDataDTO resultado,
+            String correlationId, Boolean isComprobanteSUNAT) {
+        return enviarGuiaRemisionEventPort.enviarEventoGuiaRemision(resultado, correlationId,
+                isComprobanteSUNAT)
+                .doOnSuccess(v -> log.info("Evento Kafka enviado - Orden: {}, CorrelationId: {}",
                         resultado.getIdOrdenSalida(), correlationId))
                 .onErrorResume(kafkaError -> {
-                    // El error de Kafka NO debe afectar el flujo principal
                     log.error(
-                            "⚠️ Error al enviar evento Kafka (continuando con flujo principal). Orden: {}, Error: {}, CorrelationId: {}",
+                            "Error al enviar evento Kafka (continuando flujo) - Orden: {}, Error: {}, CorrelationId: {}",
                             resultado.getIdOrdenSalida(), kafkaError.getMessage(), correlationId);
-                    return Mono.empty(); // Continuar sin error
-                })
-                .thenReturn(resultado); // Devolver el resultado original
+                    return Mono.empty();
+                });
     }
 
     private Mono<Void> validarRequest(GuiaRemisionGeneradaDTO request) {
@@ -73,8 +93,6 @@ public class GenerarGuiaRemisionService implements GenerarGuiaRemisionUseCase {
         if (request.getNumPlaca() == null || request.getNumPlaca().trim().isEmpty()) {
             return Mono.error(new IllegalArgumentException("Número de placa es requerido"));
         }
-
-        log.debug("✅ Request de guía de remisión validado correctamente");
         return Mono.empty();
     }
 }

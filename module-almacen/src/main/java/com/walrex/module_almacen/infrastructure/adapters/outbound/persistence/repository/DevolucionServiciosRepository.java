@@ -1,5 +1,7 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository;
 
+import java.time.LocalDate;
+
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.r2dbc.repository.R2dbcRepository;
 import org.springframework.stereotype.Repository;
@@ -70,5 +72,35 @@ public interface DevolucionServiciosRepository extends R2dbcRepository<Devolucio
         */
        @Query("SELECT * FROM almacenes.devolucion_servicios WHERE id_ordensalida = :idOrdenSalida AND status = 1")
        Mono<DevolucionServiciosEntity> findByIdOrdenSalidaEnabled(Integer idOrdenSalida);
+
+       /**
+        * Actualizar devolución de servicios sin afectar timestamps
+        * Los campos create_at y update_at se manejan automáticamente por la BD
+        */
+       @Query("UPDATE almacenes.devolucion_servicios SET " +
+                     "motivo_comprobante = :idMotivoComprobante, " +
+                     "id_comprobante = :idComprobante, " +
+                     "id_empresa_transp = :idEmpresaTransp, " +
+                     "id_modalidad = :idModalidad, " +
+                     "id_tip_doc_chofer = :idTipDocChofer, " +
+                     "num_doc_chofer = :numDocChofer, " +
+                     "num_placa = :numPlaca, " +
+                     "id_llegada = :idLlegada, " +
+                     "fec_entrega = :fecEntrega, " +
+                     "id_usuario = :idUsuario " +
+                     "WHERE id_devolucion = :idDevolucion " +
+                     "RETURNING *")
+       Mono<DevolucionServiciosEntity> updateDevolucionServicios(
+                     Long idDevolucion,
+                     Integer idMotivoComprobante,
+                     Integer idComprobante,
+                     Integer idEmpresaTransp,
+                     Integer idModalidad,
+                     Integer idTipDocChofer,
+                     String numDocChofer,
+                     String numPlaca,
+                     Integer idLlegada,
+                     LocalDate fecEntrega,
+                     Integer idUsuario);
 
 }

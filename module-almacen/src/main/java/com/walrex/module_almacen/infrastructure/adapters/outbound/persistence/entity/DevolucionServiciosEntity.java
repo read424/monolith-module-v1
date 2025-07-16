@@ -33,6 +33,9 @@ public class DevolucionServiciosEntity {
     @Column("id_motivo")
     private Integer idMotivo;
 
+    @Column("motivo_comprobante")
+    private Integer idMotivoComprobante;
+
     @Column("id_comprobante")
     private Integer idComprobante;
 
