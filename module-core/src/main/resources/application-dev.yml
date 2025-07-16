@@ -97,10 +97,10 @@ spring:
     username: postgres
     password: 12345
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:127.0.0.1:9092}
+    bootstrap-servers: 127.0.0.1:9092
     properties:
       auto.create.topics.enabled: true
-      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
+      schema.registry.url: http://127.0.0.1:8081
       security:
         protocol: PLAINTEXT
     consumer:
@@ -113,13 +113,13 @@ spring:
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
         max.partition.fetch.bytes: 10485760
-        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
+        schema.registry.url: http://127.0.0.1:8081
         specific.avro.reader: true
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
       properties:
-        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
+        schema.registry.url: http://127.0.0.1:8081
         auto.registry.schemas: true
         use.latest.version: true
         specific.avro.reader: true
