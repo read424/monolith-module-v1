@@ -204,11 +204,17 @@ app:
 # Configuración OpenAPI/Swagger
 springdoc:
   api-docs:
-    path: /document
     enabled: true
+    path: /api-docs
   swagger-ui:
-    path: /swagger-ui.html
     enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    doc-expansion: none
+    disable-swagger-default-url: true
+  packages-to-scan: com.walrex
+  paths-to-match: /api/**, /v1/**, /**
   group-configs:
     - group: motivos-devolucion
       display-name: "Motivos de Devolución"
