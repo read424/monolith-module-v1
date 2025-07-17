@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.walrex.avro.schemas.GuiaRemisionRemitenteResponse;
@@ -31,6 +32,9 @@ public class GuiaRemisionResponseProducerAdapter implements EnviarRespuestaGuiaR
     private final CircuitBreaker producerCircuitBreaker;
     private final RateLimiter rateLimiter;
 
+    @Value("${kafka.topics.almacen.response-create-guia-remision-remitente}")
+    private static String RESPONSE_TOPIC;
+
     public GuiaRemisionResponseProducerAdapter(
             ComprobantesKafkaProperties properties,
             @Qualifier("comprobanteCreateAvroSender") KafkaSender<String, Object> kafkaSender,
@@ -41,8 +45,6 @@ public class GuiaRemisionResponseProducerAdapter implements EnviarRespuestaGuiaR
         this.producerCircuitBreaker = producerCircuitBreaker;
         this.rateLimiter = rateLimiter;
     }
-
-    private static final String RESPONSE_TOPIC = "response-create-comprobante-grr";
 
     @Override
     public Mono<Void> enviarRespuesta(GuiaRemisionRemitenteResponse response, String correlationId) {
