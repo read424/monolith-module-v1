@@ -15,6 +15,7 @@ import lombok.*;
 @AllArgsConstructor
 public class ComprobanteDTO {
 
+    private Integer idOrdenSalida;
     private Long idComprobante;
     private Integer idTipoComprobante;
     private Integer tipoSerie;
