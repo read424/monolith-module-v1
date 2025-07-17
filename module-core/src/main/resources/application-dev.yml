@@ -176,6 +176,11 @@ logging:
     com.walrex.gateway: TRACE
     org.springframework.web.reactive: DEBUG
     org.springframework.boot.reactor: OFF
+  dynamic:
+    enabled: true
+    modules: almacen,users,articulos,ecomprobantes,role,gateway,core,mailing,partidas
+    default-level: DEBUG
+    error-level: ERROR
 reactor:
   tools:
     agent:
@@ -197,6 +202,7 @@ kafka:
       create-ingreso-ajuste: ajuste-ingreso-message
       create-ingreso-ajuste-response: ajuste-ingreso-response
       create-comprobante-guia-remision: create-comprobante-guia-remision
+      response-create-guia-remision-remitente: response-create-comprobante-grr
 app:
   mail:
     templates:
