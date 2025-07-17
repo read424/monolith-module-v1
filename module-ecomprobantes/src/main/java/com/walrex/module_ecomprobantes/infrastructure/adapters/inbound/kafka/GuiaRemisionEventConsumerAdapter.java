@@ -116,8 +116,8 @@ public class GuiaRemisionEventConsumerAdapter {
 
                 return Mono.defer(() -> {
                         if (record.value() instanceof CreateGuiaRemisionRemitenteMessage message) {
-                                log.info("🔄 Procesando guía de remisión - Cliente: {}, Items: {}, CorrelationId: {}",
-                                                message.getIdCliente(), message.getDetailItems().size(), correlationId);
+                                log.info("🔄 Procesando guía de remisión - Guia: {}, Items: {}, CorrelationId: {}",
+                                                message, message.getDetailItems().size(), correlationId);
 
                                 // ✅ Procesar con el use case y confirmar offset al finalizar
                                 return procesarGuiaRemisionUseCase.procesarGuiaRemision(message, correlationId)
