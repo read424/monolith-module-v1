@@ -30,10 +30,9 @@ public class ComprobantePersistenceAdapter implements ComprobantePersistencePort
 
         @Override
         public Mono<ComprobanteDTO> crearComprobante(ComprobanteDTO comprobante) {
-                log.info("💾 Creando comprobante para cliente: {} - Tipo: {}",
-                                comprobante.getIdCliente(), comprobante.getIdTipoComprobante());
+                log.info("💾 Creando comprobante Comprobante: {} para cliente: {} - Tipo: {}",
+                                comprobante, comprobante.getIdCliente(), comprobante.getIdTipoComprobante());
 
-                // 1. Buscar la serie activa para el tipo de comprobante
                 return tipoSerieRepository.findById(comprobante.getTipoSerie())
                                 .switchIfEmpty(Mono.error(new RuntimeException(
                                                 "No se encontró serie activa para el tipo de comprobante: "
@@ -41,19 +40,14 @@ public class ComprobantePersistenceAdapter implements ComprobantePersistencePort
                                 .flatMap(serie -> {
                                         log.debug("📋 Serie encontrada: {} - Número actual: {}", serie.getNuSerie(),
                                                         serie.getNuCompro());
-
-                                        // 2. Generar el siguiente número correlativo
                                         Integer siguienteNumero = serie.getNuCompro() + 1;
                                         comprobante.setNumeroComprobante(siguienteNumero);
 
                                         log.info("🔢 Generando correlativo: Serie {} - Número: {}", serie.getNuSerie(),
                                                         siguienteNumero);
-
-                                        // 3. PRIMERO actualizar la serie (para evitar duplicados)
                                         serie.setNuCompro(siguienteNumero);
                                         return tipoSerieRepository.save(serie);
                                 })
-                                // 4. SEGUNDO guardar el comprobante con el número actualizado
                                 .flatMap(serieActualizada -> Mono
                                                 .fromCallable(() -> comprobantePersistenceMapper.toEntity(comprobante))
                                                 .flatMap(comprobantesRepository::save))
@@ -65,9 +59,14 @@ public class ComprobantePersistenceAdapter implements ComprobantePersistencePort
                                                         comprobante.getIdCliente());
                                 })
                                 // 6. TERCERO guardar los detalles usando el repository
-                                .flatMap(comprobanteEntityGuardado -> guardarDetallesComprobante(
-                                                comprobanteEntityGuardado, comprobante.getDetalles())
-                                                .thenReturn(comprobante))
+                                .flatMap(comprobanteEntityGuardado -> {
+                                        return guardarDetallesComprobante(
+                                                        comprobanteEntityGuardado, comprobante.getDetalles())
+                                                        .flatMap(idOrdenSalida -> {
+                                                                comprobante.setIdOrdenSalida(idOrdenSalida);
+                                                                return Mono.just(comprobante);
+                                                        });
+                                })
                                 .doOnNext(resultado -> log.info(
                                                 "✅ Comprobante creado con ID: {} - Cliente: {} - Número: {} - Detalles: {}",
                                                 resultado.getIdComprobante(), resultado.getIdCliente(),
@@ -80,14 +79,16 @@ public class ComprobantePersistenceAdapter implements ComprobantePersistencePort
          * 
          * @param comprobanteEntity ComprobanteEntity guardado
          * @param detalles          Lista de detalles a guardar
-         * @return Mono<Void> cuando se completa la operación
+         * @return Mono<Integer> devolviendo el id de la orden de salida
          */
-        private Mono<Void> guardarDetallesComprobante(ComprobanteEntity comprobanteEntity,
+        private Mono<Integer> guardarDetallesComprobante(ComprobanteEntity comprobanteEntity,
                         List<DetalleComprobanteDTO> detalles) {
                 if (detalles == null || detalles.isEmpty()) {
-                        log.debug("📋 No hay detalles para guardar - Comprobante: {}",
+                        log.error("❌ No se pueden guardar detalles vacíos o nulos - Comprobante: {}",
                                         comprobanteEntity.getIdComprobante());
-                        return Mono.empty();
+                        return Mono.error(new IllegalArgumentException(
+                                        "El comprobante debe tener al menos un detalle. Comprobante ID: " +
+                                                        comprobanteEntity.getIdComprobante()));
                 }
 
                 log.info("💾 Guardando {} detalles para comprobante: {}", detalles.size(),
@@ -105,7 +106,10 @@ public class ComprobantePersistenceAdapter implements ComprobantePersistencePort
                                                 "✅ Detalle guardado - ID: {}, Producto: {}, Comprobante: {}",
                                                 entity.getIdDetalleComprobante(), entity.getIdProducto(),
                                                 entity.getIdComprobante()))
-                                .then()
+                                .collectList()
+                                .map(savedEntities -> {
+                                        return detalles.get(0).getIdOrdenSalida();
+                                })
                                 .doOnSuccess(v -> log.info(
                                                 "✅ Todos los detalles guardados exitosamente - Comprobante: {}",
                                                 comprobanteEntity.getIdComprobante()))
