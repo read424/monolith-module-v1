@@ -26,8 +26,8 @@ public class ProcesarGuiaRemisionService implements ProcesarGuiaRemisionUseCase 
 
         @Override
         public Mono<Void> procesarGuiaRemision(CreateGuiaRemisionRemitenteMessage message, String correlationId) {
-                log.info("🔄 Iniciando procesamiento de guía de remisión - Cliente: {}, Items: {}, CorrelationId: {}",
-                                message.getIdCliente(), message.getDetailItems().size(), correlationId);
+                log.info("🔄 Iniciando procesamiento de guía de remisión - Guia: {}, Cliente: {}, Items: {}, CorrelationId: {}",
+                                message, message.getIdCliente(), message.getDetailItems().size(), correlationId);
 
                 return validarMensaje(message)
                                 .flatMap(validMessage -> crearComprobanteCompleto(validMessage, correlationId))
@@ -71,8 +71,8 @@ public class ProcesarGuiaRemisionService implements ProcesarGuiaRemisionUseCase 
                 // ✅ Mapear mensaje a ComprobanteDTO con detalles automáticos
                 ComprobanteDTO comprobante = guiaRemisionComprobanteMapper.toComprobanteDTO(message);
 
-                log.debug("📋 Comprobante preparado - Cliente: {}, Detalles: {}, Subtotal: {}",
-                                comprobante.getIdCliente(), comprobante.getDetalles().size(),
+                log.debug("📋 Comprobante preparado - Comprobante: {}, Detalles: {}, Subtotal: {}",
+                                comprobante, comprobante.getDetalles().size(),
                                 comprobante.getSubtotal());
 
                 // ✅ Crear comprobante en base de datos (operación reactiva)
@@ -93,10 +93,9 @@ public class ProcesarGuiaRemisionService implements ProcesarGuiaRemisionUseCase 
                 return Mono.fromCallable(() -> {
                         // Crear datos de respuesta
                         GuiaRemisionRemitenteData responseData = GuiaRemisionRemitenteData.newBuilder()
-                                        .setIdOrdensalida(extractIdOrdenSalidaFromObservacion(
-                                                        comprobante.getObservacion()))
                                         .setIdComprobante(comprobante.getIdComprobante().intValue())
-                                        .setCodigoComprobante(generateCodigoComprobante(comprobante))
+                                        .setCodigoComprobante(comprobante.getNumeroComprobante().toString())
+                                        .setIdOrdensalida(comprobante.getIdOrdenSalida())
                                         .build();
 
                         // Crear respuesta
@@ -119,36 +118,23 @@ public class ProcesarGuiaRemisionService implements ProcesarGuiaRemisionUseCase 
                 log.error("❌ Error procesando guía de remisión - CorrelationId: {}, Error: {}", correlationId,
                                 error.getMessage());
 
-                return Mono.fromCallable(() -> {
-                        // Crear respuesta de error
-                        GuiaRemisionRemitenteResponse response = GuiaRemisionRemitenteResponse.newBuilder()
-                                        .setSuccess(false)
-                                        .setMessage("Error procesando guía de remisión: " + error.getMessage())
-                                        .setData(Arrays.asList()) // Lista vacía
-                                        .build();
+                GuiaRemisionRemitenteResponse response = new GuiaRemisionRemitenteResponse();
+                response.setSuccess(false);
+                response.setMessage(error.getMessage());
+                // Puedes setear otros campos si lo necesitas
 
-                        return response;
-                })
-                                .flatMap(response -> enviarRespuestaPort.enviarRespuesta(response, correlationId))
-                                .doOnNext(v -> log.info("✅ Respuesta de error enviada - CorrelationId: {}",
+                return enviarRespuestaError(response, correlationId);
+        }
+
+        private Mono<Void> enviarRespuestaError(GuiaRemisionRemitenteResponse response, String correlationId) {
+                return enviarRespuestaPort
+                                .enviarRespuesta(response, correlationId)
+                                .doOnSuccess(v -> log.info(
+                                                "🚨 Respuesta de error enviada por Kafka - CorrelationId: {}",
                                                 correlationId))
-                                .onErrorResume(sendError -> {
-                                        log.error("❌ Error adicional enviando respuesta de error - CorrelationId: {}, Error: {}",
-                                                        correlationId, sendError.getMessage());
-                                        return Mono.empty();
-                                });
-        }
-
-        private Integer extractIdOrdenSalidaFromObservacion(String observacion) {
-                // Implementar lógica para extraer ID de orden de salida de la observación
-                // Por ahora retornamos un valor por defecto
-                return 1000; // TODO: Implementar extracción real
-        }
-
-        private String generateCodigoComprobante(ComprobanteDTO comprobante) {
-                // Generar código del comprobante basado en serie y número
-                return String.format("GR-%03d-%08d",
-                                comprobante.getTipoSerie() != null ? comprobante.getTipoSerie() : 1,
-                                comprobante.getIdComprobante());
+                                .doOnError(e -> log.error(
+                                                "❌ Error enviando respuesta de error por Kafka - CorrelationId: {}, Error: {}",
+                                                correlationId, e.getMessage()))
+                                .then();
         }
 }
