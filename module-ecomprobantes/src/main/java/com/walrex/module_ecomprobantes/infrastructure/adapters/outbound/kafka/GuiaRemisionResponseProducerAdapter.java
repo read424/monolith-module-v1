@@ -33,7 +33,7 @@ public class GuiaRemisionResponseProducerAdapter implements EnviarRespuestaGuiaR
     private final RateLimiter rateLimiter;
 
     @Value("${kafka.topics.almacen.response-create-guia-remision-remitente}")
-    private static String RESPONSE_TOPIC;
+    private String responseTopic;
 
     public GuiaRemisionResponseProducerAdapter(
             ComprobantesKafkaProperties properties,
@@ -102,7 +102,7 @@ public class GuiaRemisionResponseProducerAdapter implements EnviarRespuestaGuiaR
             String messageId = UUID.randomUUID().toString();
 
             ProducerRecord<String, Object> producerRecord = new ProducerRecord<>(
-                    RESPONSE_TOPIC,
+                    responseTopic,
                     correlationId, // Key para particionado
                     response // Value (mensaje Avro)
             );

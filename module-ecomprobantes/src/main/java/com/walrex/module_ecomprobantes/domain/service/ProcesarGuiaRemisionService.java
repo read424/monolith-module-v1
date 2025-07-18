@@ -1,7 +1,5 @@
 package com.walrex.module_ecomprobantes.domain.service;
 
-import java.util.Arrays;
-
 import org.springframework.stereotype.Service;
 
 import com.walrex.avro.schemas.*;
@@ -98,20 +96,45 @@ public class ProcesarGuiaRemisionService implements ProcesarGuiaRemisionUseCase 
                                         .setIdOrdensalida(comprobante.getIdOrdenSalida())
                                         .build();
 
+                        log.debug("📋 ResponseData creado - IdComprobante: {}, CodigoComprobante: {}, IdOrdenSalida: {}",
+                                        responseData.getIdComprobante(), responseData.getCodigoComprobante(),
+                                        responseData.getIdOrdensalida());
+
                         // Crear respuesta
                         GuiaRemisionRemitenteResponse response = GuiaRemisionRemitenteResponse.newBuilder()
                                         .setSuccess(true)
                                         .setMessage(String.format(
                                                         "Comprobante de guía de remisión creado exitosamente con %d items",
-                                                        comprobante.getDetalles()))
-                                        .setData(Arrays.asList(responseData))
+                                                        comprobante.getDetalles().size()))
+                                        .setData(responseData)
                                         .build();
+
+                        // Log detallado de la respuesta completa
+                        log.info("📤 Respuesta completa creada - Success: {}, Message: {}, Data: {}",
+                                        response.getSuccess(),
+                                        response.getMessage(),
+                                        String.format("IdComprobante=%d, CodigoComprobante=%s, IdOrdenSalida=%d",
+                                                        response.getData().getIdComprobante(),
+                                                        response.getData().getCodigoComprobante(),
+                                                        response.getData().getIdOrdensalida()));
 
                         return response;
                 })
+                                .doOnNext(response -> log.info(
+                                                "📤 [ECOMPROBANTES] Enviando respuesta Kafka - CorrelationId: {}, Response: {}",
+                                                correlationId, response))
                                 .flatMap(response -> enviarRespuestaPort.enviarRespuesta(response, correlationId))
                                 .doOnNext(v -> log.info("✅ Respuesta enviada exitosamente - CorrelationId: {}",
-                                                correlationId));
+                                                correlationId))
+                                .doOnError(error -> log.error(
+                                                "❌ Error al enviar respuesta exitosa - CorrelationId: {}, Error: {}",
+                                                correlationId, error.getMessage(), error))
+                                .onErrorResume(error -> {
+                                        log.error("🔄 Recuperando de error en envío de respuesta - CorrelationId: {}, Error: {}",
+                                                        correlationId, error.getMessage());
+                                        // Aquí puedes implementar lógica de retry o fallback
+                                        return Mono.empty();
+                                });
         }
 
         private Mono<Void> manejarError(Throwable error, String correlationId) {
