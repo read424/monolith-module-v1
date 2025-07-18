@@ -47,6 +47,7 @@
 		<testcontainers.version>1.19.3</testcontainers.version>
 		<springwolf.version>1.5.0</springwolf.version>
 		<jackson-datatype.version>2.19.0</jackson-datatype.version>
+		<avro-schemas.monolith.version>0.1.0-SNAPSHOT</avro-schemas.monolith.version>
 	</properties>
 	<repositories>
 		<repository>
@@ -97,6 +98,19 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-redis-reactive</artifactId>
 			<version>3.4.0</version>
+		</dependency>
+		<!-- ✅ RESILIENCE4J -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-ratelimiter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-bulkhead</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-timelimiter</artifactId>
 		</dependency>
 		<!-- Logback y SLF4J -->
 		<dependency>
@@ -158,7 +172,7 @@
 		<dependency>
 			<groupId>com.walrex</groupId>
 			<artifactId>avro-schemas</artifactId>
-			<version>0.0.3-SNAPSHOT</version>
+			<version>${avro-schemas.monolith.version}</version>
 		</dependency>
 		<!-- Métricas -->
 		<dependency>

@@ -143,9 +143,12 @@ public class GuiaRemisionKafkaProducer implements EnviarGuiaRemisionEventPort {
         /**
          * Método de fallback que se ejecuta cuando el circuit breaker está abierto
          */
-        private Mono<Void> fallbackEnviarEvento(Long idOrdenSalida, String correlationId, Exception ex) {
+        private Mono<Void> fallbackEnviarEvento(GuiaRemisionGeneradaDataDTO guiaRemisionGenerada,
+                        String correlationId,
+                        Boolean isComprobanteSUNAT,
+                        Throwable ex) {
                 log.error("🔴 Circuit breaker activado para guía de remisión. CorrelationId: {}, OrdenSalida: {}, Error: {}",
-                                correlationId, idOrdenSalida, ex.getMessage());
+                                correlationId, guiaRemisionGenerada.getIdOrdenSalida(), ex.getMessage());
 
                 // En un escenario real, aquí podrías:
                 // 1. Guardar el evento en una tabla de eventos pendientes
