@@ -39,6 +39,7 @@
 		<org.projectlombok.version>1.18.30</org.projectlombok.version>
 		<org.mapstruct.version>1.5.3.Final</org.mapstruct.version>
 		<logback.version>1.5.8</logback.version>
+		<avro-schemas.monolith.version>0.1.0-SNAPSHOT</avro-schemas.monolith.version>
 	</properties>
 	<repositories>
 		<repository>
@@ -126,7 +127,7 @@
         <dependency>
             <groupId>com.walrex</groupId>
             <artifactId>avro-schemas</artifactId>
-            <version>0.0.3-SNAPSHOT</version>
+            <version>${avro-schemas.monolith.version}</version>
         </dependency>
 		<!--Utility-->
 		<dependency>
