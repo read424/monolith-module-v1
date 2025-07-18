@@ -58,19 +58,62 @@
         </rollingPolicy>
     </appender>
 
-    <appender name="DYNAMIC_MODULE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOGS_DIR}/${MODULE_NAME:-application}.json</file>
+    <!-- Module-specific File Appenders -->
+    <appender name="MODULE_ALMACEN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS_DIR}/module-almacen.json</file>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
             <includeMdc>true</includeMdc>
-            <customFields>{"service":"${appName}","module":"${MODULE_NAME:-unknown}","environment":"${SPRING_PROFILES_ACTIVE:-dev}"}</customFields>
+            <customFields>{"service":"${appName}","module":"almacen","environment":"${SPRING_PROFILES_ACTIVE:-dev}"}</customFields>
         </encoder>
         <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOGS_DIR}/archived/${MODULE_NAME:-application}-%d{yyyy-MM-dd}-%i.json</fileNamePattern>
+            <fileNamePattern>${LOGS_DIR}/archived/module-almacen-%d{yyyy-MM-dd}-%i.json</fileNamePattern>
             <maxFileSize>50MB</maxFileSize>
             <maxHistory>30</maxHistory>
             <totalSizeCap>2GB</totalSizeCap>
         </rollingPolicy>
     </appender>
+
+    <appender name="MODULE_USERS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS_DIR}/module-users.json</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <customFields>{"service":"${appName}","module":"users","environment":"${SPRING_PROFILES_ACTIVE:-dev}"}</customFields>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS_DIR}/archived/module-users-%d{yyyy-MM-dd}-%i.json</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="MODULE_GATEWAY" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS_DIR}/module-gateway.json</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <customFields>{"service":"${appName}","module":"gateway","environment":"${SPRING_PROFILES_ACTIVE:-dev}"}</customFields>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS_DIR}/archived/module-gateway-%d{yyyy-MM-dd}-%i.json</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <appender name="MODULE_ECOMPROBANTES" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS_DIR}/module-ecomprobantes.json</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <customFields>{"service":"${appName}","module":"ecomprobantes","environment":"${SPRING_PROFILES_ACTIVE:-dev}"}</customFields>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS_DIR}/archived/module-ecomprobantes-%d{yyyy-MM-dd}-%i.json</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>    
 
     <!-- Error File Appender -->
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -111,10 +154,24 @@
     </appender>
 
     <!-- Module-specific Loggers -->
-    <logger name="com.walrex" level="DEBUG" additivity="false">
-        <appender-ref ref="DYNAMIC_MODULE"/>
+    <logger name="com.walrex.module_almacen" level="DEBUG" additivity="false">
+        <appender-ref ref="MODULE_ALMACEN"/>
         <appender-ref ref="ASYNC_JSON_FILE"/>
-        <appender-ref ref="ASYNC_ERROR_FILE"/>
+    </logger>
+
+    <logger name="com.walrex.module_users" level="DEBUG" additivity="false">
+        <appender-ref ref="MODULE_USERS"/>
+        <appender-ref ref="ASYNC_JSON_FILE"/>
+    </logger>
+
+    <logger name="com.walrex.gateway" level="DEBUG" additivity="false">
+        <appender-ref ref="MODULE_GATEWAY"/>
+        <appender-ref ref="ASYNC_JSON_FILE"/>
+    </logger>
+
+    <logger name="com.walrex.module_ecomprobantes" level="DEBUG" additivity="false">
+        <appender-ref ref="MODULE_ECOMPROBANTES"/>
+        <appender-ref ref="ASYNC_JSON_FILE"/>
     </logger>
 
     <!-- Application Loggers -->
@@ -175,4 +232,4 @@
         <appender-ref ref="ASYNC_JSON_FILE"/>
         <appender-ref ref="ASYNC_ERROR_FILE"/>
     </root>
-</configuration> 
+</configuration>

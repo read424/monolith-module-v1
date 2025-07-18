@@ -154,11 +154,6 @@ logging:
     com.walrex.gateway: TRACE
     org.springframework.web.reactive: DEBUG
     org.springframework.boot.reactor: OFF
-  dynamic:
-    enabled: true
-    modules: almacen,users,articulos,ecomprobantes,role,gateway,core
-    default-level: DEBUG
-    error-level: ERROR
 reactor:
   tools:
     agent:
