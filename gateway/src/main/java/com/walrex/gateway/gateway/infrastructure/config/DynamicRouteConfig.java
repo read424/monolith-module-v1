@@ -18,7 +18,11 @@ import lombok.extern.slf4j.Slf4j;
 public class DynamicRouteConfig {
     private final DynamicModuleRouteFilter dynamicModuleRouteFilter;
     private final JwtHeaderFilter jwtHeaderFilter;
-    private final JwtHeaderFilter.Config jwtHeaderFilterConfig;
+
+    @Bean
+    public JwtHeaderFilter.Config jwtHeaderFilterConfig() {
+        return new JwtHeaderFilter.Config();
+    }
 
     @Bean
     public RouteLocator dynamicRouteLocator(RouteLocatorBuilder builder) {
@@ -32,11 +36,10 @@ public class DynamicRouteConfig {
                                 log.info("🔵 [0] DynamicRouteConfig - Aplicando filtros Gateway");
                                 log.info("🔵 [0] DynamicRouteConfig - JwtHeaderFilter configurado: {}",
                                         jwtHeaderFilter != null);
-                                log.info("🔵 [0] DynamicRouteConfig - JwtHeaderFilter.Config configurado: {}",
-                                        jwtHeaderFilterConfig != null);
                                 return f
-                                        .filter(jwtHeaderFilter.apply(jwtHeaderFilterConfig)) // ✅ JWT con configuración
-                                                                                              // correcta
+                                        .filter(jwtHeaderFilter.apply(jwtHeaderFilterConfig())) // ✅ JWT con
+                                                                                                // configuración
+                                                                                                // correcta
                                         .filter(dynamicModuleRouteFilter.apply(new DynamicModuleRouteFilter.Config())); // ✅
                                                                                                                         // Routing
                                                                                                                         // después
