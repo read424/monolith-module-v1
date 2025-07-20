@@ -69,3 +69,14 @@ quality-rules.xml
 .cursorrules
 .editorconfig
 .gitmessage
+
+# ===========================================
+# Scripts y Documentación
+# ===========================================
+# Excluir archivos .sh (scripts)
+*.sh
+
+# Excluir archivos .md excepto README.md y HELP.md
+*.md
+!README.md
+!HELP.md
