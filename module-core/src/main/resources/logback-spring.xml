@@ -113,7 +113,21 @@
             <maxHistory>30</maxHistory>
             <totalSizeCap>2GB</totalSizeCap>
         </rollingPolicy>
-    </appender>    
+    </appender>
+
+    <appender name="MODULE_WEBSOCKET" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS_DIR}/module-websocket.json</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <customFields>{"service":"${appName}","module":"websocket","environment":"${SPRING_PROFILES_ACTIVE:-dev}"}</customFields>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS_DIR}/archived/module-websocket-%d{yyyy-MM-dd}-%i.json</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
 
     <!-- Error File Appender -->
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -171,6 +185,11 @@
 
     <logger name="com.walrex.module_ecomprobantes" level="DEBUG" additivity="false">
         <appender-ref ref="MODULE_ECOMPROBANTES"/>
+        <appender-ref ref="ASYNC_JSON_FILE"/>
+    </logger>
+
+    <logger name="com.walrex.notification" level="DEBUG" additivity="false">
+        <appender-ref ref="MODULE_WEBSOCKET"/>
         <appender-ref ref="ASYNC_JSON_FILE"/>
     </logger>
 
