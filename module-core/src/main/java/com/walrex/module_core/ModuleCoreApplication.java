@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
         "com.walrex",
         "com.walrex.module_core",
         "com.walrex.gateway",
+        "com.walrex.notification",
         "com.walrex.module_common",
         "com.walrex.user",
         "com.walrex.role",
