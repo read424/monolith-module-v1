@@ -12,7 +12,7 @@ public interface GuiaRemisionResponseAvroMapper {
     GuiaRemisionResponseAvroMapper INSTANCE = Mappers.getMapper(GuiaRemisionResponseAvroMapper.class);
 
     @Mapping(source = "success", target = "success")
-    @Mapping(source = "message", target = "Message")
+    @Mapping(source = "message", target = "message")
     @Mapping(source = "data", target = "data")
     GuiaRemisionResponseEventDTO mapAvroToDto(GuiaRemisionRemitenteResponse message);
 }

@@ -8,6 +8,6 @@ import lombok.*;
 @NoArgsConstructor
 public class GuiaRemisionResponseEventDTO {
     private Boolean success;
-    private String Message;
+    private String message;
     private ResponseEventGuiaDataDto data;
 }

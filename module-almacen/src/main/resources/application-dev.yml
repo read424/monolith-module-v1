@@ -17,6 +17,19 @@ spring:
       password: ${PASSWORD_REDIS:}
       database: ${DB_REDIS:0}
       timeout: 2000ms
+  # Configuración de RabbitMQ
+  rabbitmq:
+    host: ${RABBITMQ_HOST:127.0.0.1}
+    port: ${RABBITMQ_PORT:5673}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:password123}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    connection-timeout: 60000
+    requested-heartbeat: 60
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
   resilience4j:
     circuitbreaker:
       instances:
@@ -50,7 +63,7 @@ spring:
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:12345}
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:127.0.0.1:9092}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:127.0.0.1}:9092
     properties:
       auto.create.topics.enabled: true
       security:
