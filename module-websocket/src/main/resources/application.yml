@@ -1,0 +1,42 @@
+server:
+  port: 9093
+
+spring:
+  application:
+    name: module-websocket
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5673
+    username: admin
+    password: password123
+    virtual-host: /
+
+# Configuración de WebSocket
+websocket:
+  module:
+    port: 9093
+    max-connections: 500
+    ping-interval: 25000
+    ping-timeout: 60000
+    upgrade-timeout: 10000
+    max-frame-payload-length: 65536
+    allow-custom-requests: false
+    cors:
+      origin: "*"
+
+# Configuración de logging específica para el módulo
+logging:
+  level:
+    com.walrex.notification.module_websocket: DEBUG
+    com.walrex.notification.module_websocket.infrastructure.adapters.inbound.rabbitmq: DEBUG
+    com.walrex.notification.module_websocket.infrastructure.adapters.inbound.websocket: DEBUG
+    org.springframework.amqp: INFO
+    com.rabbitmq: INFO
+    com.corundumstudio.socketio: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/module-websocket.log
+  logback:
+    config: classpath:logback-spring.xml
