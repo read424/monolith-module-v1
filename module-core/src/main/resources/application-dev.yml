@@ -15,6 +15,18 @@ spring:
       database: 0
       timeout: 2000ms
       time-to-live: 15m
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5673
+    username: admin
+    password: password123
+    virtual-host: /
+    connection-timeout: 60000
+    requested-heartbeat: 60
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
   main:
     web-application-type: reactive
     banner-mode: console
@@ -165,6 +177,17 @@ spring:
   aop:
     auto: true
     proxy-target-class: true
+websocket:
+  module:
+    port: 9093
+    max-connections: 500
+    ping-interval: 25000
+    ping-timeout: 60000
+    upgrade-timeout: 10000
+    max-frame-payload-length: 65536
+    allow-custom-requests: false
+    cors:
+      origin: "*"
 flyway:
   modules:
     enabled: true
@@ -204,6 +227,10 @@ kafka:
       create-ingreso-ajuste-response: ajuste-ingreso-response
       create-comprobante-guia-remision: create-comprobante-guia-remision
       response-create-guia-remision-remitente: response-create-comprobante-grr
+rabbitmq:
+  almacen:
+    exchange:
+      devolucion: "devolucion.exchange"
 app:
   mail:
     templates:
