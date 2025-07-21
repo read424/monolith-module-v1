@@ -1,0 +1,1 @@
+ALTER TABLE ventas.tb_conductor ADD COLUMN id_user INT DEFAULT NULL;
