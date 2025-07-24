@@ -31,13 +31,9 @@ public class GenerarGuiaRemisionRequest {
     @JsonProperty("id_empresa_transp")
     private Integer idEmpresaTransp;
 
-    @NotNull(message = "Tipo de documento del chofer es requerido")
-    @JsonProperty("id_tip_doc_chofer")
-    private Integer idTipDocChofer;
-
-    @NotNull(message = "Número de documento del chofer es requerido")
-    @JsonProperty("num_doc_chofer")
-    private String numDocChofer;
+    @NotNull(message = "Conductor es requerido")
+    @JsonProperty("id_conductor")
+    private Integer idConductor;
 
     @NotNull(message = "Número de placa es requerido")
     @JsonProperty("num_placa")
