@@ -45,11 +45,8 @@ public class DevolucionServiciosEntity {
     @Column("id_modalidad")
     private Integer idModalidad;
 
-    @Column("id_tip_doc_chofer")
-    private Integer idTipDocChofer;
-
-    @Column("num_doc_chofer")
-    private String numDocChofer;
+    @Column("id_conductor")
+    private Integer idConductor;
 
     @Column("num_placa")
     private String numPlaca;
