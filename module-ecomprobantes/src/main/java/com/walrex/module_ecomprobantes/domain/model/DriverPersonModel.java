@@ -9,6 +9,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DriverModel {
-
+public class DriverPersonModel {
+    private Integer idTipoDocumento;
+    private String numDocumento;
+    private String apellidos;
+    private String nombres;
+    private String numLicencia;
 }
