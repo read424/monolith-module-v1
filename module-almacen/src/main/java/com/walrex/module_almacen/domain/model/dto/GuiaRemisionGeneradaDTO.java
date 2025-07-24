@@ -14,6 +14,7 @@ public class GuiaRemisionGeneradaDTO {
     private Integer idMotivoComprobante;
     private Integer idModalidad;
     private Integer idEmpresaTransp;
+    private Integer idConductor;
     private Integer idTipDocChofer;
     private String numDocChofer;
     private String numPlaca;
