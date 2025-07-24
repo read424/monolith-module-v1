@@ -23,6 +23,8 @@ public class DriverRouterReactiveAPI {
         return RouterFunctions.route()
                 .path("/" + PATH_DRIVER, builder -> builder
                         .POST("/", RequestPredicates.accept(MediaType.APPLICATION_JSON), driverHandler::createDriver)
+                        .GET("/search", RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                driverHandler::buscarConductor)
                         .PUT("/{id}", RequestPredicates.accept(MediaType.APPLICATION_JSON), driverHandler::updateDriver)
                         .DELETE("/{id}", RequestPredicates.accept(MediaType.APPLICATION_JSON),
                                 driverHandler::deleteDriver)
