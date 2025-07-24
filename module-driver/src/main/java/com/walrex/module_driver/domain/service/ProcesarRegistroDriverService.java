@@ -3,8 +3,11 @@ package com.walrex.module_driver.domain.service;
 import org.springframework.stereotype.Service;
 
 import com.walrex.module_driver.application.ports.input.DriverCommandUseCase;
+import com.walrex.module_driver.application.ports.output.ConductorPersistencePort;
 import com.walrex.module_driver.application.ports.output.DriverPersistencePort;
+import com.walrex.module_driver.domain.model.BuscarConductorModel;
 import com.walrex.module_driver.domain.model.DriverDomain;
+import com.walrex.module_driver.domain.model.dto.ConductorDataDTO;
 import com.walrex.module_driver.domain.model.dto.CreateDriverDTO;
 import com.walrex.module_driver.domain.model.mapper.DriverDomainMapper;
 
@@ -18,6 +21,7 @@ import reactor.core.publisher.Mono;
 public class ProcesarRegistroDriverService implements DriverCommandUseCase {
     private final DriverDomainMapper driverDomainMapper;
     private final DriverPersistencePort driverPersistencePort;
+    private final ConductorPersistencePort conductorPersistencePort;
 
     @Override
     public Mono<CreateDriverDTO> crear_conductor(DriverDomain driver, Integer idUsuario) {
@@ -51,5 +55,41 @@ public class ProcesarRegistroDriverService implements DriverCommandUseCase {
         return driverPersistencePort.obtener_conductor_por_id(id)
                 .doOnNext(driver -> log.info("Conductor obtenido exitosamente en dominio, ID: {}", id))
                 .doOnError(e -> log.error("Error al obtener conductor en dominio, ID: {}", id, e));
+    }
+
+    @Override
+    public Mono<ConductorDataDTO> buscarDatosDeConductorByNumDocAndIdTipDoc(BuscarConductorModel buscarConductorModel) {
+        log.info("🔍 Iniciando búsqueda de conductor - Documento: {}, Tipo: {}",
+                buscarConductorModel.getNumeroDocumento(),
+                buscarConductorModel.getTipoDocumento().getIdTipoDocumento());
+
+        return validarParametros(buscarConductorModel
+                .getNumeroDocumento(),
+                buscarConductorModel.getTipoDocumento()
+                        .getIdTipoDocumento())
+                .then(conductorPersistencePort.buscarConductorPorDocumento(buscarConductorModel
+                        .getNumeroDocumento(),
+                        buscarConductorModel.getTipoDocumento()
+                                .getIdTipoDocumento()))
+                .doOnNext(conductor -> log.info("✅ Conductor encontrado: {} {}",
+                        conductor.getNombres(), conductor.getApellidos()))
+                .doOnError(error -> log.error("❌ Error al buscar conductor: {}", error.getMessage()));
+    }
+
+    /**
+     * Valida los parámetros de entrada para la búsqueda.
+     */
+    private Mono<Void> validarParametros(String numDoc, Integer idTipDoc) {
+        return Mono.fromRunnable(() -> {
+            if (numDoc == null || numDoc.trim().isEmpty()) {
+                throw new IllegalArgumentException("El número de documento no puede estar vacío");
+            }
+
+            if (idTipDoc == null) {
+                throw new IllegalArgumentException("El ID del tipo de documento no puede estar vacío");
+            }
+
+            log.debug("✅ Validación de parámetros completada");
+        });
     }
 }
