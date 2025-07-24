@@ -2,14 +2,16 @@ package com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb;
 
 import java.util.Map;
 
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.walrex.module_driver.application.ports.input.DriverCommandUseCase;
 import com.walrex.module_driver.domain.model.JwtUserInfo;
-import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.mapper.DriverRequestMapper;
+import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.mapper.*;
 import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.request.CreateDriverRequest;
+import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.request.SearchConductorRequest;
 import com.walrex.module_driver.infrastructure.adapters.inbound.rest.JwtUserContextService;
 
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,8 @@ public class DriverHandler {
     private final DriverCommandUseCase driverCommandUseCase;
     private final JwtUserContextService jwtService;
     private final DriverRequestMapper driverRequestMapper;
+    private final SearchDriverRequestMapper searchDriverRequestMapper;
+    private final ConductorDataResponseMapper conductorDataResponseMapper;
 
     public Mono<ServerResponse> createDriver(ServerRequest request) {
         log.info("📥 POST /driver/ payload: {}", request);
@@ -127,5 +131,55 @@ public class DriverHandler {
                             "error", "Error interno del servidor",
                             "message", "No se pudo obtener el conductor"));
                 });
+    }
+
+    public Mono<ServerResponse> buscarConductor(ServerRequest request) {
+        log.info("🔍 Handler: Iniciando búsqueda de conductor");
+
+        return extractSearchParameters(request)
+                .map(searchDriverRequestMapper::toDomain)
+                .flatMap(driverCommandUseCase::buscarDatosDeConductorByNumDocAndIdTipDoc)
+                .map(conductorDataResponseMapper::toResponse)
+                .flatMap(conductor -> ServerResponse.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .bodyValue(conductor))
+                .doOnSuccess(response -> log.info("✅ Handler: Búsqueda de conductor completada exitosamente"))
+                .doOnError(error -> log.error("❌ Handler: Error en búsqueda de conductor: {}", error.getMessage()))
+                .onErrorResume(this::handleError);
+    }
+
+    private Mono<SearchConductorRequest> extractSearchParameters(ServerRequest request) {
+        return Mono.fromCallable(() -> {
+            String numDoc = request.queryParam("num_doc").orElse(null);
+            Integer idTipDoc = request.queryParam("id_tip_doc")
+                    .map(Integer::valueOf)
+                    .orElse(null);
+
+            return SearchConductorRequest.builder()
+                    .numDoc(numDoc)
+                    .idTipDoc(idTipDoc)
+                    .build();
+        });
+    }
+
+    /**
+     * Maneja los errores de forma reactiva.
+     */
+    private Mono<ServerResponse> handleError(Throwable error) {
+        log.error("❌ Error en handler de conductor: {}", error.getMessage());
+
+        if (error instanceof IllegalArgumentException) {
+            return ServerResponse.badRequest()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(Map.of(
+                            "error", "Parámetros inválidos",
+                            "message", error.getMessage()));
+        }
+
+        return ServerResponse.status(500)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(Map.of(
+                        "error", "Error interno del servidor",
+                        "message", "Ocurrió un error inesperado"));
     }
 }
