@@ -1,14 +1,18 @@
 package com.walrex.notification.module_websocket.config;
 
-
-import com.corundumstudio.socketio.SocketIOServer;
-import com.corundumstudio.socketio.annotation.SpringAnnotationScanner;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+
+import com.corundumstudio.socketio.SocketIOServer;
+import com.corundumstudio.socketio.annotation.SpringAnnotationScanner;
+
+import lombok.extern.slf4j.Slf4j;
 
 @Configuration
+@EnableScheduling
 @Slf4j
 public class ReactiveSocketIOConfig {
     @Value("${socketio.port:9093}")
@@ -85,7 +89,7 @@ public class ReactiveSocketIOConfig {
      */
     @Bean
     public WebSocketResourceMonitor webSocketResourceMonitor(SocketIOServer socketServer) {
-        return new WebSocketResourceMonitor(socketServer);
+        return new WebSocketResourceMonitor(socketServer, maxConnections);
     }
 
     /**
@@ -93,9 +97,11 @@ public class ReactiveSocketIOConfig {
      */
     public static class WebSocketResourceMonitor {
         private final SocketIOServer socketServer;
+        private final int maxConnections;
 
-        public WebSocketResourceMonitor(SocketIOServer socketServer) {
+        public WebSocketResourceMonitor(SocketIOServer socketServer, int maxConnections) {
             this.socketServer = socketServer;
+            this.maxConnections = maxConnections;
         }
 
         public void logResourceStatus() {
@@ -107,14 +113,40 @@ public class ReactiveSocketIOConfig {
 
                 // Verificar límites del sistema
                 long maxFileDescriptors = java.lang.management.ManagementFactory.getOperatingSystemMXBean()
-                    .getAvailableProcessors();
+                        .getAvailableProcessors();
                 log.info("   - CPUs disponibles: {}", maxFileDescriptors);
 
             } catch (Exception e) {
                 log.error("❌ Error al obtener estado de recursos: {}", e.getMessage());
             }
         }
+
+        @Scheduled(fixedRate = 30000) // Cada 30 segundos
+        public void logResourceUsage() {
+            try {
+                int activeConnections = socketServer.getAllClients().size();
+                long memoryUsage = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                long maxMemory = Runtime.getRuntime().maxMemory();
+
+                log.info("📊 Recursos - Conexiones: {}/{}, Memoria: {}MB/{}MB",
+                        activeConnections, maxConnections,
+                        memoryUsage / (1024 * 1024),
+                        maxMemory / (1024 * 1024));
+
+                // Alertas de recursos
+                if (activeConnections > (maxConnections * 0.8)) {
+                    log.warn("⚠️ Conexiones cercanas al límite: {}/{} (80%)", activeConnections, maxConnections);
+                }
+
+                if (memoryUsage > (maxMemory * 0.8)) {
+                    log.warn("⚠️ Memoria cercana al límite: {}MB/{}MB (80%)",
+                            memoryUsage / (1024 * 1024),
+                            maxMemory / (1024 * 1024));
+                }
+
+            } catch (Exception e) {
+                log.error("❌ Error monitoreando recursos: {}", e.getMessage());
+            }
+        }
     }
-
-
 }
