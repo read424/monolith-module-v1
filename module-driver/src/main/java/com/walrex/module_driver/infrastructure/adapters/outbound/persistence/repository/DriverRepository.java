@@ -11,7 +11,7 @@ import reactor.core.publisher.Mono;
 @Repository
 public interface DriverRepository extends R2dbcRepository<DriverEntity, Long> {
 
-    @Query("SELECT * FROM ventas.tb_conductor WHERE id_tipo_doc = :idTipoDoc AND num_documento = :numDocumento AND id_conductor != :idConductor")
+    @Query("SELECT * FROM ventas.tb_conductor WHERE id_tipo_doc = :idTipoDoc AND num_documento = :numDocumento AND id_conductor != :idConductor LIMIT 1")
     Mono<DriverEntity> ValidDocumentNotExists(Integer idTipoDoc, String numDocumento, Long idConductor);
 
     @Query("SELECT * FROM ventas.tb_conductor WHERE id_conductor = :id AND status = '1'")
@@ -19,4 +19,10 @@ public interface DriverRepository extends R2dbcRepository<DriverEntity, Long> {
 
     @Query("UPDATE ventas.tb_conductor SET status = '0', update_at = current_timestamp WHERE id_conductor = :id")
     Mono<Void> disabledByIdLogical(Long id);
+
+    // Sobrescribir el método deleteById para usar eliminación lógica en lugar de
+    // física
+    @Override
+    @Query("UPDATE ventas.tb_conductor SET status = '0', update_at = current_timestamp WHERE id_conductor = :id")
+    Mono<Void> deleteById(Long id);
 }
