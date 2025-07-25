@@ -19,6 +19,7 @@ public class ComprobanteDTO {
     private Long idComprobante;
     private Integer idTipoComprobante;
     private Integer tipoSerie;
+    private String codigoComprobante;
     private Integer numeroComprobante;
     private Integer idCliente;
     private LocalDate fechaEmision;
