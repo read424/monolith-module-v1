@@ -43,8 +43,13 @@ public class ComprobantePersistenceAdapter implements ComprobantePersistencePort
                                         Integer siguienteNumero = serie.getNuCompro() + 1;
                                         comprobante.setNumeroComprobante(siguienteNumero);
 
-                                        log.info("🔢 Generando correlativo: Serie {} - Número: {}", serie.getNuSerie(),
-                                                        siguienteNumero);
+                                        // Generar el código de comprobante con padding de 8 dígitos
+                                        String correlativo8 = String.format("%08d", siguienteNumero);
+                                        String codigoComprobante = serie.getNuSerie() + '-' + correlativo8;
+                                        comprobante.setCodigoComprobante(codigoComprobante);
+                                        log.info("🔢 Generando correlativo: Serie {} - Número: {} - CódigoComprobante: {}",
+                                                        serie.getNuSerie(), correlativo8, codigoComprobante);
+
                                         serie.setNuCompro(siguienteNumero);
                                         return tipoSerieRepository.save(serie);
                                 })
