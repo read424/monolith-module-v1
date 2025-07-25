@@ -1,2 +1,5 @@
 ALTER TABLE ventas.tb_conductor
-ALTER COLUMN create_at TYPE TIMESTAMP USING create_at::timestamp; 
+ALTER COLUMN create_at TYPE TIMESTAMP WITHOUT TIME ZONE USING (TIMESTAMP '2025-07-24' + create_at::time);
+
+ALTER TABLE ventas.tb_conductor
+ALTER COLUMN create_at SET DEFAULT CURRENT_TIMESTAMP;
