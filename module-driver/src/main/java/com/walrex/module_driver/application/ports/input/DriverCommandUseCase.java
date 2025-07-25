@@ -5,6 +5,7 @@ import com.walrex.module_driver.domain.model.DriverDomain;
 import com.walrex.module_driver.domain.model.dto.ConductorDataDTO;
 import com.walrex.module_driver.domain.model.dto.CreateDriverDTO;
 
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface DriverCommandUseCase {
@@ -24,5 +25,5 @@ public interface DriverCommandUseCase {
      * @param idTipDoc ID del tipo de documento
      * @return Mono con los datos del conductor encontrado
      */
-    Mono<ConductorDataDTO> buscarDatosDeConductorByNumDocAndIdTipDoc(BuscarConductorModel buscarConductorModel);
+    Flux<ConductorDataDTO> buscarDatosDeConductorByNumDocAndIdTipDoc(BuscarConductorModel buscarConductorModel);
 }
