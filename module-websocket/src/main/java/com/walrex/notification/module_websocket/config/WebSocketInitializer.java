@@ -1,12 +1,14 @@
 package com.walrex.notification.module_websocket.config;
 
-import com.corundumstudio.socketio.SocketIOServer;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
+
+import com.corundumstudio.socketio.SocketIOServer;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Component
@@ -14,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class WebSocketInitializer implements ApplicationListener<ApplicationReadyEvent> {
     private final SocketIOServer socketIOServer;
 
-    @Value("${socketio.port:9093}")
+    @Value("${websocket.module.port:9093}")
     private int port;
 
     @Override
@@ -22,6 +24,11 @@ public class WebSocketInitializer implements ApplicationListener<ApplicationRead
         try {
             // Iniciar el servidor WebSocket
             socketIOServer.start();
+
+            // Agregar listener de desconexión
+            socketIOServer.addDisconnectListener(client -> {
+                log.info("🔌 Cliente desconectado: {}", client.getSessionId());
+            });
 
             // Log de éxito cuando el WebSocket esté disponible
             log.info("🚀 WebSocket Server iniciado exitosamente en puerto {}", port);
