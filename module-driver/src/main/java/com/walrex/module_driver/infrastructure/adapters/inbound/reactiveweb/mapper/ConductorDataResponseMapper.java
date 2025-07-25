@@ -1,5 +1,7 @@
 package com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.mapper;
 
+import java.util.List;
+
 import org.mapstruct.*;
 
 import com.walrex.module_driver.domain.model.dto.ConductorDataDTO;
@@ -34,6 +36,7 @@ public interface ConductorDataResponseMapper {
      */
     @Mapping(source = "idTipoDocumento", target = "idTipoDocumento")
     @Mapping(source = "descTipoDocumento", target = "descTipoDocumento")
+    @Mapping(source = "abrevTipoDocumento", target = "abrevTipoDocumento")
     ConductorResponse.TipoDocumentoResponse toTipoDocumentoResponse(TipoDocumentoDTO tipoDocumentoDTO);
 
     /**
@@ -41,4 +44,9 @@ public interface ConductorDataResponseMapper {
      */
     @InheritInverseConfiguration
     TipoDocumentoDTO toTipoDocumentoDTO(ConductorResponse.TipoDocumentoResponse tipoDocumentoResponse);
+
+    /**
+     * Mapea List<ConductorDataDTO> a List<ConductorResponse>.
+     */
+    List<ConductorResponse> toResponseList(List<ConductorDataDTO> dtos);
 }
