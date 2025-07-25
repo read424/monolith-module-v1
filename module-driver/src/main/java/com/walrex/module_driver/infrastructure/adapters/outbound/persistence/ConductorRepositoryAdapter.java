@@ -15,7 +15,7 @@ import com.walrex.module_driver.infrastructure.adapters.outbound.persistence.ent
 import io.r2dbc.spi.Row;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 /**
  * Adaptador de persistencia para la búsqueda de conductores con query dinámico.
@@ -28,7 +28,7 @@ public class ConductorRepositoryAdapter implements ConductorPersistencePort {
     private final DatabaseClient databaseClient;
 
     @Override
-    public Mono<ConductorDataDTO> buscarConductorPorDocumento(String numDoc, Integer idTipDoc) {
+    public Flux<ConductorDataDTO> buscarConductorPorDocumento(String numDoc, Integer idTipDoc) {
         log.info("🔍 Ejecutando búsqueda dinámica de conductor - Documento: {}, Tipo: {}", numDoc, idTipDoc);
 
         String query = buildDynamicQuery(numDoc, idTipDoc);
@@ -38,7 +38,7 @@ public class ConductorRepositoryAdapter implements ConductorPersistencePort {
         spec = bindParameters(spec, numDoc, idTipDoc);
 
         return spec.map((row, metadata) -> mapRowToConductor(row))
-                .one()
+                .all()
                 .doOnNext(conductor -> log.info("✅ Conductor encontrado en BD: {} {}",
                         conductor.getNombres(), conductor.getApellidos()))
                 .doOnError(error -> log.error("❌ Error en consulta de BD: {}", error.getMessage()));
@@ -68,7 +68,7 @@ public class ConductorRepositoryAdapter implements ConductorPersistencePort {
 
         // Agregar condiciones dinámicamente
         if (numDoc != null && !numDoc.trim().isEmpty()) {
-            conditions.add("c.num_documento = :numDoc");
+            conditions.add("c.num_documento LIKE :numDoc || '%'");
         }
 
         if (idTipDoc != null) {
@@ -79,8 +79,6 @@ public class ConductorRepositoryAdapter implements ConductorPersistencePort {
         if (!conditions.isEmpty()) {
             query.append(" AND ").append(String.join(" AND ", conditions));
         }
-
-        query.append(" LIMIT 1");
 
         log.debug("🔧 Query dinámica construida: {}", query.toString());
         return query.toString();
@@ -110,21 +108,22 @@ public class ConductorRepositoryAdapter implements ConductorPersistencePort {
         // Mapear DriverEntity
         DriverEntity driverEntity = DriverEntity.builder()
                 .idConductor(row.get("id_conductor", Long.class))
-                .numDocumento(row.get("num_documento", String.class))
-                .apellidos(row.get("apellidos", String.class))
-                .nombres(row.get("nombres", String.class))
-                .numLicencia(row.get("num_licencia", String.class))
+                .numDocumento(trimOrNull(row.get("num_documento", String.class)))
+                .apellidos(trimOrNull(row.get("apellidos", String.class)))
+                .nombres(trimOrNull(row.get("nombres", String.class)))
+                .numLicencia(trimOrNull(row.get("num_licencia", String.class)))
                 .build();
 
         // Mapear TipoDocumentoEntity
         TipoDocumentoEntity tipoDocumentoEntity = TipoDocumentoEntity.builder()
                 .idTipoDocumento(row.get("id_tipodoc", Integer.class))
-                .descTipoDocumento(row.get("no_tipodoc", String.class))
-                .abrevDoc(row.get("abrev_doc", String.class))
+                .descTipoDocumento(trimOrNull(row.get("no_tipodoc", String.class)))
+                .abrevDoc(trimOrNull(row.get("abrev_doc", String.class)))
                 .build();
 
         // Mapear al modelo de dominio
         return ConductorDataDTO.builder()
+                .idConductor(driverEntity.getIdConductor())
                 .numeroDocumento(driverEntity.getNumDocumento())
                 .apellidos(driverEntity.getApellidos())
                 .nombres(driverEntity.getNombres())
@@ -135,5 +134,12 @@ public class ConductorRepositoryAdapter implements ConductorPersistencePort {
                         .abrevTipoDocumento(tipoDocumentoEntity.getAbrevDoc())
                         .build())
                 .build();
+    }
+
+    /**
+     * Aplica trim() a un String si no es null, si es null retorna null.
+     */
+    private String trimOrNull(String value) {
+        return value != null ? value.trim() : null;
     }
 }
