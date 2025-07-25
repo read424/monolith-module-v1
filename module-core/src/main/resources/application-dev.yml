@@ -179,7 +179,7 @@ spring:
     proxy-target-class: true
 websocket:
   module:
-    port: 9093
+    port: 5555
     max-connections: 100
     ping-interval: 30000
     ping-timeout: 90000
