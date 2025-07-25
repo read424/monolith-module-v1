@@ -92,7 +92,7 @@ public class ProcesarGuiaRemisionService implements ProcesarGuiaRemisionUseCase 
                         // Crear datos de respuesta
                         GuiaRemisionRemitenteData responseData = GuiaRemisionRemitenteData.newBuilder()
                                         .setIdComprobante(comprobante.getIdComprobante().intValue())
-                                        .setCodigoComprobante(comprobante.getNumeroComprobante().toString())
+                                        .setCodigoComprobante(comprobante.getCodigoComprobante())
                                         .setIdOrdensalida(comprobante.getIdOrdenSalida())
                                         .build();
 
