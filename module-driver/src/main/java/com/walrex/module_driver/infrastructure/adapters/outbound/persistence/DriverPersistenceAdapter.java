@@ -21,19 +21,50 @@ public class DriverPersistenceAdapter implements DriverPersistencePort {
 
     @Override
     public Mono<CreateDriverDTO> guardar_conductor(CreateDriverDTO driver) {
-        // Suponiendo que los otros parámetros pueden ser null o valores por defecto
-        return driverRepository.ValidDocumentNotExists(driver.getIdTipoDocumento(), driver.getNumDocumento(), null)
-                .flatMap(existingDriver -> {
-                    if (existingDriver != null) {
+        log.info("🛠️ Validando documento en repository: {}", driver);
+        return validarDocumentoNoExiste(driver)
+                .flatMap(noExiste -> {
+                    if (!noExiste) {
                         return Mono.error(new IllegalArgumentException(
                                 "El documento de identidad ya existe para otro conductor."));
                     }
                     DriverEntity driverEntity = driverEntityMapper.toEntity(driver);
+                    log.info("🛠️ Mapeo a DriverEntity exitoso: {}", driverEntity);
                     return driverRepository.save(driverEntity)
                             .map(driverEntityMapper::toDTO)
+                            .onErrorResume(IllegalArgumentException.class, e -> {
+                                log.warn("⚠️ Error de validación al guardar DriverEntity: {}", e.getMessage());
+                                return Mono.error(new IllegalArgumentException(e.getMessage()));
+                            })
                             .doOnNext(saved -> log.info("Conductor guardado exitosamente: {}", saved))
                             .doOnError(e -> log.error("Error al guardar conductor: {}", e.getMessage(), e));
                 });
+    }
+
+    private Mono<Boolean> validarDocumentoNoExiste(CreateDriverDTO driver) {
+        Long idDriver = driver.getIdDriver() != null ? Long.valueOf(driver.getIdDriver()) : 0L;
+        log.info("🔍 Iniciando validación con idDriver: {}", idDriver);
+
+        return driverRepository.ValidDocumentNotExists(driver.getIdTipoDocumento(), driver.getNumDocumento(), idDriver)
+                .doOnSubscribe(sub -> log.info("✅ Suscrito a ValidDocumentNotExists"))
+                .doOnNext(existingDriver -> log.info("📋 Resultado de ValidDocumentNotExists: {}", existingDriver))
+                .onErrorResume(e -> {
+                    log.error("❌ Error al validar documento en repository: {}", e.getMessage(), e);
+                    return Mono.error(new RuntimeException("Error 505: No se pudo validar el documento del conductor"));
+                })
+                .map(existingDriver -> {
+                    log.info("🛠️ existingDriver en map: {}", existingDriver);
+                    boolean noExiste = existingDriver == null;
+                    log.info("🛠️ Resultado final de validación (noExiste): {}", noExiste);
+                    return noExiste;
+                })
+                .switchIfEmpty(Mono.defer(() -> {
+                    log.info("🔄 ValidDocumentNotExists retornó empty, documento no existe");
+                    return Mono.just(true);
+                }))
+                .doOnSuccess(result -> log.info("✅ Validación completada exitosamente: {}", result))
+                .doOnError(e -> log.error("❌ Error en validación: {}", e.getMessage(), e))
+                .doFinally(signal -> log.info("🏁 Finalizó validación con señal: {}", signal));
     }
 
     @Override
