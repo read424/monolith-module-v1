@@ -13,7 +13,7 @@ public interface BusquedaConductorMapper {
     @Mapping(source = "numeroDocumento", target = "numeroDocumento")
     @Mapping(source = "apellidos", target = "apellidos")
     @Mapping(source = "nombres", target = "nombres")
-    @Mapping(source = "numLicencia", target = "numLicencia")
+    @Mapping(source = "licencia", target = "numLicencia")
     ConductorDataDTO toConductorDataDTO(BuscarConductorModel buscarConductorModel);
 
     @InheritInverseConfiguration
