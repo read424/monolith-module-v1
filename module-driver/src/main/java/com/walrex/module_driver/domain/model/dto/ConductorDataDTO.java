@@ -7,6 +7,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ConductorDataDTO {
+    private Long idConductor;
     private TipoDocumentoDTO tipoDocumento;
     private String numeroDocumento;
     private String apellidos;
