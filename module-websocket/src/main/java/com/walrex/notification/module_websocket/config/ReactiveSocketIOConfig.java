@@ -1,8 +1,8 @@
 package com.walrex.notification.module_websocket.config;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.config.BeanDefinition;
+import org.springframework.context.annotation.*;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 
@@ -15,31 +15,32 @@ import lombok.extern.slf4j.Slf4j;
 @EnableScheduling
 @Slf4j
 public class ReactiveSocketIOConfig {
-    @Value("${socketio.port:9093}")
+    @Value("${websocket.module.port:9093}")
     private int port;
 
-    @Value("${socketio.max-connections:1000}")
+    @Value("${websocket.module.max-connections:1000}")
     private int maxConnections;
 
-    @Value("${socketio.ping-interval:25000}")
+    @Value("${websocket.module.ping-interval:25000}")
     private int pingInterval;
 
-    @Value("${socketio.ping-timeout:60000}")
+    @Value("${websocket.module.ping-timeout:60000}")
     private int pingTimeout;
 
-    @Value("${socketio.upgrade-timeout:10000}")
+    @Value("${websocke.module.upgrade-timeout:10000}")
     private int upgradeTimeout;
 
-    @Value("${socketio.max-frame-payload-length:65536}")
+    @Value("${websocket.module.max-frame-payload-length:65536}")
     private int maxFramePayloadLength;
 
-    @Value("${socketio.allow-custom-requests:false}")
+    @Value("${websocket.module.allow-custom-requests:false}")
     private boolean allowCustomRequests;
 
-    @Value("${socketio.cors.origin:*}")
+    @Value("${websocket.module.cors.origin:*}")
     private String corsOrigin;
 
     @Bean
+    @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
     public SocketIOServer socketIOServer() {
         log.info("⚙️ Configurando WebSocket Server optimizado en puerto {}", port);
         log.info("📊 Configuración de recursos:");
