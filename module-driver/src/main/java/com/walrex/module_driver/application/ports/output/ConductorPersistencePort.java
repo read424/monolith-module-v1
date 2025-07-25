@@ -2,7 +2,7 @@ package com.walrex.module_driver.application.ports.output;
 
 import com.walrex.module_driver.domain.model.dto.ConductorDataDTO;
 
-import reactor.core.publisher.Mono;
+import reactor.core.publisher.Flux;
 
 /**
  * Puerto de salida para la persistencia de datos de conductores.
@@ -16,5 +16,5 @@ public interface ConductorPersistencePort {
      * @param idTipDoc ID del tipo de documento
      * @return Mono con los datos del conductor encontrado
      */
-    Mono<ConductorDataDTO> buscarConductorPorDocumento(String numDoc, Integer idTipDoc);
+    Flux<ConductorDataDTO> buscarConductorPorDocumento(String numDoc, Integer idTipDoc);
 }
