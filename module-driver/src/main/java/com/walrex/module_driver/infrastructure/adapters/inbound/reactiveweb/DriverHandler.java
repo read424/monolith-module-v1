@@ -1,5 +1,6 @@
 package com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb;
 
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.http.MediaType;
@@ -12,7 +13,9 @@ import com.walrex.module_driver.domain.model.JwtUserInfo;
 import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.mapper.*;
 import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.request.CreateDriverRequest;
 import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.request.SearchConductorRequest;
-import com.walrex.module_driver.infrastructure.adapters.inbound.rest.JwtUserContextService;
+import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.response.ConductorResponse;
+import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.response.ListConductorSearchResponse;
+import com.walrex.module_driver.infrastructure.adapters.inbound.rest.JwtUserContextDriverService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +27,7 @@ import reactor.core.publisher.Mono;
 public class DriverHandler {
 
     private final DriverCommandUseCase driverCommandUseCase;
-    private final JwtUserContextService jwtService;
+    private final JwtUserContextDriverService jwtService;
     private final DriverRequestMapper driverRequestMapper;
     private final SearchDriverRequestMapper searchDriverRequestMapper;
     private final ConductorDataResponseMapper conductorDataResponseMapper;
@@ -32,9 +35,12 @@ public class DriverHandler {
     public Mono<ServerResponse> createDriver(ServerRequest request) {
         log.info("📥 POST /driver/ payload: {}", request);
         JwtUserInfo user = jwtService.getCurrentUser(request);
+        log.info("Método HTTP: {}", request.method());
+        log.info("Headers: {}", request.headers().asHttpHeaders());
 
         return request.bodyToMono(CreateDriverRequest.class)
                 .map(driverRequestMapper::toDomain)
+                .doOnNext(domain -> log.info("🛠️ Mapeo a domain exitoso: {}", domain))
                 .flatMap(domain -> driverCommandUseCase.crear_conductor(domain, Integer.valueOf(user.getUserId())))
                 .flatMap(resultado -> {
                     log.info("✅ Conductor guardado con éxito: {}", resultado);
@@ -134,12 +140,19 @@ public class DriverHandler {
     }
 
     public Mono<ServerResponse> buscarConductor(ServerRequest request) {
-        log.info("🔍 Handler: Iniciando búsqueda de conductor");
+        log.info("🔍 Handler: Iniciando búsqueda de conductor: {}", request);
 
         return extractSearchParameters(request)
                 .map(searchDriverRequestMapper::toDomain)
-                .flatMap(driverCommandUseCase::buscarDatosDeConductorByNumDocAndIdTipDoc)
-                .map(conductorDataResponseMapper::toResponse)
+                .flatMapMany(driverCommandUseCase::buscarDatosDeConductorByNumDocAndIdTipDoc)
+                .collectList()
+                .map(conductorDataList -> {
+                    List<ConductorResponse> responses = conductorDataResponseMapper.toResponseList(conductorDataList);
+                    return ListConductorSearchResponse.builder()
+                            .conductores(responses)
+                            .total(responses.size())
+                            .build();
+                })
                 .flatMap(conductor -> ServerResponse.ok()
                         .contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(conductor))
