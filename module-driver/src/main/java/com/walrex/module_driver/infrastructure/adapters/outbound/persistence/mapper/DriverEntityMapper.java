@@ -12,15 +12,15 @@ public interface DriverEntityMapper {
 
     @Mapping(source = "idDriver", target = "idConductor")
     @Mapping(source = "idUsuario", target = "idUser")
-    @Mapping(source = "createAt", target = "createAt", qualifiedByName = "mapLocalDateTimeToOffsetTime")
-    @Mapping(source = "updateAt", target = "updateAt", qualifiedByName = "mapLocalDateTimeToOffsetTime")
+    @Mapping(source = "idTipoDocumento", target = "idTipoDoc")
+    @Mapping(target = "createAt", ignore = true)
+    @Mapping(target = "updateAt", ignore = true)
+    @Mapping(target = "status", constant = "1")
     DriverEntity toEntity(CreateDriverDTO dto);
 
     @Mapping(source = "idConductor", target = "idDriver")
     @Mapping(source = "idTipoDoc", target = "idTipoDocumento")
     @Mapping(source = "idUser", target = "idUsuario")
-    @Mapping(source = "createAt", target = "createAt", qualifiedByName = "mapLocalDateTimeToOffsetTime")
-    @Mapping(source = "updateAt", target = "updateAt", qualifiedByName = "mapLocalDateTimeToOffsetTime")
     CreateDriverDTO toDTO(DriverEntity entity);
 
     @Named("mapLocalDateTimeToOffsetTime")
