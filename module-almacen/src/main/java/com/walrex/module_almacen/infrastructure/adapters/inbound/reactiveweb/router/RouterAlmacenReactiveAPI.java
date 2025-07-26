@@ -19,6 +19,7 @@ public class RouterAlmacenReactiveAPI {
         private final TransformacionInsumosHandler transformacionInsumosHandler;
         private final ApproveDeliveryHandler approveDeliveryHandler;
         private final KardexHandler kardexHandler;
+        private final KardexExcelHandler kardexExcelHandler;
         private final RollosDevolucionHandler rollosDevolucionHandler;
         private final OrdenSalidaDevolucionHandler ordenSalidaDevolucionHandler;
         private final GuiaRemisionHandler generarGuiaRemisionHandler;
@@ -39,6 +40,8 @@ public class RouterAlmacenReactiveAPI {
                                                                 approveDeliveryHandler::deliver)
                                                 .GET("/kardex", RequestPredicates.accept(MediaType.APPLICATION_JSON),
                                                                 kardexHandler::consultarKardex)
+                                                .GET("/kardex/excel", RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                                                kardexExcelHandler::exportarKardexExcel)
                                                 .GET("/rollos-disponibles-devolucion",
                                                                 RequestPredicates.accept(MediaType.APPLICATION_JSON),
                                                                 rollosDevolucionHandler::consultarRollosDisponibles)
