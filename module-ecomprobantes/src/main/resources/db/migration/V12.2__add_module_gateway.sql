@@ -1,0 +1,1 @@
+INSERT INTO gateway.tb_modules (module_name, status, path, strip_prefix_count, route_id, ispattern) VALUES ('ecomprobantes', '1', '/api/v2/ecomprobantes/**', 2, 'ecomprobantes', true);
