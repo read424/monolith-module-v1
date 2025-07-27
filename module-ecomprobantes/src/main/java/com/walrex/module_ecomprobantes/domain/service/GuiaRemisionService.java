@@ -1,41 +1,45 @@
 package com.walrex.module_ecomprobantes.domain.service;
 
-import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 
 import org.springframework.stereotype.Service;
 
-import com.walrex.module_ecomprobantes.application.ports.input.GenerarGuiaRemisionUseCase;
+import com.walrex.module_ecomprobantes.application.ports.input.GenerarPDFGuiaRemisionUseCase;
 import com.walrex.module_ecomprobantes.application.ports.output.GuiaRemisionDataPort;
 import com.walrex.module_ecomprobantes.application.ports.output.GuiaRemisionTemplatePort;
-import com.walrex.module_ecomprobantes.domain.model.dto.GuiaRemisionDataDTO;
+import com.walrex.module_ecomprobantes.domain.model.dto.GuiaRemisionCabeceraProjection;
+import com.walrex.module_ecomprobantes.domain.model.dto.ReferralGuideDTO;
+import com.walrex.module_ecomprobantes.infrastructure.adapters.outbound.mapper.GuiaRemisionProjectionMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 /**
- * Servicio de dominio para la generación de guías de remisión.
+ * Servicio de dominio para la generación de PDFs de guías de remisión.
+ * Reutiliza la lógica de GenerarHTMLGuiaRemisionService para mantener
+ * consistencia.
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class GuiaRemisionService implements GenerarGuiaRemisionUseCase {
+public class GuiaRemisionService implements GenerarPDFGuiaRemisionUseCase {
 
     private final GuiaRemisionDataPort guiaRemisionDataPort;
     private final GuiaRemisionTemplatePort guiaRemisionTemplatePort;
+    private final GuiaRemisionProjectionMapper guiaRemisionProjectionMapper;
 
     @Override
-    public Mono<ByteArrayOutputStream> generarGuiaRemision(Integer idComprobante) {
-        log.info("🚀 Iniciando generación de guía de remisión para comprobante: {}", idComprobante);
+    public Mono<byte[]> generarPDFGuiaRemision(Integer idComprobante) {
+        log.info("🚀 Iniciando generación de PDF de guía de remisión para comprobante: {}", idComprobante);
 
         return validarIdComprobante(idComprobante)
-                .then(obtenerDatosGuiaRemision(idComprobante))
+                .then(obtenerProyeccionGuiaRemision(idComprobante))
                 .flatMap(this::enriquecerDatos)
                 .flatMap(this::generarPDF)
-                .doOnSuccess(pdf -> log.info("✅ Guía de remisión generada exitosamente para comprobante: {}",
+                .doOnSuccess(pdf -> log.info("✅ PDF de guía de remisión generado exitosamente para comprobante: {}",
                         idComprobante))
-                .doOnError(error -> log.error("❌ Error generando guía de remisión: {}", error.getMessage()));
+                .doOnError(error -> log.error("❌ Error generando PDF de guía de remisión: {}", error.getMessage()));
     }
 
     /**
@@ -51,72 +55,83 @@ public class GuiaRemisionService implements GenerarGuiaRemisionUseCase {
     }
 
     /**
-     * Obtiene los datos de la guía de remisión desde la base de datos.
+     * Obtiene la proyección de datos de la guía de remisión desde la base de datos.
      */
-    private Mono<GuiaRemisionDataDTO> obtenerDatosGuiaRemision(Integer idComprobante) {
-        return guiaRemisionDataPort.obtenerDatosGuiaRemision(idComprobante)
-                .doOnNext(data -> log.debug("📊 Datos obtenidos para comprobante: {}", idComprobante));
+    private Mono<GuiaRemisionCabeceraProjection> obtenerProyeccionGuiaRemision(Integer idComprobante) {
+        return guiaRemisionDataPort.obtenerProyeccionGuiaRemision(idComprobante)
+                .doOnNext(data -> log.debug("📊 Proyección obtenida para comprobante: {}", idComprobante));
     }
 
     /**
      * Enriquece los datos con información adicional y validaciones de negocio.
+     * Convierte la proyección a ReferralGuideDTO usando el mapper.
+     * Misma lógica que GenerarHTMLGuiaRemisionService para mantener consistencia.
      */
-    private Mono<GuiaRemisionDataDTO> enriquecerDatos(GuiaRemisionDataDTO data) {
+    private Mono<ReferralGuideDTO> enriquecerDatos(GuiaRemisionCabeceraProjection projection) {
         return Mono.fromCallable(() -> {
+            // Convertir proyección a ReferralGuideDTO usando el mapper
+            ReferralGuideDTO referralGuideDTO = guiaRemisionProjectionMapper.toReferralGuideDTO(projection);
+            referralGuideDTO.setIdVersion("2022");
+
             // Establecer fecha de emisión si no existe
-            if (data.getFechaEmision() == null) {
-                data.setFechaEmision(LocalDate.now());
+            if (referralGuideDTO.getFecEmision() == null) {
+                referralGuideDTO.setFecEmision(LocalDate.now());
             }
 
             // Generar número de guía si no existe
-            if (data.getNumeroGuia() == null || data.getNumeroGuia().trim().isEmpty()) {
-                data.setNumeroGuia(generarNumeroGuia(data));
+            if (referralGuideDTO.getNumCorrelativo() == null) {
+                referralGuideDTO.setNumCorrelativo(generarNumeroCorrelativo(projection));
             }
 
             // Validar que todos los datos requeridos estén presentes
-            validarDatosCompletos(data);
+            validarDatosCompletos(referralGuideDTO);
 
-            log.debug("🔧 Datos enriquecidos para guía: {}", data.getNumeroGuia());
-            return data;
+            log.debug("🔧 Datos enriquecidos para PDF de guía: {}", referralGuideDTO);
+            return referralGuideDTO;
         });
     }
 
     /**
-     * Genera el PDF usando el template.
+     * Genera el PDF usando el template con ReferralGuideDTO.
+     * Usa el mismo HTML que funciona para el endpoint de HTML.
      */
-    private Mono<ByteArrayOutputStream> generarPDF(GuiaRemisionDataDTO data) {
+    private Mono<byte[]> generarPDF(ReferralGuideDTO data) {
         return guiaRemisionTemplatePort.generarPDF(data)
-                .doOnNext(pdf -> log.debug("📄 PDF generado para guía: {}", data.getNumeroGuia()));
+                .map(pdfStream -> {
+                    try {
+                        byte[] pdfBytes = pdfStream.toByteArray();
+                        log.debug("📄 PDF generado para guía: {} ({} bytes)", data.getNumCorrelativo(),
+                                pdfBytes.length);
+                        return pdfBytes;
+                    } catch (Exception e) {
+                        log.error("❌ Error convirtiendo PDF a bytes: {}", e.getMessage());
+                        throw new RuntimeException("Error procesando PDF", e);
+                    }
+                });
     }
 
     /**
-     * Genera un número único de guía de remisión.
+     * Genera un número único de correlativo para la guía de remisión.
      */
-    private String generarNumeroGuia(GuiaRemisionDataDTO data) {
-        String serie = data.getSerieGuia() != null ? data.getSerieGuia() : "GR";
-        String correlativo = data.getCorrelativoGuia() != null ? data.getCorrelativoGuia()
-                : String.format("%06d", data.getIdOrdenSalida());
-        return serie + "-" + correlativo;
+    private Integer generarNumeroCorrelativo(GuiaRemisionCabeceraProjection projection) {
+        return projection.getIdComprobante() != null ? projection.getIdComprobante() : 1;
     }
 
     /**
      * Valida que todos los datos necesarios estén completos.
      */
-    private void validarDatosCompletos(GuiaRemisionDataDTO data) {
-        if (data.getClient() == null) {
-            throw new IllegalStateException("Los datos del cliente son obligatorios");
-        }
+    private void validarDatosCompletos(ReferralGuideDTO data) {
         if (data.getCompany() == null) {
             throw new IllegalStateException("Los datos de la empresa son obligatorios");
         }
-        if (data.getDriver() == null) {
-            throw new IllegalStateException("Los datos del conductor son obligatorios");
+        if (data.getReceiver() == null) {
+            throw new IllegalStateException("Los datos del destinatario son obligatorios");
         }
-        if (data.getVehicle() == null) {
-            throw new IllegalStateException("Los datos del vehículo son obligatorios");
+        if (data.getShipment() == null) {
+            throw new IllegalStateException("Los datos del envío son obligatorios");
         }
-        if (data.getDetalles() == null || data.getDetalles().isEmpty()) {
-            throw new IllegalStateException("Los detalles del despacho son obligatorios");
+        if (data.getDetalle() == null || data.getDetalle().isEmpty()) {
+            throw new IllegalStateException("Los detalles del envío son obligatorios");
         }
     }
 }
