@@ -2,7 +2,6 @@ package com.walrex.module_ecomprobantes.infrastructure.adapters.inbound.reactive
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.server.*;
 
 import com.walrex.module_ecomprobantes.infrastructure.adapters.inbound.reactiveweb.GenerarPDFHandler;
@@ -23,9 +22,10 @@ public class RouterEcomprobantesReactiveAPI {
     public RouterFunction<ServerResponse> ecomprobantesRouter() {
         return RouterFunctions.route()
                 .path("/" + PATH_ECOMPROBANTES, () -> RouterFunctions.route()
-                        .GET("/guia-remision/pdf",
-                                RequestPredicates.accept(MediaType.APPLICATION_PDF),
+                        .GET("/guia-remision/pdf/{idComprobante}",
                                 generarPDFHandler::generarPDFComprobante)
+                        .GET("/guia-remision/html/{idComprobante}",
+                                generarPDFHandler::generarHTMLComprobante)
                         .build())
                 .before(request -> {
                     log.info("🔄 Router {} recibió solicitud: {} {}", PATH_ECOMPROBANTES,
