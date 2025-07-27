@@ -15,6 +15,7 @@ import org.springframework.validation.Validator;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.ServerWebInputException;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
@@ -98,14 +99,15 @@ public class KardexExcelHandler {
                             request.queryParam("fecha_fin").orElse(""),
                             request.exchange().getResponse().bufferFactory()
                     )
-                    .flatMap(excelDataBuffer -> {
+                    .collectList()
+                    .flatMap(excelDataBuffers -> {
                         log.info("✅ Excel generado exitosamente: {}", filename);
                         
                         return ServerResponse.status(HttpStatus.OK)
                                 .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                                 .header(HttpHeaders.CACHE_CONTROL, "no-cache")
-                                .body(excelDataBuffer, org.springframework.core.io.buffer.DataBuffer.class);
+                                .body(Flux.fromIterable(excelDataBuffers), org.springframework.core.io.buffer.DataBuffer.class);
                     });
                 })
                 .doOnSuccess(response -> log.info("📄 Respuesta Excel enviada exitosamente"))

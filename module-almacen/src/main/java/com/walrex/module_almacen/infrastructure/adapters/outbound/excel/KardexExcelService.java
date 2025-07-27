@@ -31,7 +31,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class KardexExcelService {
 
-    public Mono<Flux<DataBuffer>> generarExcelKardex(
+    public Flux<DataBuffer> generarExcelKardex(
         List<KardexArticuloDTO> articulos, 
         String fechaInicio, 
         String fechaFin,
@@ -64,13 +64,14 @@ public class KardexExcelService {
                 log.info("✅ Excel simple generado exitosamente. Tamaño: {} bytes", excelBytes.length);
                 
                 DataBuffer dataBuffer = dataBufferFactory.wrap(excelBytes);
-                return Flux.just(dataBuffer);
+                return dataBuffer;
                 
             } catch (IOException e) {
                 log.error("❌ Error generando Excel: {}", e.getMessage(), e);
                 throw new RuntimeException("Error generando reporte Excel", e);
             }
-        });
+        })
+        .flux();
     }
     
     /**
