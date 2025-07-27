@@ -2,7 +2,7 @@ package com.walrex.module_ecomprobantes.application.ports.output;
 
 import java.io.ByteArrayOutputStream;
 
-import com.walrex.module_ecomprobantes.domain.model.dto.GuiaRemisionDataDTO;
+import com.walrex.module_ecomprobantes.domain.model.dto.ReferralGuideDTO;
 
 import reactor.core.publisher.Mono;
 
@@ -18,7 +18,7 @@ public interface GuiaRemisionTemplatePort {
      * @param data Datos de la guía de remisión
      * @return Mono con el PDF generado como ByteArrayOutputStream
      */
-    Mono<ByteArrayOutputStream> generarPDF(GuiaRemisionDataDTO data);
+    Mono<ByteArrayOutputStream> generarPDF(ReferralGuideDTO data);
 
     /**
      * Genera el HTML del template con los datos proporcionados.
@@ -26,5 +26,5 @@ public interface GuiaRemisionTemplatePort {
      * @param data Datos de la guía de remisión
      * @return Mono con el HTML generado como String
      */
-    Mono<String> generarHTML(GuiaRemisionDataDTO data);
+    Mono<String> generarHTML(ReferralGuideDTO data);
 }

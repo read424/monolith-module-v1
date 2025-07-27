@@ -8,11 +8,12 @@ import org.springframework.stereotype.Component;
 
 import com.walrex.module_ecomprobantes.application.ports.output.GuiaRemisionDataPort;
 import com.walrex.module_ecomprobantes.domain.model.*;
-import com.walrex.module_ecomprobantes.domain.model.dto.GuiaRemisionDataDTO;
+import com.walrex.module_ecomprobantes.domain.model.dto.*;
 
 import io.r2dbc.spi.Row;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -241,6 +242,160 @@ public class GuiaRemisionRepositoryAdapter implements GuiaRemisionDataPort {
                 .destinatorio(null) // Se puede enriquecer después
                 .envio(null) // Se puede enriquecer después
                 .detalle(new ArrayList<>()) // Lista vacía por defecto
+                .build();
+    }
+
+    @Override
+    public Mono<GuiaRemisionCabeceraProjection> obtenerProyeccionGuiaRemision(Integer idComprobante) {
+        log.info("🔍 Obteniendo proyección de guía de remisión para comprobante: {}", idComprobante);
+
+        return obtenerCabeceraGuiaRemision(idComprobante)
+                .flatMap(cabecera -> obtenerDetallesGuiaRemision(idComprobante)
+                        .collectList()
+                        .map(detalles -> {
+                            cabecera.setDetalles(detalles);
+                            return cabecera;
+                        }))
+                .doOnNext(data -> log.info("✅ Proyección obtenida para comprobante: {}", idComprobante))
+                .doOnError(error -> log.error("❌ Error obteniendo proyección: {}", error.getMessage()));
+    }
+
+    /**
+     * Obtiene la cabecera de la guía de remisión.
+     */
+    private Mono<GuiaRemisionCabeceraProjection> obtenerCabeceraGuiaRemision(Integer idComprobante) {
+        String query = buildQueryCabeceraGuiaRemision();
+
+        return databaseClient.sql(query)
+                .bind("idComprobante", idComprobante)
+                .map((row, metadata) -> mapRowToCabeceraProjection(row))
+                .one();
+    }
+
+    /**
+     * Obtiene los detalles de la guía de remisión.
+     */
+    private Flux<GuiaRemisionDetalleProjection> obtenerDetallesGuiaRemision(Integer idComprobante) {
+        String query = buildQueryDetallesGuiaRemision();
+
+        return databaseClient.sql(query)
+                .bind("idComprobante", idComprobante)
+                .map((row, metadata) -> mapRowToDetalleProjection(row))
+                .all();
+    }
+
+    /**
+     * Construye la query para obtener la cabecera de guía de remisión.
+     */
+    private String buildQueryCabeceraGuiaRemision() {
+        return """
+                SELECT c.id_comprobante, doc_compr.nu_compro, ts.nu_serie, c.nro_comprobante, c.fe_emision, company.num_documento
+                , company.razon_social AS company_razon_social, sucursal.direccion AS company_direccion, sucursal.tlf_principal, sucursal.num_fax
+                , sucursal.tlf_secundario
+                , doc_client.cod_tipodoc, doc_client.abrev_doc, client.nu_ruc
+                , CASE WHEN client.id_tipodoc=3 THEN client.no_razon ELSE CONCAT_WS(', ', TRIM(client.no_apepat)||' '||TRIM(client.no_apemat), TRIM(client.no_nombres )) END AS rzn_social, client.no_dir
+                , mt.cod_motivo_traslado, mt.desc_motivo_traslado, mod_tras.cod_mod_traslado, mod_tras.desc_mod_traslado
+                , doc_transp.cod_tipodoc AS tip_doc_transp, doc_transp.abrev_doc AS abrev_doc_transp
+                , transp.num_tipo_documento, transp.razon_social
+                , llegada.direccion AS direc_llegada, dist_lleg.ubigeo AS ubigeo_llegada
+                , sucursal.direccion AS direc_partida, dist_comp.ubigeo AS ubigeo_partida
+                , ds.num_placa
+                , doc_conductor.cod_tipodoc AS cod_tipodoc_conductor, doc_conductor.no_tipodoc AS tipo_doc_conductor
+                , doc_conductor.abrev_doc AS abrev_doc_conductor
+                , conductor.num_documento AS num_documento_conductor, conductor.nombres AS nombres_conductor
+                , conductor.apellidos AS apellidos_conductor, conductor.num_licencia AS num_licencia_conductor
+                FROM facturacion.tbcomprobantes c
+                LEFT OUTER JOIN facturacion.tipo_serie ts ON ts.id_serie = c.tctipo_serie
+                LEFT OUTER JOIN facturacion.comprobantes doc_compr ON doc_compr.id_compro = ts.id_compro
+                LEFT OUTER JOIN comercial.tbclientes AS client ON client.id_cliente = c.id_cliente
+                LEFT OUTER JOIN rrhh.tctipo_doc AS doc_client ON doc_client.id_tipodoc = client.id_tipodoc
+                LEFT OUTER JOIN almacenes.devolucion_servicios ds ON ds.id_comprobante = c.id_comprobante
+                LEFT OUTER JOIN ventas.motivo_traslado mt ON mt.id_motivo_traslado = ds.motivo_comprobante
+                LEFT OUTER JOIN ventas.modalidad_traslado mod_tras ON mod_tras.id_mod_traslado = ds.id_modalidad
+                LEFT OUTER JOIN ventas.tb_transportista transp ON transp.id_transportista = ds.id_empresa_transp
+                LEFT OUTER JOIN ventas.tb_conductor conductor ON conductor.id_conductor = ds.id_conductor
+                LEFT OUTER JOIN rrhh.tctipo_doc AS doc_conductor ON doc_conductor.id_tipodoc = conductor.id_tipo_doc
+                LEFT OUTER JOIN rrhh.tctipo_doc AS doc_transp ON doc_transp.id_tipodoc = transp.id_tipo_documento
+                LEFT OUTER JOIN comercial.tb_direccion_entrega llegada ON llegada.id_direc_entrega = ds.id_llegada
+                LEFT OUTER JOIN public.tcdistritos AS dist_lleg ON dist_lleg.co_distri=llegada.co_distri
+                LEFT OUTER JOIN configuracion.empresa AS company ON company.id_empresa=1
+                LEFT OUTER JOIN rrhh.tctipo_doc AS td_comp ON td_comp.id_tipodoc = company.id_tipdoc
+                LEFT OUTER JOIN configuracion.sucursal AS sucursal ON sucursal.id_empresa=company.id_empresa AND sucursal.id_sucursal=1
+                LEFT OUTER JOIN public.tcdistritos AS dist_comp ON dist_comp.co_distri=sucursal.co_distri
+                WHERE c.id_comprobante = :idComprobante
+                """;
+    }
+
+    /**
+     * Construye la query para obtener los detalles de guía de remisión.
+     */
+    private String buildQueryDetallesGuiaRemision() {
+        return """
+                SELECT detail_compr.id_det_comprobante, detail_compr.id_producto, art.cod_articulo, art.desc_articulo, uni.cod_unidad
+                , detail_compr.peso AS peso
+                FROM facturacion.tbdet_comprobantes AS detail_compr
+                LEFT OUTER JOIN logistica.tbarticulos AS art ON art.id_articulo =  detail_compr.id_producto
+                LEFT OUTER JOIN logistica.tbunidad AS uni ON uni.id_unidad=art.id_unidad
+                WHERE detail_compr.id_comprobante = :idComprobante
+                """;
+    }
+
+    /**
+     * Mapea una fila de la base de datos a GuiaRemisionCabeceraProjection.
+     */
+    private GuiaRemisionCabeceraProjection mapRowToCabeceraProjection(Row row) {
+        return GuiaRemisionCabeceraProjection.builder()
+                .idComprobante(row.get("id_comprobante", Integer.class))
+                .nuCompro(row.get("nu_compro", String.class))
+                .nuSerie(row.get("nu_serie", String.class))
+                .nroComprobante(row.get("nro_comprobante", String.class))
+                .feEmision(row.get("fe_emision", LocalDate.class))
+                .numDocumento(row.get("num_documento", String.class))
+                .razonSocial(row.get("company_razon_social", String.class))
+                .companyDireccion(row.get("company_direccion", String.class))
+                .tlfPrincipal(row.get("tlf_principal", String.class))
+                .numFax(row.get("num_fax", String.class))
+                .tlfSecundario(row.get("tlf_secundario", String.class))
+                .codTipodoc(row.get("cod_tipodoc", String.class))
+                .abrevDoc(row.get("abrev_doc", String.class))
+                .nuRuc(row.get("nu_ruc", String.class))
+                .rznSocial(row.get("rzn_social", String.class))
+                .direccion(row.get("no_dir", String.class))
+                .codMotivoTraslado(row.get("cod_motivo_traslado", String.class))
+                .descMotivoTraslado(row.get("desc_motivo_traslado", String.class))
+                .codModTraslado(row.get("cod_mod_traslado", String.class))
+                .descModTraslado(row.get("desc_mod_traslado", String.class))
+                .docTranspCodTipodoc(row.get("tip_doc_transp", String.class))
+                .abrevDocTransp(row.get("abrev_doc_transp", String.class))
+                .transpNumTipoDocumento(row.get("num_tipo_documento", String.class))
+                .transpRazonSocial(row.get("razon_social", String.class))
+                .direcLlegada(row.get("direc_llegada", String.class))
+                .ubigeoLlegada(row.get("ubigeo_llegada", String.class))
+                .direcPartida(row.get("direc_partida", String.class))
+                .ubigeoPartida(row.get("ubigeo_partida", String.class))
+                .numPlaca(row.get("num_placa", String.class))
+                .codTipodocConductor(row.get("cod_tipodoc_conductor", String.class))
+                .tipoDocConductor(row.get("tipo_doc_conductor", String.class))
+                .abrevDocConductor(row.get("abrev_doc_conductor", String.class))
+                .numDocumentoConductor(row.get("num_documento_conductor", String.class))
+                .nombresConductor(row.get("nombres_conductor", String.class))
+                .apellidosConductor(row.get("apellidos_conductor", String.class))
+                .numLicenciaConductor(row.get("num_licencia_conductor", String.class))
+                .detalles(new ArrayList<>())
+                .build();
+    }
+
+    /**
+     * Mapea una fila de la base de datos a GuiaRemisionDetalleProjection.
+     */
+    private GuiaRemisionDetalleProjection mapRowToDetalleProjection(Row row) {
+        return GuiaRemisionDetalleProjection.builder()
+                .idDetComprobante(row.get("id_det_comprobante", Integer.class))
+                .idProducto(row.get("id_producto", Integer.class))
+                .codArticulo(row.get("cod_articulo", String.class))
+                .descArticulo(row.get("desc_articulo", String.class))
+                .codUnidad(row.get("cod_unidad", String.class))
+                .peso(row.get("peso", Double.class))
                 .build();
     }
 }
