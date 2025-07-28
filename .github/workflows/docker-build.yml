@@ -2,9 +2,7 @@ name: Docker build & push
 
 on:
   push:
-    tags: ['v*']
-  pull_request:
-    branches: [ main ]
+    tags: ["v*"]
 
 env:
   REGISTRY: docker.io
@@ -13,6 +11,7 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    if: github.ref_type == 'tag' && github.base_ref == 'main'
     permissions:
       contents: read
       packages: write
