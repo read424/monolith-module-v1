@@ -47,4 +47,11 @@ public class OrdenSalidaDevolucionResponse {
 
     @Schema(description = "Número del comprobante", example = "GU-2024-001")
     private String numeroComprobante;
+
+    @Schema(description = "Tipo de serie del comprobante", example = "5")
+    private Integer idTipoSerie;
+
+    @Schema(description = "Fecha de comunicación del comprobante", example = "2024-01-15")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate fecComunicacion;
 }

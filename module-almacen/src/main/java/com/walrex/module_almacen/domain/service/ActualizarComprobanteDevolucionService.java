@@ -1,5 +1,6 @@
 package com.walrex.module_almacen.domain.service;
 
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import com.walrex.module_almacen.application.ports.input.ActualizarComprobanteDevolucionUseCase;
@@ -19,12 +20,21 @@ public class ActualizarComprobanteDevolucionService implements ActualizarComprob
     private final EventPublisherOutputPort eventPublisherOutputPort;
 
     @Override
+    @CacheEvict(value = "ordenSalidaDevolucion", allEntries = true)
     public Mono<Void> actualizarComprobanteDevolucion(
             GuiaRemisionResponseEventDTO responseDTO, String correlationId) {
-        return devolucionServiciosPersistencePort.actualizarIdComprobante(responseDTO.getData(), correlationId)
+        log.info(
+                "🔄 Actualizando comprobante y invalidando cache específico - CorrelationId: {}, Success: {}, OrdenSalida: {}",
+                correlationId, responseDTO.getSuccess(), responseDTO.getData().getIdOrdenSalida());
 
+        return devolucionServiciosPersistencePort.actualizarIdComprobante(responseDTO.getData(), correlationId)
                 .then(eventPublisherOutputPort.publishGuiaDevolucionEvent(responseDTO))
-                .doOnSuccess(unused -> log.debug("✅ Comprobante actualizado para guía de remisión: {}", correlationId))
+                .doOnSuccess(unused -> {
+                    log.info("✅ Comprobante actualizado y cache invalidado para guía de remisión: {}", correlationId);
+                    log.info(
+                            "🗑️ Cache 'ordenSalidaDevolucion' invalidado para orden: {} - próxima consulta reconstruirá datos específicos",
+                            responseDTO.getData().getIdOrdenSalida());
+                })
                 .doOnError(error -> log.error("❌ Error al actualizar comprobante: {}", error.getMessage()));
     }
 }

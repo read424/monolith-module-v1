@@ -24,4 +24,6 @@ public class OrdenSalidaDevolucionDTO {
     private Long idComprobante;
     private String numeroSerie;
     private String numeroComprobante;
+    private Integer idTipoSerie;
+    private LocalDate fecComunicacion;
 }

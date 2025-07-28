@@ -362,7 +362,8 @@ public class DevolucionRollosPersistenceAdapter implements DevolucionRollosPort,
                                        CASE WHEN tbc.id_tipodoc = 3 THEN tbc.no_razon
                                             ELSE TRIM(tbc.no_apepat || ' ' || tbc.no_apemat) || ', ' || tbc.no_nombres
                                        END AS razon_social,
-                                       d.id_comprobante, tip_ser.nu_serie, compr.nro_comprobante
+                                       d.id_comprobante, tip_ser.nu_serie, compr.nro_comprobante,
+                                       compr.tctipo_serie, compr.fec_comunicacion
                                 FROM almacenes.ordensalida ords
                                 INNER JOIN almacenes.devolucion_servicios d ON d.id_ordensalida = ords.id_ordensalida
                                 LEFT JOIN comercial.tbclientes tbc ON tbc.id_cliente = ords.id_cliente
@@ -522,6 +523,8 @@ public class DevolucionRollosPersistenceAdapter implements DevolucionRollosPort,
                                 .idComprobante(getValueAsLong(row, "id_comprobante"))
                                 .numeroSerie(getValueAsString(row, "nu_serie"))
                                 .numeroComprobante(getValueAsString(row, "nro_comprobante"))
+                                .idTipoSerie(getValueAsInteger(row, "tctipo_serie"))
+                                .fecComunicacion(getValueAsLocalDate(row, "fec_comunicacion"))
                                 .build();
         }
 
@@ -535,6 +538,18 @@ public class DevolucionRollosPersistenceAdapter implements DevolucionRollosPort,
                 if (value instanceof Number) {
                         return ((Number) value).longValue();
                 }
+
+                log.warn("⚠️ Valor no numérico para '{}': {} ({})", key, value, value.getClass());
+                return null;
+        }
+
+        private Integer getValueAsInteger(Map<String, Object> row, String key) {
+                Object value = row.get(key);
+                if (value == null)
+                        return null;
+
+                if (value instanceof Number)
+                        return ((Number) value).intValue();
 
                 log.warn("⚠️ Valor no numérico para '{}': {} ({})", key, value, value.getClass());
                 return null;
