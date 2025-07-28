@@ -112,8 +112,7 @@ spring:
           limitRefreshPeriod: 1s
           timeoutDuration: 5s
           eventConsumerBufferSize: 10
-    bulkhead: 
-      instances:
+    bulkhead:
       instances:
         comprobante-service:
           max-concurrent-calls: 10
