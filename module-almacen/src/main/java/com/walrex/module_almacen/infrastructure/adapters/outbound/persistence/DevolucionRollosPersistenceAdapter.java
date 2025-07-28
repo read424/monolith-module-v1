@@ -368,7 +368,7 @@ public class DevolucionRollosPersistenceAdapter implements DevolucionRollosPort,
                                 INNER JOIN almacenes.devolucion_servicios d ON d.id_ordensalida = ords.id_ordensalida
                                 LEFT JOIN comercial.tbclientes tbc ON tbc.id_cliente = ords.id_cliente
                                 LEFT JOIN facturacion.tbcomprobantes compr ON compr.id_comprobante = d.id_comprobante
-                                LEFT JOIN facturacion.tipo_serie tip_ser ON tip_ser.id_compro = compr.tctipo_serie
+                                LEFT JOIN facturacion.tipo_serie tip_ser ON tip_ser.id_serie = compr.tctipo_serie
                                 WHERE ords.id_almacen_origen = 8 AND ords.id_motivo = 33
                                 """);
 
