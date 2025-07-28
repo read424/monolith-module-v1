@@ -1,12 +1,16 @@
 package com.walrex.module_ecomprobantes.infrastructure.adapters.config;
 
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.timelimiter.TimeLimiterConfig;
+import io.netty.handler.timeout.TimeoutException;
 
 /**
  * Configuración de Resilience4j para patrones de resiliencia del módulo
@@ -36,10 +40,10 @@ public class EcomprobantesResilience4jConfig {
                 .waitDurationInOpenState(Duration.ofSeconds(60))
                 .failureRateThreshold(50)
                 .recordExceptions(
-                        org.springframework.web.reactive.function.client.WebClientResponseException.class,
-                        java.net.ConnectException.class,
-                        java.net.SocketTimeoutException.class,
-                        java.util.concurrent.TimeoutException.class)
+                        WebClientResponseException.class,
+                        ConnectException.class,
+                        SocketTimeoutException.class,
+                        TimeoutException.class)
                 .build();
     }
 
