@@ -10,6 +10,8 @@ import com.walrex.module_ecomprobantes.application.ports.output.LycetServicePort
 import com.walrex.module_ecomprobantes.domain.model.dto.lycet.LycetGuiaRemisionRequest;
 import com.walrex.module_ecomprobantes.domain.model.dto.lycet.LycetGuiaRemisionResponse;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -39,6 +41,8 @@ public class LycetServiceAdapter implements LycetServicePort {
     private String token;
 
     @Override
+    @CircuitBreaker(name = "ecomprobantesLycetService", fallbackMethod = "fallbackEnviarGuiaRemision")
+    @RateLimiter(name = "ecomprobantesLycetService", fallbackMethod = "fallbackEnviarGuiaRemision")
     public Mono<LycetGuiaRemisionResponse> enviarGuiaRemision(LycetGuiaRemisionRequest request) {
         String correlativo = request.getCorrelativo();
         String serie = request.getSerie();
@@ -123,5 +127,40 @@ public class LycetServiceAdapter implements LycetServicePort {
                 .build();
 
         return Mono.just(errorResponse);
+    }
+
+    /**
+     * Método de fallback para Circuit Breaker y Rate Limiter.
+     * Se ejecuta cuando el servicio Lycet no está disponible o se excede el límite
+     * de rate.
+     * 
+     * @param request   Request original
+     * @param exception Excepción que causó el fallback
+     * @return Respuesta de fallback
+     */
+    public Mono<LycetGuiaRemisionResponse> fallbackEnviarGuiaRemision(
+            LycetGuiaRemisionRequest request, Exception exception) {
+
+        String correlativo = request.getCorrelativo();
+        String serie = request.getSerie();
+
+        log.warn("🛡️ Circuit Breaker/Rate Limiter activado para serie: {} - correlativo: {}", serie, correlativo);
+        log.warn("📋 Detalles del fallback:");
+        log.warn("   - Tipo de excepción: {}", exception.getClass().getSimpleName());
+        log.warn("   - Mensaje: {}", exception.getMessage());
+        log.warn("   - Servicio Lycet no disponible temporalmente");
+
+        // Crear respuesta de fallback
+        LycetGuiaRemisionResponse fallbackResponse = LycetGuiaRemisionResponse.builder()
+                .success(false)
+                .message("Servicio Lycet temporalmente no disponible. Circuit Breaker activado.")
+                .sunatCode("999") // Código especial para indicar fallback
+                .sunatDescription("Servicio externo no disponible")
+                .timestamp(java.time.LocalDateTime.now())
+                .build();
+
+        log.info("✅ Respuesta de fallback generada para serie: {} - correlativo: {}", serie, correlativo);
+
+        return Mono.just(fallbackResponse);
     }
 }

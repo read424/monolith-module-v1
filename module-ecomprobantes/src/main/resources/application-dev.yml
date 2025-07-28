@@ -173,9 +173,60 @@ management:
     tags:
       application: module-ecomprobantes
 
+# Configuración de Lycet
 lycet:
   api:
     base-url: http://localhost:8880/api/v1
-    endpoint: /despatch/send
+    endpoint-despatch: /despatch/send
     timeout: 30
     token: EXnPrun0IjhqwyZaNSWLZpeJ9y1ktZOJ
+
+# Configuración de Resilience4j - Circuit Breaker (Módulo ecomprobantes)
+resilience4j:
+  circuitbreaker:
+    instances:
+      ecomprobantesLycetService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 60s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - org.springframework.web.reactive.function.client.WebClientResponseException
+          - java.net.ConnectException
+          - java.net.SocketTimeoutException
+          - java.util.concurrent.TimeoutException
+        ignoreExceptions:
+          - com.walrex.module_ecomprobantes.domain.exceptions.BusinessException
+
+# Configuración de Resilience4j - Rate Limiter (Módulo ecomprobantes)
+resilience4j:
+  ratelimiter:
+    instances:
+      ecomprobantesLycetService:
+        registerHealthIndicator: true
+        limitForPeriod: 10
+        limitRefreshPeriod: 1s
+        timeoutDuration: 5s
+        eventConsumerBufferSize: 10
+
+# Configuración de Resilience4j - Bulkhead (Módulo ecomprobantes)
+resilience4j:
+  bulkhead:
+    instances:
+      ecomprobantesLycetService:
+        registerHealthIndicator: true
+        maxConcurrentCalls: 5
+        maxWaitDuration: 1s
+        eventConsumerBufferSize: 10
+
+# Configuración de Resilience4j - Time Limiter (Módulo ecomprobantes)
+resilience4j:
+  timelimiter:
+    instances:
+      ecomprobantesLycetService:
+        timeoutDuration: 30s
+        cancelRunningFuture: true
