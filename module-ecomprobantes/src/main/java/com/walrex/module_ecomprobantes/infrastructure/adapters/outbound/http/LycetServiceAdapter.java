@@ -1,5 +1,7 @@
 package com.walrex.module_ecomprobantes.infrastructure.adapters.outbound.http;
 
+import java.time.LocalDateTime;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -123,7 +125,7 @@ public class LycetServiceAdapter implements LycetServicePort {
                 .message("Error de comunicación con Lycet: " + statusText)
                 .sunatCode("HTTP_" + statusCode)
                 .sunatDescription("Error de comunicación HTTP")
-                .timestamp(java.time.LocalDateTime.now())
+                .timestamp(LocalDateTime.now())
                 .build();
 
         return Mono.just(errorResponse);
@@ -156,7 +158,7 @@ public class LycetServiceAdapter implements LycetServicePort {
                 .message("Servicio Lycet temporalmente no disponible. Circuit Breaker activado.")
                 .sunatCode("999") // Código especial para indicar fallback
                 .sunatDescription("Servicio externo no disponible")
-                .timestamp(java.time.LocalDateTime.now())
+                .timestamp(LocalDateTime.now())
                 .build();
 
         log.info("✅ Respuesta de fallback generada para serie: {} - correlativo: {}", serie, correlativo);
