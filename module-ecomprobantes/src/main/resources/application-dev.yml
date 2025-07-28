@@ -172,3 +172,10 @@ management:
         enabled: true
     tags:
       application: module-ecomprobantes
+
+lycet:
+  api:
+    base-url: http://localhost:8880/api/v1
+    endpoint: /despatch/send
+    timeout: 30
+    token: EXnPrun0IjhqwyZaNSWLZpeJ9y1ktZOJ

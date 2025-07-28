@@ -192,26 +192,6 @@ flyway:
   modules:
     enabled: true
     verbose: true
-logging:
-  level:
-    reactor.tools: OFF
-    com.walrex: DEBUG
-    com.walrex.gateway: TRACE
-    com.walrex.module_ecomprobantes: DEBUG
-    com.walrex.module_driver: DEBUG
-    org.springframework.web.reactive: DEBUG
-    org.springframework.boot.reactor: OFF
-    com.corundumstudio.socketio: DEBUG
-    # R2DBC logging para debugging de consultas SQL
-    io.r2dbc.postgresql: DEBUG
-    org.springframework.data.r2dbc: DEBUG
-    org.springframework.r2dbc: DEBUG
-    io.r2dbc: DEBUG
-  dynamic:
-    enabled: true
-    modules: almacen,users,articulos,ecomprobantes,role,gateway,core,mailing,partidas
-    default-level: DEBUG
-    error-level: ERROR
 reactor:
   tools:
     agent:
@@ -260,3 +240,29 @@ springdoc:
     - group: motivos-devolucion
       display-name: "Motivos de Devolución"
       paths-to-match: /almacen/motivos-devolucion/**
+lycet:
+  api:
+    token: EXnPrun0IjhqwyZaNSWLZpeJ9y1ktZOJ
+    base-url: http://localhost:8880/api/v1
+    endpoint-despatch: /despatch/send
+    timeout: 30
+logging:
+  level:
+    reactor.tools: OFF
+    com.walrex: DEBUG
+    com.walrex.gateway: TRACE
+    com.walrex.module_ecomprobantes: DEBUG
+    com.walrex.module_driver: DEBUG
+    org.springframework.web.reactive: DEBUG
+    org.springframework.boot.reactor: OFF
+    com.corundumstudio.socketio: DEBUG
+    # R2DBC logging para debugging de consultas SQL
+    io.r2dbc.postgresql: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    org.springframework.r2dbc: DEBUG
+    io.r2dbc: DEBUG
+  dynamic:
+    enabled: true
+    modules: almacen,users,articulos,ecomprobantes,role,gateway,core,mailing,partidas
+    default-level: DEBUG
+    error-level: ERROR
