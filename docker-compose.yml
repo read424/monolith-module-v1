@@ -22,6 +22,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       SECRET_KEY_JWT: ${SECRET_KEY_JWT}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
+      HOST_REDIS: ${HOST_REDIS}
     env_file:
       - .env
     volumes:

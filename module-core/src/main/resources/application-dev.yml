@@ -1,8 +1,13 @@
 server:
   port: 8088
 spring:
+  main:
+    web-application-type: reactive
+    banner-mode: console
   application:
     name: module-core
+  security:
+    enabled: false
   cache:
     type: REDIS
     redis:
@@ -27,9 +32,6 @@ spring:
     publisher-returns: true
     template:
       mandatory: true
-  main:
-    web-application-type: reactive
-    banner-mode: console
   resilience4j:
     circuitbreaker:
       instances:
@@ -136,8 +138,6 @@ spring:
         ecomprobantesLycetService:
           timeoutDuration: 30s
           cancelRunningFuture: true
-  security:
-    enabled: false
   cloud:
     gateway:
       enabled: true
@@ -340,8 +340,3 @@ logging:
     org.springframework.data.r2dbc: DEBUG
     org.springframework.r2dbc: DEBUG
     io.r2dbc: DEBUG
-  dynamic:
-    enabled: true
-    modules: almacen,users,articulos,ecomprobantes,role,gateway,core,mailing,partidas
-    default-level: DEBUG
-    error-level: ERROR
