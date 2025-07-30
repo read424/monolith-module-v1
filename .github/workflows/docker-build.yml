@@ -1,7 +1,8 @@
-name: Docker build & push
+name: Docker CI/CD Pipeline
 
 on:
   push:
+    branches: [main]
     tags: ["v*"]
 
 env:
@@ -9,13 +10,37 @@ env:
   IMAGE_NAME: read424/api-monolith-module
 
 jobs:
-  build-and-push:
+  # 🏗️ BUILD JOB - Se ejecuta en push a main
+  build:
     runs-on: ubuntu-latest
-    if: github.ref_type == 'tag' && github.base_ref == 'main'
-    permissions:
-      contents: read
-      packages: write
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      image-id: ${{ steps.build.outputs.image-id }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: false
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            GITHUB_USERNAME=read424
+            GITHUB_TOKEN=${{ secrets.AVRO_SCHEMAS_GITHUB_TOKEN }}
+
+  #  PUSH JOB - Se ejecuta solo en tags
+  push:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
