@@ -20,17 +20,17 @@ public interface DetalleRolloRepository extends ReactiveCrudRepository<DetalleRo
     @Query("""
             SELECT
                 rollo_ing.id_ordeningreso, rollo_ing.id_detordeningreso, rollo_ing.id_detordeningresopeso,
-                ord_ing.cod_ingreso, ord_ing.fec_ingreso AS fecha_ingreso, ord_ing.nu_comprobante,
+                ord_ing.cod_ingreso, ord_ing.fec_ingreso AS fecha_ingreso, ord_ing.nu_comprobante AS nu_comprobante,
                 rollo_ing.status AS status_ing,
                 det_ing.id_articulo,
-                rollo_ing.cod_rollo,
-                COALESCE(rollo_ing.peso_devolucion, rollo_ing.peso_rollo) AS peso_rollo,
+                rollo_ing.cod_rollo, COALESCE(rollo_ing.peso_devolucion, rollo_ing.peso_rollo) AS peso_rollo,
                 rollo_almacen.id_ordeningreso AS id_ordeningreso_almacen,
                 rollo_almacen.id_detordeningreso AS id_detordeningreso_almacen,
                 rollo_almacen.id_detordeningresopeso AS id_detordeningresopeso_almacen,
                 rollo_almacen.status AS status_almacen,
                 o2.cod_ingreso AS cod_ingreso_almacen,
-                o2.id_almacen, a.no_almacen,
+                COALESCE(o2.id_almacen, ord_ing.id_almacen) AS id_almacen,
+                a.no_almacen,
                 tp.id_partida,
                 CASE
                     WHEN tp.id_partida_parent IS NULL THEN tp.cod_partida
@@ -44,7 +44,7 @@ public interface DetalleRolloRepository extends ReactiveCrudRepository<DetalleRo
             INNER JOIN almacenes.ordeningreso AS ord_ing ON ord_ing.id_ordeningreso = det_ing.id_ordeningreso
             INNER JOIN almacenes.detordeningresopeso AS rollo_ing ON rollo_ing.id_detordeningreso = det_ing.id_detordeningreso
                 AND rollo_ing.status IN (0, 1)
-            INNER JOIN almacenes.detordeningresopeso AS rollo_almacen ON rollo_almacen.id_rollo_ingreso = rollo_ing.id_detordeningresopeso
+            LEFT OUTER JOIN almacenes.detordeningresopeso AS rollo_almacen ON rollo_almacen.id_rollo_ingreso = rollo_ing.id_detordeningresopeso
                 AND rollo_almacen.status = 1
             LEFT OUTER JOIN almacenes.ordeningreso o2 ON o2.id_ordeningreso = rollo_almacen.id_ordeningreso
             LEFT OUTER JOIN produccion.tb_detail_partida tdp ON tdp.id_detordeningresopeso = rollo_ing.id_detordeningresopeso
