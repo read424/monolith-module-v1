@@ -1,14 +1,18 @@
 package com.walrex.module_almacen.domain.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import com.walrex.module_almacen.application.ports.input.ConsultarRollosDisponiblesDevolucionUseCase;
 import com.walrex.module_almacen.application.ports.output.ConsultarRollosDisponiblesPort;
 import com.walrex.module_almacen.domain.model.dto.RolloDisponibleDevolucionDTO;
+import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.response.ConsultarRollosDisponiblesResponse;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Servicio de dominio para consultar rollos disponibles para devolución
@@ -31,6 +35,61 @@ public class ConsultarRollosDisponiblesDevolucionService implements ConsultarRol
                 .flatMap(this::aplicarLogicaNegocio)
                 .doOnNext(rollo -> log.debug("✅ Rollo disponible encontrado: {}", rollo.getCodRollo()))
                 .doOnComplete(() -> log.info("✅ Consulta de rollos disponibles completada"));
+    }
+
+    /**
+     * Consulta rollos disponibles y devuelve la respuesta completa
+     * Procesa el Flux y construye la respuesta final
+     */
+    public Mono<ConsultarRollosDisponiblesResponse> consultarRollosDisponiblesResponse(Integer idCliente,
+            Integer idArticulo) {
+        log.info("🔍 Consultando rollos disponibles y construyendo respuesta - Cliente: {}, Artículo: {}", idCliente,
+                idArticulo);
+
+        return consultarRollosDisponibles(idCliente, idArticulo)
+                .collectList()
+                .map(this::construirRespuestaExitosa)
+                .onErrorResume(this::construirRespuestaError);
+    }
+
+    /**
+     * Construye respuesta exitosa con los rollos encontrados
+     */
+    private ConsultarRollosDisponiblesResponse construirRespuestaExitosa(List<RolloDisponibleDevolucionDTO> rollos) {
+        log.info("✅ Construyendo respuesta exitosa con {} rollos encontrados", rollos.size());
+
+        // Log detallado de cada rollo encontrado
+        rollos.forEach(rollo -> {
+            log.info("📋 Rollo en respuesta: Código={}, Almacén={}, Peso={}, Status={}, Partida={}",
+                    rollo.getCodRollo(),
+                    rollo.getIdIngresoAlmacen(),
+                    rollo.getPesoRollo(),
+                    rollo.getStatusRolloIngreso(),
+                    rollo.getCodPartida());
+        });
+
+        return ConsultarRollosDisponiblesResponse.builder()
+                .rollosDisponibles(rollos)
+                .totalRollos(rollos.size())
+                .success(true)
+                .mensaje("Rollos disponibles para devolución consultados exitosamente")
+                .build();
+    }
+
+    /**
+     * Construye respuesta de error
+     */
+    private Mono<ConsultarRollosDisponiblesResponse> construirRespuestaError(Throwable error) {
+        log.error("❌ Error al consultar rollos disponibles: {}", error.getMessage(), error);
+
+        ConsultarRollosDisponiblesResponse response = ConsultarRollosDisponiblesResponse.builder()
+                .rollosDisponibles(List.of())
+                .totalRollos(0)
+                .success(false)
+                .mensaje("Error al consultar rollos disponibles: " + error.getMessage())
+                .build();
+
+        return Mono.just(response);
     }
 
     private Flux<Void> validarParametrosEntrada(Integer idCliente, Integer idArticulo) {
