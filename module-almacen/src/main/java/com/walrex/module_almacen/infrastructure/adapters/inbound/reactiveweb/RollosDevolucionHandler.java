@@ -47,15 +47,8 @@ public class RollosDevolucionHandler {
                                 .doOnNext(dto -> log.info("Request params recibidos: {}", dto))
                                 .flatMap(this::validarRequest)
                                 .flatMap(requestDto -> consultarRollosUseCase
-                                                .consultarRollosDisponibles(requestDto.getIdCliente(),
-                                                                requestDto.getIdArticulo())
-                                                .collectList()
-                                                .map(rollos -> ConsultarRollosDisponiblesResponse.builder()
-                                                                .rollosDisponibles(rollos)
-                                                                .totalRollos(rollos.size())
-                                                                .success(true)
-                                                                .mensaje("Rollos disponibles para devolución consultados exitosamente")
-                                                                .build()))
+                                                .consultarRollosDisponiblesResponse(requestDto.getIdCliente(),
+                                                                requestDto.getIdArticulo()))
                                 .flatMap(response -> ServerResponse.status(HttpStatus.OK)
                                                 .contentType(MediaType.APPLICATION_JSON)
                                                 .bodyValue(response))
