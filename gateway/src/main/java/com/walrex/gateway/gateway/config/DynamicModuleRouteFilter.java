@@ -206,7 +206,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
     protected Mono<Void> processRouting(ModulesUrl module, String requestPath, ServerHttpRequest request,
                                       ServerWebExchange exchange,
                                       GatewayFilterChain chain) {
-        // ✅ Incrementar contador de forwards
+        //Incrementar contador de forwards
         Integer currentForwardCount = exchange.getAttribute(FORWARD_COUNT_KEY);
         if (currentForwardCount == null) {
             currentForwardCount = 0;
@@ -214,47 +214,48 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
         final Integer forwardCount = currentForwardCount + 1;
         exchange.getAttributes().put(FORWARD_COUNT_KEY, forwardCount);
         
-        log.info("🔢 Incrementando forward count: {}/{} para módulo: {}", 
+        log.info("Incrementando forward count: {}/{} para módulo: {}", 
                 forwardCount, MAX_FORWARD_COUNT, module.getModuleName());
 
         String newPath = processPath(requestPath, module);
         log.info("🔧 Path procesado: '{}' -> '{}' (Forward #{}/{})", 
                 requestPath, newPath, forwardCount, MAX_FORWARD_COUNT);
 
-        // ✅ Validar que la nueva ruta sea diferente para evitar bucles
+        //Validar que la nueva ruta sea diferente para evitar bucles
         if (requestPath.equals(newPath)) {
-            log.error("🚫 BUCLE DETECTADO: Nueva ruta igual a la original: '{}'", newPath);
+            log.error("BUCLE DETECTADO: Nueva ruta igual a la original: '{}'", newPath);
             exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
             return exchange.getResponse().setComplete();
         }
 
-        // ✅ Validar que la nueva ruta sea válida
+        //Validar que la nueva ruta sea válida
         if (newPath == null || newPath.trim().isEmpty()) {
-            log.error("🚫 Ruta procesada inválida: '{}' para ruta original: '{}'", newPath, requestPath);
+            log.error("Ruta procesada inválida: '{}' para ruta original: '{}'", newPath, requestPath);
             exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
             return exchange.getResponse().setComplete();
         }
 
         // Marcar como forwardeada
         exchange.getAttributes().put("GATEWAY_FORWARDED_REQUEST", true);
-        log.debug("🔄 Marcando petición como forwardeada");
+        log.debug("Marcando petición como forwardeada");
 
         URI originalUri = request.getURI();
         String queryString = originalUri.getRawQuery();
 
         // Construir la URI de redirección
-        String forwardUriString = "forward:" + newPath;
+        StringBuilder forwardUriBuilder = new StringBuilder("forward:").append(newPath);
         if (queryString != null && !queryString.isEmpty() && !newPath.contains("?")) {
-            forwardUriString += "?" + queryString;
+            forwardUriBuilder.append("?").append(queryString);
         }
+        String forwardUriString = forwardUriBuilder.toString();
 
         URI forwardUri;
         try {
             forwardUri = new URI(forwardUriString);
-            log.info("🎯 Redirigiendo internamente: '{}' -> '{}' (Forward #{}/{})", 
+            log.info("Redirigiendo internamente: '{}' -> '{}' (Forward #{}/{})", 
                     requestPath, forwardUri, forwardCount, MAX_FORWARD_COUNT);
         } catch (URISyntaxException e) {
-            log.error("🚫 Error al construir URI de redirección: {}", e.getMessage());
+            log.error("Error al construir URI de redirección: {}", e.getMessage());
             exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
             return exchange.getResponse().setComplete();
         }
@@ -263,24 +264,24 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
 
         // Preservar el cuerpo de la solicitud
         Mono<byte[]> cachedBody = DataBufferUtils.join(exchange.getRequest().getBody())
-                .map(dataBuffer -> {
-                    byte[] content = new byte[dataBuffer.readableByteCount()];
-                    dataBuffer.read(content);
-                    DataBufferUtils.release(dataBuffer);
-                    return content;
-                })
-                .cache();
+            .map(dataBuffer -> {
+                byte[] content = new byte[dataBuffer.readableByteCount()];
+                dataBuffer.read(content);
+                DataBufferUtils.release(dataBuffer);
+                return content;
+            })
+            .cache();
 
         // Crear la solicitud modificada
         ServerHttpRequest modifiedRequest;
         if (newPath.contains("?")) {
             modifiedRequest = request.mutate()
-                    .path(newPath.substring(0, newPath.indexOf("?")))
-                    .build();
+                .path(newPath.substring(0, newPath.indexOf("?")))
+                .build();
         } else {
             modifiedRequest = request.mutate()
-                    .path(newPath)
-                    .build();
+                .path(newPath)
+                .build();
         }
 
         ServerWebExchange mutatedExchange = exchange.mutate()
