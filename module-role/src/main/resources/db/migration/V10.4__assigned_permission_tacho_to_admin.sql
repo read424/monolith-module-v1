@@ -1,0 +1,1 @@
+INSERT INTO seguridad.tbroles_detalles (id_rol, idwin_state) VALUES (1, 903) ON CONFLICT ON CONSTRAINT  id_rol_win DO NOTHING;
