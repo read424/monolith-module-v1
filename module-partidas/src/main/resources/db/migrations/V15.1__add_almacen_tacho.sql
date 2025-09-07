@@ -1,0 +1,2 @@
+INSERT INTO almacenes.almacen (id_almacen, id_tipoalmacen, cod_almacen, no_almacen, desc_almacen, alias_almacen, prefijo_entrada, prefijo_salida, prefijo_ajuste) VALUES 
+(36, 5, 'ATCH', 'ALMACEN TACHO', 'ALMACEN DE TACHOS POSTERIOR A TEÑIDO', 'TACHOS', 'ATCH-I', 'ATCH-S', 'ATCH-A') ON CONFLICT ON CONSTRAINT id_almacen_pkey DO NOTHING;
