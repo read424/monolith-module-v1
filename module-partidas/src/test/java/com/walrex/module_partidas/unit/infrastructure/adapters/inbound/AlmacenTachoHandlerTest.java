@@ -19,7 +19,7 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import com.walrex.module_partidas.application.ports.input.ConsultarAlmacenTachoUseCase;
 import com.walrex.module_partidas.domain.model.AlmacenTacho;
 import com.walrex.module_partidas.domain.model.dto.ConsultarAlmacenTachoRequest;
-import com.walrex.module_partidas.infrastructure.adapters.inbound.reactiveweb.router.AlmacenTachoHandler;
+import com.walrex.module_partidas.infrastructure.adapters.inbound.reactiveweb.AlmacenTachoHandler;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
@@ -197,6 +197,50 @@ class AlmacenTachoHandlerTest {
                                                 createMockServerRequest(requestConMultiplesErrores)))
                                 .expectNextMatches(
                                                 response -> response.statusCode() == HttpStatus.INTERNAL_SERVER_ERROR)
+                                .verifyComplete();
+        }
+
+        @Test
+        @DisplayName("Debería consultar almacén tacho con búsqueda por código de partida")
+        void shouldConsultarAlmacenTachoWithCodPartidaSearch() {
+                // Arrange
+                ConsultarAlmacenTachoRequest requestConCodPartida = ConsultarAlmacenTachoRequest.builder()
+                                .idAlmacen(36)
+                                .page(0)
+                                .numRows(10)
+                                .codPartida("PA25-0048661")
+                                .build();
+
+                when(validator.validate(requestConCodPartida)).thenReturn(Set.of());
+                when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
+                                .thenReturn(Flux.fromIterable(almacenTachoList));
+
+                // Act & Assert
+                StepVerifier.create(almacenTachoHandler
+                                .consultarAlmacenTacho(createMockServerRequest(requestConCodPartida)))
+                                .expectNextMatches(response -> response.statusCode() == HttpStatus.OK)
+                                .verifyComplete();
+        }
+
+        @Test
+        @DisplayName("Debería consultar almacén tacho con búsqueda por código de partida parcial")
+        void shouldConsultarAlmacenTachoWithPartialCodPartidaSearch() {
+                // Arrange
+                ConsultarAlmacenTachoRequest requestConCodPartidaParcial = ConsultarAlmacenTachoRequest.builder()
+                                .idAlmacen(36)
+                                .page(0)
+                                .numRows(10)
+                                .codPartida("PA25")
+                                .build();
+
+                when(validator.validate(requestConCodPartidaParcial)).thenReturn(Set.of());
+                when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
+                                .thenReturn(Flux.fromIterable(almacenTachoList));
+
+                // Act & Assert
+                StepVerifier.create(almacenTachoHandler
+                                .consultarAlmacenTacho(createMockServerRequest(requestConCodPartidaParcial)))
+                                .expectNextMatches(response -> response.statusCode() == HttpStatus.OK)
                                 .verifyComplete();
         }
 
