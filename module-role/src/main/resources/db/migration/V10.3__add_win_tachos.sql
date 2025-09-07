@@ -1,0 +1,1 @@
+INSERT INTO seguridad.win_sistemas (idwin_state, no_state, type_state, id_parent_win) VALUES (903, 'dashboard.produccion.declaracion-partida-tacho', 0, 169) ON CONFLICT ON CONSTRAINT win_sistemas_pkey DO NOTHING;
