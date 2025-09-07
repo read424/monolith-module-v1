@@ -129,6 +129,21 @@
         </rollingPolicy>
     </appender>
 
+    <appender name="MODULE_PARTIDAS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS_DIR}/module-partidas.json</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <customFields>{"service":"${appName}","module":"partidas","environment":"${SPRING_PROFILES_ACTIVE:-dev}"}</customFields>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS_DIR}/archived/module-partidas-%d{yyyy-MM-dd}-%i.json</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+
     <appender name="MODULE_WEBSOCKET" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOGS_DIR}/module-websocket.json</file>
         <encoder class="net.logstash.logback.encoder.LogstashEncoder">
@@ -204,6 +219,11 @@
 
     <logger name="com.walrex.module_driver" level="DEBUG" additivity="false">
         <appender-ref ref="MODULE_DRIVER"/>
+        <appender-ref ref="ASYNC_JSON_FILE"/>
+    </logger>
+
+    <logger name="com.walrex.module_partidas" level="DEBUG" additivity="false">
+        <appender-ref ref="MODULE_PARTIDAS"/>
         <appender-ref ref="ASYNC_JSON_FILE"/>
     </logger>
 
