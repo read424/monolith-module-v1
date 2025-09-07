@@ -182,6 +182,11 @@
 			<artifactId>module-articulos</artifactId>
 			<version>0.0.1-SNAPSHOT</version>
 		</dependency>
+        <dependency>
+			<groupId>com.walrex.module_partidas</groupId>
+			<artifactId>module-partidas</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 		<!-- Kafka -->
 		<dependency>
 			<groupId>org.springframework.kafka</groupId>
