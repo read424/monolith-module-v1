@@ -1,1 +1,1 @@
-INSERT INTO gateway.tb_modules (module_name, status, path, strip_prefix_count, route_id) VALUES ('partidas', 1, '/api/v2/partidas/', 2, 'partidas', true) ON CONFLICT ON CONSTRAINT tb_modules_unique DO NOTHING;
+INSERT INTO gateway.tb_modules (module_name, status, path, strip_prefix_count, route_id, ispattern) VALUES ('partidas', 1, '\/api\/v2\/partidas(\/.*)?', 2, 'partidas', true) ON CONFLICT ON CONSTRAINT tb_modules_pk DO NOTHING;
