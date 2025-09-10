@@ -13,11 +13,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.walrex.module_partidas.application.ports.output.ConsultarAlmacenTachoPort;
-import com.walrex.module_partidas.domain.service.ConsultarAlmacenTachoService;
 import com.walrex.module_partidas.domain.model.AlmacenTacho;
+import com.walrex.module_partidas.domain.model.AlmacenTachoResponse;
 import com.walrex.module_partidas.domain.model.dto.ConsultarAlmacenTachoRequest;
+import com.walrex.module_partidas.domain.service.ConsultarAlmacenTachoService;
 
-import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 /**
@@ -37,7 +38,7 @@ class ConsultarAlmacenTachoUseCaseTest {
     private ConsultarAlmacenTachoService consultarAlmacenTachoUseCase;
 
     private ConsultarAlmacenTachoRequest request;
-    private List<AlmacenTacho> almacenTachoList;
+    private AlmacenTachoResponse almacenTachoResponse;
 
     @BeforeEach
     void setUp() {
@@ -47,7 +48,7 @@ class ConsultarAlmacenTachoUseCaseTest {
                 .numRows(10)
                 .build();
 
-        almacenTachoList = List.of(
+        List<AlmacenTacho> almacenTachoList = List.of(
                 AlmacenTacho.builder()
                         .idOrdeningreso(307874)
                         .idCliente(138)
@@ -76,6 +77,16 @@ class ConsultarAlmacenTachoUseCaseTest {
                         .codPartida("PA25-0048701")
                         .cntRollos(10)
                         .build());
+
+        almacenTachoResponse = AlmacenTachoResponse.builder()
+                .almacenes(almacenTachoList)
+                .totalRecords(2)
+                .totalPages(1)
+                .currentPage(0)
+                .pageSize(10)
+                .hasNext(false)
+                .hasPrevious(false)
+                .build();
     }
 
     @Test
@@ -83,11 +94,11 @@ class ConsultarAlmacenTachoUseCaseTest {
     void shouldConsultarAlmacenTachoSuccessfully() {
         // Arrange
         when(consultarAlmacenTachoPort.consultarAlmacenTacho(any(ConsultarAlmacenTachoRequest.class)))
-                .thenReturn(Flux.fromIterable(almacenTachoList));
+                .thenReturn(Mono.just(almacenTachoResponse));
 
         // Act & Assert
         StepVerifier.create(consultarAlmacenTachoUseCase.listarPartidasInTacho(request))
-                .expectNextCount(2)
+                .expectNextMatches(response -> response.getPartidas().size() == 2)
                 .verifyComplete();
     }
 
@@ -95,12 +106,22 @@ class ConsultarAlmacenTachoUseCaseTest {
     @DisplayName("Debería retornar lista vacía cuando no hay resultados")
     void shouldReturnEmptyListWhenNoResults() {
         // Arrange
+        AlmacenTachoResponse emptyResponse = AlmacenTachoResponse.builder()
+                .almacenes(List.of())
+                .totalRecords(0)
+                .totalPages(0)
+                .currentPage(0)
+                .pageSize(10)
+                .hasNext(false)
+                .hasPrevious(false)
+                .build();
+        
         when(consultarAlmacenTachoPort.consultarAlmacenTacho(any(ConsultarAlmacenTachoRequest.class)))
-                .thenReturn(Flux.empty());
+                .thenReturn(Mono.just(emptyResponse));
 
         // Act & Assert
         StepVerifier.create(consultarAlmacenTachoUseCase.listarPartidasInTacho(request))
-                .expectNextCount(0)
+                .expectNextMatches(response -> response.getPartidas().isEmpty())
                 .verifyComplete();
     }
 
@@ -110,7 +131,7 @@ class ConsultarAlmacenTachoUseCaseTest {
         // Arrange
         RuntimeException error = new RuntimeException("Error en base de datos");
         when(consultarAlmacenTachoPort.consultarAlmacenTacho(any(ConsultarAlmacenTachoRequest.class)))
-                .thenReturn(Flux.error(error));
+                .thenReturn(Mono.error(error));
 
         // Act & Assert
         StepVerifier.create(consultarAlmacenTachoUseCase.listarPartidasInTacho(request))
@@ -130,11 +151,11 @@ class ConsultarAlmacenTachoUseCaseTest {
                 .build();
 
         when(consultarAlmacenTachoPort.consultarAlmacenTacho(any(ConsultarAlmacenTachoRequest.class)))
-                .thenReturn(Flux.fromIterable(almacenTachoList));
+                .thenReturn(Mono.just(almacenTachoResponse));
 
         // Act & Assert
         StepVerifier.create(consultarAlmacenTachoUseCase.listarPartidasInTacho(requestConPaginacion))
-                .expectNextCount(2)
+                .expectNextMatches(response -> response.getPartidas().size() == 2)
                 .verifyComplete();
     }
 }

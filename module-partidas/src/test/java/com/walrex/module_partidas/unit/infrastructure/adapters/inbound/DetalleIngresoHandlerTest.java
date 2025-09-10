@@ -24,7 +24,6 @@ import com.walrex.module_partidas.infrastructure.adapters.inbound.reactiveweb.De
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -108,8 +107,8 @@ class DetalleIngresoHandlerTest {
                         .codArticulo("ART-001")
                         .descArticulo("ARTÍCULO DE PRUEBA")
                         .idArticulo(1001)
-                        .idDetordeningreso(5001)
-                        .idOrdeningreso(10001)
+                        .idDetordeningreso(List.of(5001))
+                        .idOrdeningreso(List.of(10001))
                         .idTipoProducto(1)
                         .idUnidad(1)
                         .rollos(rollosList)
@@ -122,7 +121,7 @@ class DetalleIngresoHandlerTest {
         // Arrange
         when(validator.validate(request)).thenReturn(Set.of());
         when(consultarDetalleIngresoUseCase.consultarDetalleIngreso(any(ConsultarDetalleIngresoRequest.class)))
-                .thenReturn(Flux.fromIterable(detalleIngresoList));
+                .thenReturn(Mono.just(detalleIngresoList.get(0)));
 
         // Act & Assert
         StepVerifier.create(detalleIngresoHandler.consultarDetalleIngreso(createMockServerRequest(request)))
@@ -136,7 +135,7 @@ class DetalleIngresoHandlerTest {
         // Arrange
         when(validator.validate(request)).thenReturn(Set.of());
         when(consultarDetalleIngresoUseCase.consultarDetalleIngreso(any(ConsultarDetalleIngresoRequest.class)))
-                .thenReturn(Flux.empty());
+                .thenReturn(Mono.empty());
 
         // Act & Assert
         StepVerifier.create(detalleIngresoHandler.consultarDetalleIngreso(createMockServerRequest(request)))
@@ -151,7 +150,7 @@ class DetalleIngresoHandlerTest {
         when(validator.validate(request)).thenReturn(Set.of());
         RuntimeException error = new RuntimeException("Error en caso de uso");
         when(consultarDetalleIngresoUseCase.consultarDetalleIngreso(any(ConsultarDetalleIngresoRequest.class)))
-                .thenReturn(Flux.error(error));
+                .thenReturn(Mono.error(error));
 
         // Act & Assert
         StepVerifier.create(detalleIngresoHandler.consultarDetalleIngreso(createMockServerRequest(request)))
@@ -264,7 +263,7 @@ class DetalleIngresoHandlerTest {
         // Arrange
         when(validator.validate(request)).thenReturn(Set.of());
         when(consultarDetalleIngresoUseCase.consultarDetalleIngreso(any(ConsultarDetalleIngresoRequest.class)))
-                .thenReturn(Flux.fromIterable(detalleIngresoList));
+                .thenReturn(Mono.just(detalleIngresoList.get(0)));
 
         // Act & Assert
         StepVerifier.create(detalleIngresoHandler.consultarDetalleIngreso(createMockServerRequest(request)))

@@ -3,8 +3,8 @@ package com.walrex.module_partidas.infrastructure.adapters.inbound.reactiveweb.m
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
 
-import com.walrex.module_partidas.domain.model.IngresoAlmacen;
 import com.walrex.module_partidas.domain.model.ItemRollo;
+import com.walrex.module_partidas.domain.model.dto.IngresoAlmacenDTO;
 import com.walrex.module_partidas.infrastructure.adapters.inbound.reactiveweb.response.ItemRolloResponse;
 import com.walrex.module_partidas.infrastructure.adapters.inbound.reactiveweb.response.SucessOutTachoResponse;
 
@@ -16,7 +16,7 @@ public interface SuccessOutTachoMapper {
     @Mapping(source = "idOrdeningreso", target = "idOrdenIngreso")
     @Mapping(source = "codIngreso", target = "codIngreso")
     @Mapping(source = "idAlmacen", target = "idAlmacen")
-    SucessOutTachoResponse toSuccessOutTachoResponse(IngresoAlmacen ingresoAlmacen);
+    SucessOutTachoResponse toSuccessOutTachoResponse(IngresoAlmacenDTO ingresoAlmacen);
 
     @Mapping(source = "codRollo", target = "codRollo")
     @Mapping(source = "idIngresopeso", target = "idDetordeningresopeso")

@@ -1,5 +1,6 @@
 package com.walrex.module_partidas.application.ports.output;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import com.walrex.module_partidas.domain.model.ItemRollo;
@@ -52,12 +53,13 @@ public interface SaveSuccessOutTachoPort {
      * @param idArticulo     ID del artículo
      * @param idUnidad       ID de la unidad
      * @param pesoRef        Peso de referencia
+     * @param lote           Lote
      * @param nuRollos       Número de rollos
      * @param idComprobante  ID del comprobante
      * @return Mono con el ID del detalle creado
      */
     Mono<Integer> crearDetalleOrdenIngreso(Integer idOrdenIngreso, Integer idArticulo, Integer idUnidad,
-            java.math.BigDecimal pesoRef, java.math.BigDecimal nuRollos, Integer idComprobante);
+            BigDecimal pesoRef, String lote, Integer nuRollos, Integer idComprobante);
 
     /**
      * Crea un detalle de peso de orden de ingreso
@@ -69,7 +71,7 @@ public interface SaveSuccessOutTachoPort {
      * @param idRolloIngreso    ID del rollo de ingreso
      * @return Mono con el ID del detalle de peso creado
      */
-    Mono<Integer> crearDetallePesoOrdenIngreso(Integer idOrdenIngreso, String codRollo, java.math.BigDecimal pesoRollo,
+    Mono<Integer> crearDetallePesoOrdenIngreso(Integer idOrdenIngreso, String codRollo, BigDecimal pesoRollo,
             Integer idDetOrdenIngreso, Integer idRolloIngreso);
 
     /**

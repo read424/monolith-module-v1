@@ -17,13 +17,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.server.ServerRequest;
 
 import com.walrex.module_partidas.application.ports.input.ConsultarAlmacenTachoUseCase;
-import com.walrex.module_partidas.domain.model.AlmacenTacho;
-import com.walrex.module_partidas.domain.model.dto.ConsultarAlmacenTachoRequest;
+import com.walrex.module_partidas.domain.model.dto.*;
 import com.walrex.module_partidas.infrastructure.adapters.inbound.reactiveweb.AlmacenTachoHandler;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -47,7 +45,7 @@ class AlmacenTachoHandlerTest {
         private AlmacenTachoHandler almacenTachoHandler;
 
         private ConsultarAlmacenTachoRequest request;
-        private List<AlmacenTacho> almacenTachoList;
+        private AlmacenTachoResponseDTO almacenTachoResponseDTO;
 
         @BeforeEach
         void setUp() {
@@ -57,8 +55,8 @@ class AlmacenTachoHandlerTest {
                                 .numRows(10)
                                 .build();
 
-                almacenTachoList = List.of(
-                                AlmacenTacho.builder()
+                List<PartidaTachoResponse> partidas = List.of(
+                                PartidaTachoResponse.builder()
                                                 .idOrdeningreso(307874)
                                                 .idCliente(138)
                                                 .razonSocial("HUANCATEX S.A.C.")
@@ -73,7 +71,18 @@ class AlmacenTachoHandlerTest {
                                                 .noColores("NEGRO")
                                                 .idTipoTenido(5)
                                                 .descTenido("DISPERSO")
+                                                .timeElapsed(123456L)
                                                 .build());
+
+                almacenTachoResponseDTO = AlmacenTachoResponseDTO.builder()
+                                .partidas(partidas)
+                                .totalRecords(1)
+                                .totalPages(1)
+                                .currentPage(0)
+                                .pageSize(10)
+                                .hasNext(false)
+                                .hasPrevious(false)
+                                .build();
         }
 
         @Test
@@ -82,7 +91,7 @@ class AlmacenTachoHandlerTest {
                 // Arrange
                 when(validator.validate(request)).thenReturn(Set.of());
                 when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
-                                .thenReturn(Flux.fromIterable(almacenTachoList));
+                                .thenReturn(Mono.just(almacenTachoResponseDTO));
 
                 // Act & Assert
                 StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(createMockServerRequest(request)))
@@ -96,7 +105,15 @@ class AlmacenTachoHandlerTest {
                 // Arrange
                 when(validator.validate(request)).thenReturn(Set.of());
                 when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
-                                .thenReturn(Flux.empty());
+                                .thenReturn(Mono.just(AlmacenTachoResponseDTO.builder()
+                                .partidas(List.of())
+                                .totalRecords(0)
+                                .totalPages(0)
+                                .currentPage(0)
+                                .pageSize(10)
+                                .hasNext(false)
+                                .hasPrevious(false)
+                                .build()));
 
                 // Act & Assert
                 StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(createMockServerRequest(request)))
@@ -111,13 +128,13 @@ class AlmacenTachoHandlerTest {
                 when(validator.validate(request)).thenReturn(Set.of());
                 RuntimeException error = new RuntimeException("Error en caso de uso");
                 when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
-                                .thenReturn(Flux.error(error));
+                    .thenReturn(Mono.error(error));
 
                 // Act & Assert
                 StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(createMockServerRequest(request)))
-                                .expectNextMatches(
-                                                response -> response.statusCode() == HttpStatus.INTERNAL_SERVER_ERROR)
-                                .verifyComplete();
+                    .expectNextMatches(
+                                    response -> response.statusCode() == HttpStatus.INTERNAL_SERVER_ERROR)
+                    .verifyComplete();
         }
 
         @Test
@@ -213,7 +230,7 @@ class AlmacenTachoHandlerTest {
 
                 when(validator.validate(requestConCodPartida)).thenReturn(Set.of());
                 when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
-                                .thenReturn(Flux.fromIterable(almacenTachoList));
+                                .thenReturn(Mono.just(almacenTachoResponseDTO));
 
                 // Act & Assert
                 StepVerifier.create(almacenTachoHandler
@@ -235,7 +252,7 @@ class AlmacenTachoHandlerTest {
 
                 when(validator.validate(requestConCodPartidaParcial)).thenReturn(Set.of());
                 when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
-                                .thenReturn(Flux.fromIterable(almacenTachoList));
+                                .thenReturn(Mono.just(almacenTachoResponseDTO));
 
                 // Act & Assert
                 StepVerifier.create(almacenTachoHandler

@@ -39,7 +39,7 @@ public class AlmacenTachoPersistenceAdapter implements ConsultarAlmacenTachoPort
             request.getCodPartida());
 
         // Calcular offset para paginación
-        Integer page = request.getPage() != null ? request.getPage() : 0;
+        Integer page = (request.getPage() != null && request.getPage() > 0) ? request.getPage() - 1 : 0;
         Integer numRows = request.getNumRows() != null ? request.getNumRows() : 10;
         int offset = page * numRows;
         int limit = numRows;

@@ -1,7 +1,7 @@
 package com.walrex.module_partidas.application.ports.input;
 
-import com.walrex.module_partidas.domain.model.IngresoAlmacen;
 import com.walrex.module_partidas.domain.model.SuccessPartidaTacho;
+import com.walrex.module_partidas.domain.model.dto.IngresoAlmacenDTO;
 
 import reactor.core.publisher.Mono;
 
@@ -20,5 +20,5 @@ public interface SaveSuccessOutTachoUseCase {
      * @param successPartidaTacho Datos de la partida tacho con rollos seleccionados
      * @return Mono<IngresoAlmacen> con los datos del ingreso al almacén y rollos procesados
      */
-    Mono<IngresoAlmacen> saveSuccessOutTacho(SuccessPartidaTacho successPartidaTacho);
+    Mono<IngresoAlmacenDTO> saveSuccessOutTacho(SuccessPartidaTacho successPartidaTacho);
 }
