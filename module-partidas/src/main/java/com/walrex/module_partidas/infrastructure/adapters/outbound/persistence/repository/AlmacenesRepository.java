@@ -37,10 +37,7 @@ public class AlmacenesRepository {
      */
     public Mono<Integer> crearOrdenIngreso(Integer idCliente, Integer idAlmacen) {
         String sql = """
-                INSERT INTO almacenes.ordeningreso
-                (id_cliente, id_almacen, fec_ingreso, status, descripcion)
-                VALUES (:idCliente, :idAlmacen, :fecIngreso, 1, 'Ingreso automático desde partida')
-                RETURNING *
+                INSERT INTO almacenes.ordeningreso (id_cliente, id_almacen, fec_ingreso, status) VALUES (:idCliente, :idAlmacen, :fecIngreso, 1) RETURNING *
                 """;
 
         log.debug("Creando orden de ingreso para cliente: {}, almacén: {}",
@@ -68,11 +65,11 @@ public class AlmacenesRepository {
      * @return Mono con el ID del detalle creado
      */
     public Mono<Integer> crearDetalleOrdenIngreso(Integer idOrdenIngreso, Integer idArticulo, Integer idUnidad,
-            BigDecimal pesoRef, BigDecimal nuRollos, Integer idComprobante) {
+            BigDecimal pesoRef, String lote, Integer nuRollos, Integer idComprobante) {
         String sql = """
                 INSERT INTO almacenes.detordeningreso
-                (id_ordeningreso, id_articulo, id_unidad, peso_ref, nu_rollos, id_comprobante, status)
-                VALUES (:idOrdenIngreso, :idArticulo, :idUnidad, :pesoRef, :nuRollos, :idComprobante, 1)
+                (id_ordeningreso, id_articulo, id_unidad, peso_alm, lote, nu_rollos, id_comprobante, status)
+                VALUES (:idOrdenIngreso, :idArticulo, :idUnidad, :pesoRef, :lote, :nuRollos, :idComprobante, 1)
                 RETURNING id_detordeningreso
                 """;
 
@@ -129,13 +126,16 @@ public class AlmacenesRepository {
 
     public Mono<Integer> getCantidadRollosOrdenIngreso(Integer idOrdenIngreso){
         String sql = """
-                SELECT status FROM almacenes.detordeningreso WHERE id_ordeningreso = :idOrdenIngreso
+                SELECT COUNT(DISTINCT det_ing_pes.id_detordeningresopeso) AS cnt_rollos
+                FROM almacenes.detordeningreso AS det_ing
+                LEFT OUTER JOIN almacenes.detordeningresopeso det_ing_pes ON det_ing_pes.id_detordeningreso = det_ing.id_detordeningreso
+                WHERE det_ing.id_ordeningreso = :idOrdenIngreso AND det_ing_pes.status = 1
                 """;
         return databaseClient.sql(sql)
                 .bind("idOrdenIngreso", idOrdenIngreso)
-                .map((row, metadata) -> row.get("status", Integer.class))
+                .map((row, metadata) -> row.get("cnt_rollos", Integer.class))
                 .one()
-                .doOnSuccess(status -> log.info("Detalle de ingreso consultado con ID: {}, status: {}", idOrdenIngreso, status))
+                .doOnSuccess(cantidad -> log.info("Detalle de ingreso consultado con ID: {}, cantidad de rollos: {}", idOrdenIngreso, cantidad))
                 .doOnError(error -> log.error("Error consultando detalle de ingreso: {}", error.getMessage()));
     }
 
