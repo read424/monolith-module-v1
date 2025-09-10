@@ -258,7 +258,7 @@ spring:
     proxy-target-class: true
 websocket:
   api:
-    url: http://127.0.0.1:3355
+    url: http://127.0.0.1:3355/api/ws
   module:
     port: 5555
     max-connections: 100
