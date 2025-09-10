@@ -110,10 +110,10 @@ public class SaveSuccessOutTachoPersistenceAdapter implements SaveSuccessOutTach
 
     @Override
     public Mono<Integer> crearDetalleOrdenIngreso(Integer idOrdenIngreso, Integer idArticulo, Integer idUnidad,
-            BigDecimal pesoRef, BigDecimal nuRollos, Integer idComprobante) {
+            BigDecimal pesoRef, String lote, Integer nuRollos, Integer idComprobante) {
         log.debug("Creando detalle de orden de ingreso para orden: {}, artículo: {}", idOrdenIngreso, idArticulo);
 
-        return almacenesRepository.crearDetalleOrdenIngreso(idOrdenIngreso, idArticulo, idUnidad, pesoRef, nuRollos,
+        return almacenesRepository.crearDetalleOrdenIngreso(idOrdenIngreso, idArticulo, idUnidad, pesoRef, lote, nuRollos,
                 idComprobante);
     }
 
