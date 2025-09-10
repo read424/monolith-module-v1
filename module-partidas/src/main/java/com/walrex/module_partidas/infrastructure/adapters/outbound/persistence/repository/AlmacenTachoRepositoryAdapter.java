@@ -188,8 +188,8 @@ public class AlmacenTachoRepositoryAdapter {
                 , tp.cod_partida || CASE WHEN tp.id_partida_parent IS NULL THEN '' ELSE '-R'||tp.num_reproceso::varchar END AS cod_partida
                 , COUNT(dp.cod_rollo) AS cnt_rollos, tr.cod_receta, tc.no_colores, tc.id_tipo_tenido, tt.desc_tenido, tg.no_gama
                 FROM almacenes.ordeningreso o
-                LEFT OUTER JOIN almacenes.detordeningreso d ON d.id_ordeningreso = o.id_ordeningreso
-                LEFT OUTER JOIN almacenes.detordeningresopeso dp ON dp.id_detordeningreso = d.id_detordeningreso AND dp.status = 1
+                INNER JOIN almacenes.detordeningreso d ON d.id_ordeningreso = o.id_ordeningreso
+                INNER JOIN almacenes.detordeningresopeso dp ON dp.id_detordeningreso = d.id_detordeningreso AND dp.status = 1
                 LEFT OUTER JOIN produccion.tb_partidas tp ON tp.id_partida = d.id_comprobante
                 LEFT OUTER JOIN comercial.tbclientes t ON t.id_cliente = tp.id_cliente
                 LEFT OUTER JOIN laboratorio.tb_receta tr ON tr.id_receta = tp.id_receta
@@ -203,8 +203,8 @@ public class AlmacenTachoRepositoryAdapter {
         return """
                 SELECT COUNT(DISTINCT o.id_ordeningreso) AS total_rows
                 FROM almacenes.ordeningreso o
-                LEFT OUTER JOIN almacenes.detordeningreso d ON d.id_ordeningreso = o.id_ordeningreso
-                LEFT OUTER JOIN almacenes.detordeningresopeso dp ON dp.id_detordeningreso = d.id_detordeningreso AND dp.status = 1
+                INNER JOIN almacenes.detordeningreso d ON d.id_ordeningreso = o.id_ordeningreso
+                INNER JOIN almacenes.detordeningresopeso dp ON dp.id_detordeningreso = d.id_detordeningreso AND dp.status = 1
                 LEFT OUTER JOIN produccion.tb_partidas tp ON tp.id_partida = d.id_comprobante
                 LEFT OUTER JOIN comercial.tbclientes t ON t.id_cliente = tp.id_cliente
                 LEFT OUTER JOIN laboratorio.tb_receta tr ON tr.id_receta = tp.id_receta
