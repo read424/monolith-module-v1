@@ -12,6 +12,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.walrex.module_partidas.application.ports.input.SaveSuccessOutTachoUseCase;
 import com.walrex.module_partidas.application.ports.output.*;
 import com.walrex.module_partidas.domain.model.*;
+import com.walrex.module_partidas.domain.model.dto.IngresoAlmacenDTO;
+import com.walrex.module_partidas.domain.model.dto.ItemRolloProcessDTO;
 import com.walrex.module_partidas.infrastructure.adapters.outbound.websocket.dto.WebSocketNotificationRequest;
 
 import lombok.RequiredArgsConstructor;
@@ -22,9 +24,6 @@ import reactor.core.publisher.Mono;
 /**
  * Servicio de aplicación para SaveSuccessOutTacho
  * Implementa el caso de uso y orquesta la lógica de negocio
- *
- * @author Ronald E. Aybar D.
- * @version 0.0.1-SNAPSHOT
  */
 @Slf4j
 @Service
@@ -36,8 +35,7 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
         private final WebSocketNotificationPort webSocketNotificationPort;
 
         @Override
-        @Transactional
-        public Mono<IngresoAlmacen> saveSuccessOutTacho(SuccessPartidaTacho successPartidaTacho) {
+        public Mono<IngresoAlmacenDTO> saveSuccessOutTacho(SuccessPartidaTacho successPartidaTacho) {
                 log.info("Iniciando procesamiento de salida exitosa de tacho para partida ID: {}",
                                 successPartidaTacho.getIdPartida());
 
@@ -53,24 +51,33 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
                 log.info("Procesando {} rollos seleccionados para partida ID: {}", rollosSeleccionados.size(),
                         successPartidaTacho.getIdPartida());
 
-                return procesarRollosSeleccionados(successPartidaTacho, rollosSeleccionados);
+                return procesarRollosSeleccionadosConTransaccion(successPartidaTacho, rollosSeleccionados)
+                        .flatMap(ingresoAlmacen -> {
+                            // Enviar notificación WebSocket después de que todo sea exitoso
+                            return notificarMovimientoPartida(ingresoAlmacen, successPartidaTacho)
+                                    .thenReturn(ingresoAlmacen)
+                                    .doOnSuccess(result -> log.info("Procesamiento completo exitoso para partida ID: {}", 
+                                            successPartidaTacho.getIdPartida()))
+                                    .doOnError(error -> log.error("Error en notificación WebSocket para partida ID: {} - Error: {}", 
+                                            successPartidaTacho.getIdPartida(), error.getMessage()));
+                        });
         }
 
         /**
          * Envía notificación WebSocket de movimiento de partida
          */
-        private Mono<Void> notificarMovimientoPartida(IngresoAlmacen ingresoAlmacen, SuccessPartidaTacho successPartidaTacho) {
+        private Mono<Void> notificarMovimientoPartida(IngresoAlmacenDTO ingresoAlmacenDTO, SuccessPartidaTacho successPartidaTacho) {
             log.info("Enviando notificación de movimiento de partida");
             
-            String roomName = (ingresoAlmacen.getIdAlmacen() != null) ? 
-                    String.format("store-%d", ingresoAlmacen.getIdAlmacen()) : "";
+            String roomName = (ingresoAlmacenDTO.getIdAlmacen() != null) ? 
+                    String.format("store-%d", ingresoAlmacenDTO.getIdAlmacen()) : "";
             String storeOut = String.format("store-%d", successPartidaTacho.getIdAlmacen());
             
             WebSocketNotificationRequest request = WebSocketNotificationRequest.builder()
                     .roomName(roomName)
                     .operation("R")
-                    .idOrdenIngreso(ingresoAlmacen.getIdOrdeningreso())
-                    .codOrdenIngreso(ingresoAlmacen.getCodIngreso())
+                    .idOrdenIngreso(ingresoAlmacenDTO.getIdOrdeningreso())
+                    .codOrdenIngreso(ingresoAlmacenDTO.getCodIngreso())
                     .storeOut(storeOut)
                     .idOrdenIngresoOut(successPartidaTacho.getIdPartida())
                     .build();
@@ -79,10 +86,18 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
                     .doOnSuccess(v -> log.info("Notificación WebSocket enviada exitosamente"))
                     .doOnError(error -> log.error("Error enviando notificación WebSocket: {}", error.getMessage()));
         }        
+
+        @Transactional
+        private Mono<IngresoAlmacenDTO> procesarRollosSeleccionadosConTransaccion(
+                SuccessPartidaTacho successPartidaTacho, 
+                List<ItemRolloProcess> rollosSeleccionados) {
+            return procesarRollosSeleccionados(successPartidaTacho, rollosSeleccionados);
+        }
+
         /**
          * Procesa los rollos seleccionados siguiendo el flujo de negocio
          */
-        private Mono<IngresoAlmacen> procesarRollosSeleccionados(SuccessPartidaTacho successPartidaTacho,
+        private Mono<IngresoAlmacenDTO> procesarRollosSeleccionados(SuccessPartidaTacho successPartidaTacho,
                         List<ItemRolloProcess> rollosSeleccionados) {
 
             return saveSuccessOutTachoPort
@@ -102,7 +117,7 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
                         // Validar que todos los rollos seleccionados estén disponibles
                         return validarRollosSeleccionados(rollosSeleccionados, rollosDisponibles)
                                     .then(procesarIngresoProximoAlmacen(successPartidaTacho,
-                                        rollosSeleccionados));
+                                        rollosSeleccionados, rollosDisponibles.size()));
                     });
         }
 
@@ -138,8 +153,8 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
         /**
          * Procesa el ingreso al próximo almacén y actualiza los estados
          */
-        private Mono<IngresoAlmacen> procesarIngresoProximoAlmacen(SuccessPartidaTacho successPartidaTacho,
-                        List<ItemRolloProcess> rollosSeleccionados) {
+        private Mono<IngresoAlmacenDTO> procesarIngresoProximoAlmacen(SuccessPartidaTacho successPartidaTacho,
+                        List<ItemRolloProcess> rollosSeleccionados, Integer cntRollosAlmacen) {
 
             return saveSuccessOutTachoPort.consultarProcesosPartida(successPartidaTacho.getIdPartida())
                     .flatMap(procesos -> {
@@ -162,16 +177,16 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
                             procesoPendiente.getIdAlmacen());
 
                         return crearIngresoProximoAlmacen(successPartidaTacho, rollosSeleccionados,
-                            procesoPendiente, procesoPendiente.getIdAlmacen());
+                            procesoPendiente, procesoPendiente.getIdAlmacen(), cntRollosAlmacen);
                     });
         }
 
         /**
          * Crea el ingreso al próximo almacén y procesa todos los rollos
          */
-        private Mono<IngresoAlmacen> crearIngresoProximoAlmacen(SuccessPartidaTacho successPartidaTacho,
+        private Mono<IngresoAlmacenDTO> crearIngresoProximoAlmacen(SuccessPartidaTacho successPartidaTacho,
                         List<ItemRolloProcess> rollosSeleccionados,
-                        ProcesoPartida procesoPendiente, Integer idAlmacen) {
+                        ProcesoPartida procesoPendiente, Integer idAlmacen, Integer cntRollosAlmacen) {
 
             return saveSuccessOutTachoPort
                     .crearOrdenIngreso(successPartidaTacho.getIdCliente(), idAlmacen)
@@ -191,40 +206,52 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
                                                 // Procesar cada rollo seleccionado y construir IngresoAlmacen
                                                 return procesarRollosIndividuales(successPartidaTacho, rollosSeleccionados, idOrdenIngreso, idOrdenSalida)
                                                         .flatMap(rollosProcesados -> {
-                                                // Convertir ItemRolloProcess a ItemRollo para la respuesta
-                                                List<ItemRollo> rollos = rollosProcesados.stream()
-                                                        .map(this::convertirAItemRollo)
-                                                        .collect(Collectors.toList());
+                                                            // Obtener el mapeo de id_ordeningreso y cantidad de rollos procesados
+                                                            Map<Integer, Integer> idOrdenIngresoCntRollos = rollosProcesados.stream()
+                                                                    .filter(rollo -> rollo.getIdIngresoAlmacen() != null)
+                                                                    .collect(Collectors.groupingBy(
+                                                                            ItemRolloProcessDTO::getIdIngresoAlmacen,
+                                                                            Collectors.collectingAndThen(
+                                                                                    Collectors.counting(),
+                                                                                    Math::toIntExact
+                                                                            )
+                                                                    ));
 
-                                                // Calcular peso total de los rollos procesados
-                                                Double pesoTotal = rollosProcesados.stream()
-                                                        .mapToDouble(rollo -> Double.valueOf(rollo.getPesoRollo()))
-                                                        .sum();
+                                                            log.info("Rollos procesados: {} - Mapeo ID orden ingreso -> cnt rollos: {}", 
+                                                                    rollosProcesados.size(), idOrdenIngresoCntRollos);
+
+                                                            // Convertir ItemRolloProcess a ItemRollo para la respuesta
+                                                            List<ItemRollo> rollos = rollosProcesados.stream()
+                                                                    .map(this::convertirAItemRollo)
+                                                                    .collect(Collectors.toList());
+
+                                                            // Calcular peso total de los rollos procesados
+                                                            Double pesoTotal = rollosProcesados.stream()
+                                                                    .mapToDouble(rollo -> Double.valueOf(rollo.getPesoRollo()))
+                                                                    .sum();
                                                 
-                                                log.info("Peso total calculado: {} para {} rollos procesados", pesoTotal, rollosProcesados.size());
+                                                            log.info("Peso total calculado: {} para {} rollos procesados", pesoTotal, rollosProcesados.size());
 
-                                                IngresoAlmacen ingresoAlmacen = IngresoAlmacen.builder()
-                                                        .idOrdeningreso(ordenCompleta.getIdOrdeningreso())
-                                                        .idCliente(ordenCompleta.getIdCliente())
-                                                        .codIngreso(ordenCompleta.getCodIngreso()) // Código generado por trigger
-                                                        .idAlmacen(idAlmacen)
-                                                        .idArticulo(successPartidaTacho.getIdArticulo())
-                                                        .idUnidad(successPartidaTacho.getIdUnidad())
-                                                        .cntRollos(rollosProcesados.size())
-                                                        .pesoRef(pesoTotal) // Peso total calculado de los rollos
-                                                        .rollos(rollos)
-                                                        .build();
+                                                            IngresoAlmacenDTO ingresoAlmacenDTO = IngresoAlmacenDTO.builder()
+                                                                .idOrdeningreso(ordenCompleta.getIdOrdeningreso())
+                                                                .idCliente(ordenCompleta.getIdCliente())
+                                                                .codIngreso(ordenCompleta.getCodIngreso()) // Código generado por trigger
+                                                                .idAlmacen(idAlmacen)
+                                                                .idArticulo(successPartidaTacho.getIdArticulo())
+                                                                .idUnidad(successPartidaTacho.getIdUnidad())
+                                                                .cntRollos(rollosProcesados.size())
+                                                                .pesoRef(pesoTotal) // Peso total calculado de los rollos
+                                                                .rollos(rollos)
+                                                                .ingresos(idOrdenIngresoCntRollos)
+                                                                .cntRollosAlmacen(cntRollosAlmacen) // Total de rollos disponibles en el almacén
+                                                                .build();
 
-                                                // Validar si todos los rollos fueron procesados y deshabilitar si es necesario
-                                                if (rollos.size() == rollosSeleccionados.size()) {
-                                                    log.info("Todos los rollos procesados. Deshabilitando orden de ingreso: {}", idOrdenIngreso);
-                                                    return saveSuccessOutTachoPort.deshabilitarOrdenIngreso(idOrdenIngreso)
-                                                            .thenReturn(ingresoAlmacen);
-                                                } else {
-                                                    log.info("Aún quedan rollos por procesar. Rollos procesados: {}, Rollos seleccionados: {}", 
-                                                        rollos.size(), rollosSeleccionados.size());
-                                                    return Mono.just(ingresoAlmacen);
-                                                }
+                                                        // Recorrer idOrdenIngresoCntRollos para validar cantidades y deshabilitar según índice
+                                                        return validarYDeshabilitarOrdenesIngreso(idOrdenIngresoCntRollos, rollosSeleccionados.size(), rollosProcesados)
+                                                                .doOnNext(esCompleto -> {
+                                                                    log.info("Validación completada. Todos los rollos procesados: {}", esCompleto);
+                                                                })
+                                                                .thenReturn(ingresoAlmacenDTO);
                                                         });
                                             });
                                 });
@@ -232,9 +259,60 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
         }
 
         /**
+         * Valida y deshabilita órdenes de ingreso según el mapeo de cantidades procesadas
+         * 
+         * @param idOrdenIngresoCntRollos Mapeo de id_ordeningreso -> cantidad de rollos procesados
+         * @param totalRollosSeleccionados Total de rollos seleccionados para procesar
+         * @return Mono<Boolean> true si el total de rollos procesados es igual al total seleccionado
+         */
+        private Mono<Boolean> validarYDeshabilitarOrdenesIngreso(Map<Integer, Integer> idOrdenIngresoCntRollos, int totalRollosSeleccionados, List<ItemRolloProcessDTO> rollosProcesados) {
+            log.info("Iniciando validación de órdenes de ingreso. Mapeo: {}, Total rollos seleccionados: {}", 
+                    idOrdenIngresoCntRollos, totalRollosSeleccionados);
+
+            // Crear un Flux de todas las validaciones y deshabilitaciones
+            return Flux.fromIterable(idOrdenIngresoCntRollos.entrySet())
+                .flatMap(entry -> {
+                    Integer idOrdenIngreso = entry.getKey();
+                    Integer cntRollosProcesados = entry.getValue();
+                    
+                    log.info("Validando orden de ingreso ID: {} con {} rollos procesados", 
+                            idOrdenIngreso, cntRollosProcesados);
+
+                    return validarCantidadRollosProcesados(idOrdenIngreso, cntRollosProcesados)
+                            .flatMap(deshabilitarSiEsNecesario -> {
+                                if (deshabilitarSiEsNecesario) {
+                                    log.info("Deshabilitando orden de ingreso: {} - Cantidad procesada: {}", 
+                                            idOrdenIngreso, cntRollosProcesados);
+                                            return saveSuccessOutTachoPort.deshabilitarOrdenIngreso(idOrdenIngreso)
+                                            .then(deshabilitarRollosDeOrden(idOrdenIngreso, rollosProcesados))
+                                            .thenReturn(cntRollosProcesados);
+                                } else {
+                                    log.info("Orden de ingreso {} no requiere deshabilitación - Cantidad procesada: {}", 
+                                        idOrdenIngreso, cntRollosProcesados);
+                                
+                                // Aún así debemos deshabilitar los rollos individuales procesados
+                                return deshabilitarRollosDeOrden(idOrdenIngreso, rollosProcesados)
+                                        .thenReturn(cntRollosProcesados);
+                                }
+                            });
+                })
+                .collectList() // Recolecta todos los valores en una lista
+                .map(cantidadesProcesadas -> {
+                    int totalProcesado = cantidadesProcesadas.stream()
+                            .mapToInt(Integer::intValue)
+                            .sum();
+                    boolean esCompleto = totalProcesado == totalRollosSeleccionados;
+                    log.info("Cantidades procesadas: {}, Total rollos procesados: {}, Total seleccionados: {}, Es completo: {}", 
+                            cantidadesProcesadas, totalProcesado, totalRollosSeleccionados, esCompleto);
+                    return esCompleto;
+                })
+                .doOnError(error -> log.error("Error durante validación de órdenes: {}", error.getMessage()));
+        }
+
+        /**
          * Procesa cada rollo individualmente creando detalles y actualizando estados
          */
-        private Mono<List<ItemRolloProcess>> procesarRollosIndividuales(SuccessPartidaTacho successPartidaTacho,
+        private Mono<List<ItemRolloProcessDTO>> procesarRollosIndividuales(SuccessPartidaTacho successPartidaTacho,
                         List<ItemRolloProcess> rollosSeleccionados,
                         Integer idOrdenIngreso,
                         Integer idOrdenSalida
@@ -243,6 +321,7 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
                 // Usar los datos del dominio en lugar de valores por defecto
                 Integer idArticulo = successPartidaTacho.getIdArticulo();
                 Integer idUnidad = successPartidaTacho.getIdUnidad();
+                String lote = successPartidaTacho.getLote();
 
                 // Calcular peso total de los rollos seleccionados
                 Double pesoTotal = rollosSeleccionados.stream()
@@ -254,7 +333,7 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
 
                 // PRIMERO: Crear el detalle de orden de ingreso UNA SOLA VEZ
                 return saveSuccessOutTachoPort.crearDetalleOrdenIngreso(idOrdenIngreso, idArticulo, idUnidad,
-                            BigDecimal.valueOf(pesoTotal), BigDecimal.valueOf(rollosSeleccionados.size()), successPartidaTacho.getIdPartida())
+                            BigDecimal.valueOf(pesoTotal), lote, rollosSeleccionados.size(), successPartidaTacho.getIdPartida())
                             .flatMap(idDetOrdenIngreso -> {
                                 log.info("Detalle de orden de ingreso creado con ID: {} para orden: {}",
                                                 idDetOrdenIngreso,
@@ -273,22 +352,9 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
                                     log.info("Detalle de orden de salida creado con ID: {} para orden de salida: {}",
                                             idDetalleOrdenSalida, idOrdenSalida);
 
-                                    // TERCERO: Procesar el Flux de rollos con el ID del detalle ya creado
                                     return procesarRollosPeso(successPartidaTacho, rollosSeleccionados, idOrdenIngreso,
                                                     idDetOrdenIngreso, idOrdenSalida, idDetalleOrdenSalida)
-                                        .collectList()
-                                        .flatMap(rollosProcesados -> 
-                                            validarCantidadRollosProcesados(idOrdenIngreso, rollosSeleccionados.size())
-                                                .flatMap(deshabilitarSiEsNecesario -> {
-                                                    if (deshabilitarSiEsNecesario) {
-                                                        log.info("Deshabilitando orden de ingreso: {}", idOrdenIngreso);
-                                                        return saveSuccessOutTachoPort.deshabilitarOrdenIngreso(idOrdenIngreso)
-                                                                .thenReturn(rollosProcesados);
-                                                    } else {
-                                                        return Mono.just(rollosProcesados);
-                                                    }
-                                                })
-                                        );
+                                        .collectList();
                                 });
                             });
         }
@@ -296,12 +362,15 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
         /**
          * Procesa los rollos de peso y actualiza sus estados
          */
-        private Flux<ItemRolloProcess> procesarRollosPeso(SuccessPartidaTacho successPartidaTacho,
+        private Flux<ItemRolloProcessDTO> procesarRollosPeso(SuccessPartidaTacho successPartidaTacho,
                         List<ItemRolloProcess> rollosSeleccionados,
                         Integer idOrdenIngreso,
                         Integer idDetOrdenIngreso,
                         Integer idOrdenSalida,
                         Integer idDetalleOrdenSalida) {
+
+                log.info("Iniciando procesamiento de {} rollos seleccionados para partida ID: {}", 
+                        rollosSeleccionados.size(), successPartidaTacho.getIdPartida());
 
                 return Flux.fromIterable(rollosSeleccionados)
                             .flatMap(rollo -> procesarRolloIndividual(successPartidaTacho, rollo, idOrdenIngreso, idDetOrdenIngreso, 
@@ -316,12 +385,12 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
         /**
          * Procesa un rollo individual y devuelve el rollo procesado
          */
-        private Mono<ItemRolloProcess> procesarRolloIndividual(SuccessPartidaTacho successPartidaTacho,
-                        ItemRolloProcess rollo,
-                        Integer idOrdenIngreso,
-                        Integer idDetOrdenIngreso,
-                        Integer idOrdenSalida,
-                        Integer idDetalleOrdenSalida) {
+        private Mono<ItemRolloProcessDTO> procesarRolloIndividual(SuccessPartidaTacho successPartidaTacho,
+                    ItemRolloProcess rollo,
+                    Integer idOrdenIngreso,
+                    Integer idDetOrdenIngreso,
+                    Integer idOrdenSalida,
+                    Integer idDetalleOrdenSalida) {
 
             BigDecimal pesoRollo = new BigDecimal(rollo.getPesoRollo());
             Integer idRolloIngreso = rollo.getIdIngresoPeso();
@@ -330,7 +399,7 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
                     pesoRollo, idDetOrdenIngreso, idRolloIngreso)
                     .flatMap(idDetPeso -> {
                             log.debug("Detalle de peso creado con ID: {} para rollo: {}", idDetPeso,
-                                            rollo.getCodRollo());
+                                            rollo);
                             
                             // Crear detalle de peso de orden de salida
                             return ordenSalidaPersistencePort.crearDetOrdenSalidaPeso(
@@ -342,22 +411,21 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
                                     idRolloIngreso
                             )
                             .then(Mono.fromCallable(() -> {
-                                ItemRolloProcess itemRolloProcess = ItemRolloProcess.builder()
-                                    .idIngresoPeso(idDetPeso)
+
+                                ItemRolloProcessDTO itemRolloProcessDTO = ItemRolloProcessDTO.builder()
                                     .codRollo(rollo.getCodRollo())
                                     .pesoRollo(Double.valueOf(rollo.getPesoRollo()))
-                                    .idRolloIngreso(rollo.getIdRolloIngreso())
+                                    .idOrdenIngreso(idOrdenIngreso)
+                                    .idIngresoPeso(idDetPeso)
+                                    .idIngresoAlmacen(rollo.getIdIngresoAlmacen())
+                                    .idRolloIngreso(rollo.getIdIngresoPeso())//id_detordeningresopeso almacen crudo
+                                    .idDetPartida(rollo.getIdDetPartida())
+                                    .idDetOrdenIngPesoAlmacen(rollo.getIdRolloIngreso())//id_detordeningresopeso almacen produccion
+                                    .selected(rollo.getSelected())
+                                    .status(rollo.getStatus())
                                     .build();
-                                return itemRolloProcess;
-                            }))
-                            .flatMap(itemRolloProcess -> {
-                                // Actualizar el status del rollo original a 0 (inactivo)
-                                // TODO: ACTUALIZAR A STATUS CERO LOS ROLLOS CON id_rollo_ingreso (idRolloIngreso)
-                                Integer idDetOrdenIngresoPeso = rollo.getIdRolloIngreso();
-                                return saveSuccessOutTachoPort
-                                                .actualizarStatusDetallePeso(idDetOrdenIngresoPeso)
-                                                .thenReturn(itemRolloProcess);
-                            });
+                                return itemRolloProcessDTO;
+                            }));
                     })
                     .onErrorMap(throwable -> {
                         log.error("Error al procesar rollo {}: {}", rollo.getCodRollo(), throwable.getMessage());
@@ -425,7 +493,7 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
         /**
          * Convierte ItemRolloProcess a ItemRollo para la respuesta
          */
-        private ItemRollo convertirAItemRollo(ItemRolloProcess itemRolloProcess) {
+        private ItemRollo convertirAItemRollo(ItemRolloProcessDTO itemRolloProcess) {
             return ItemRollo.builder()
                     .idIngresopeso(itemRolloProcess.getIdIngresoPeso())
                     .idRolloIngreso(itemRolloProcess.getIdRolloIngreso())
@@ -433,4 +501,30 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
                     .pesoRollo(Double.valueOf(itemRolloProcess.getPesoRollo()))
                     .build();
         }
+
+    /**
+     * Deshabilita los rollos individuales de una orden específica
+     */
+    private Mono<Void> deshabilitarRollosDeOrden(Integer idOrdenIngreso, List<ItemRolloProcessDTO> rollosProcesados) {
+        // Filtrar solo los rollos de esta orden específica
+        List<ItemRolloProcessDTO> rollosDeEstaOrden = rollosProcesados.stream()
+                .filter(rollo -> idOrdenIngreso.equals(rollo.getIdIngresoAlmacen()))
+                .collect(Collectors.toList());
+        
+        log.info("Deshabilitando {} rollos individuales de la orden: {}", rollosDeEstaOrden.size(), idOrdenIngreso);
+        
+        return Flux.fromIterable(rollosDeEstaOrden)
+                .flatMap(rollo -> {
+                    Integer idDetOrdenIngresoPeso = rollo.getIdDetOrdenIngPesoAlmacen();//idDetOrdenIngPesoAlmacen
+                    if (idDetOrdenIngresoPeso != null) {
+                        log.debug("Deshabilitando rollo individual: {} (idDetOrdenIngresoPeso: {})", 
+                                rollo.getCodRollo(), idDetOrdenIngresoPeso);
+                        return saveSuccessOutTachoPort.actualizarStatusDetallePeso(idDetOrdenIngresoPeso);
+                    }
+                    return Mono.empty();
+                })
+                .then()
+                .doOnSuccess(v -> log.info("Rollos individuales deshabilitados exitosamente para orden: {}", idOrdenIngreso))
+                .doOnError(error -> log.error("Error deshabilitando rollos de orden {}: {}", idOrdenIngreso, error.getMessage()));
+    }        
 }
