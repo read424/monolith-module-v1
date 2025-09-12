@@ -70,12 +70,10 @@ public class ProcesarRegistroDriverService implements DriverCommandUseCase {
                         BuscarConductorModel buscarConductorModel) {
                 log.info("🔍 Iniciando búsqueda de conductor - Documento: {}, Tipo: {}",
                                 buscarConductorModel.getNumeroDocumento(),
-                                buscarConductorModel.getTipoDocumento().getIdTipoDocumento());
+                                buscarConductorModel.getTipoDocumento() != null ? 
+                                        buscarConductorModel.getTipoDocumento().getIdTipoDocumento() : "null");
 
-                return validarParametros(buscarConductorModel
-                                .getNumeroDocumento(),
-                                buscarConductorModel.getTipoDocumento()
-                                                .getIdTipoDocumento())
+                return validarParametrosCompletos(buscarConductorModel)
                                 .thenMany(conductorPersistencePort.buscarConductorPorDocumento(buscarConductorModel
                                                 .getNumeroDocumento(),
                                                 buscarConductorModel.getTipoDocumento()
@@ -83,38 +81,85 @@ public class ProcesarRegistroDriverService implements DriverCommandUseCase {
                                 .doOnNext(conductor -> log.info("✅ Conductor encontrado: {} {}",
                                                 conductor.getNombres(), conductor.getApellidos()))
                                 .doOnError(error -> log.error("❌ Error al buscar conductor: {}", error.getMessage()))
-                                .switchIfEmpty(Flux.defer(() -> {
+                                .doOnComplete(() -> {
                                         log.info("⚠️  No se encontró conductor para Documento: {}, Tipo: {}",
                                                         buscarConductorModel.getNumeroDocumento(),
                                                         buscarConductorModel.getTipoDocumento().getIdTipoDocumento());
-                                        return Flux.just(
-                                                        ConductorDataDTO.builder()
-                                                                        .tipoDocumento(TipoDocumentoDTO.builder()
-                                                                                        .idTipoDocumento(
-                                                                                                        buscarConductorModel
-                                                                                                                        .getTipoDocumento()
-                                                                                                                        .getIdTipoDocumento())
-                                                                                        .build())
-                                                                        .numeroDocumento(buscarConductorModel
-                                                                                        .getNumeroDocumento())
-                                                                        .build());
-                                }));
+                                });
+        }
+
+        @Override
+        public Flux<ConductorDataDTO> buscarConductorPorParametros(SearchDriverByParameters searchDriverByParameters) {
+                log.info("🔍 Iniciando búsqueda avanzada de conductor - Parámetros: {}", searchDriverByParameters);
+
+                return validarParametrosAvanzados(searchDriverByParameters)
+                        .thenMany(conductorPersistencePort.buscarConductorPorParametros(searchDriverByParameters))
+                        .doOnNext(conductor -> log.info("✅ Conductor encontrado: {} {}",
+                                        conductor.getNombres(), conductor.getApellidos()))
+                        .doOnError(error -> log.error("❌ Error al buscar conductor: {}", error.getMessage()))
+                        .switchIfEmpty(Flux.defer(() -> {
+                                log.info("⚠️  No se encontró conductor para los parámetros: {}", searchDriverByParameters);
+                                return Flux.empty();
+                        }));
         }
 
         /**
-         * Valida los parámetros de entrada para la búsqueda.
+         * Valida el modelo completo de búsqueda de conductor.
          */
-        private Mono<Void> validarParametros(String numDoc, Integer idTipDoc) {
-                return Mono.fromRunnable(() -> {
-                        if (numDoc == null || numDoc.trim().isEmpty()) {
-                                throw new IllegalArgumentException("El número de documento no puede estar vacío");
+        private Mono<Void> validarParametrosCompletos(BuscarConductorModel buscarConductorModel) {
+                return Mono.defer(() -> {
+                        if (buscarConductorModel == null) {
+                                return Mono.error(new IllegalArgumentException("El modelo de búsqueda no puede estar vacío"));
                         }
 
-                        if (idTipDoc == null) {
-                                throw new IllegalArgumentException("El ID del tipo de documento no puede estar vacío");
+                        if (buscarConductorModel.getNumeroDocumento() == null || buscarConductorModel.getNumeroDocumento().trim().isEmpty()) {
+                                return Mono.error(new IllegalArgumentException("El número de documento no puede estar vacío"));
                         }
 
-                        log.debug("✅ Validación de parámetros completada");
+                        if (buscarConductorModel.getTipoDocumento() == null) {
+                                return Mono.error(new IllegalArgumentException("El tipo de documento no puede estar vacío"));
+                        }
+
+                        if (buscarConductorModel.getTipoDocumento().getIdTipoDocumento() == null) {
+                                return Mono.error(new IllegalArgumentException("El ID del tipo de documento no puede estar vacío"));
+                        }
+
+                        log.debug("✅ Validación completa de parámetros completada");
+                        return Mono.empty();
                 });
+        }
+
+
+        /**
+         * Valida los parámetros de entrada para la búsqueda avanzada.
+         */
+        private Mono<Void> validarParametrosAvanzados(SearchDriverByParameters searchDriverByParameters) {
+            return Mono.defer(() -> {
+                    if (searchDriverByParameters == null) {
+                            return Mono.error(new IllegalArgumentException("Los parámetros de búsqueda no pueden estar vacíos"));
+                    }
+
+                    // Validar que al menos un parámetro esté presente
+                    boolean hasValidParam = false;
+
+                    if (searchDriverByParameters.getNumDoc() != null && !searchDriverByParameters.getNumDoc().trim().isEmpty()) {
+                            hasValidParam = true;
+                    }
+
+                    if (searchDriverByParameters.getIdTipDoc() != null && !searchDriverByParameters.getIdTipDoc().equals(0)) {
+                            hasValidParam = true;
+                    }
+
+                    if (searchDriverByParameters.getName() != null && !searchDriverByParameters.getName().trim().isEmpty()) {
+                            hasValidParam = true;
+                    }
+
+                    if (!hasValidParam) {
+                            return Mono.error(new IllegalArgumentException("Al menos un parámetro de búsqueda debe estar presente"));
+                    }
+
+                    log.debug("✅ Validación de parámetros avanzados completada");
+                    return Mono.empty();
+            });
         }
 }
