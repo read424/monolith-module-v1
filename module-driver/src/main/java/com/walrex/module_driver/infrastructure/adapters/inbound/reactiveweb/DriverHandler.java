@@ -9,7 +9,10 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.walrex.module_driver.application.ports.input.DriverCommandUseCase;
+import com.walrex.module_driver.domain.model.BuscarConductorModel;
 import com.walrex.module_driver.domain.model.JwtUserInfo;
+import com.walrex.module_driver.domain.model.dto.ConductorDataDTO;
+import com.walrex.module_driver.domain.model.dto.SearchDriverByParameters;
 import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.mapper.*;
 import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.request.CreateDriverRequest;
 import com.walrex.module_driver.infrastructure.adapters.inbound.reactiveweb.request.SearchConductorRequest;
@@ -19,6 +22,7 @@ import com.walrex.module_driver.infrastructure.adapters.inbound.rest.JwtUserCont
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @Slf4j
@@ -143,8 +147,7 @@ public class DriverHandler {
         log.info("🔍 Handler: Iniciando búsqueda de conductor: {}", request);
 
         return extractSearchParameters(request)
-                .map(searchDriverRequestMapper::toDomain)
-                .flatMapMany(driverCommandUseCase::buscarDatosDeConductorByNumDocAndIdTipDoc)
+                .flatMapMany(this::ejecutarBusquedaSegunParametros)
                 .collectList()
                 .map(conductorDataList -> {
                     List<ConductorResponse> responses = conductorDataResponseMapper.toResponseList(conductorDataList);
@@ -167,12 +170,63 @@ public class DriverHandler {
             Integer idTipDoc = request.queryParam("id_tip_doc")
                     .map(Integer::valueOf)
                     .orElse(null);
+            
+            String name = request.queryParam("alias_name").orElse(null);
+
+            if (idTipDoc == null && numDoc == null && name == null) {
+                throw new IllegalArgumentException("El tipo de documento, número de documento o el nombre es obligatorio");
+            }
 
             return SearchConductorRequest.builder()
                     .numDoc(numDoc)
                     .idTipDoc(idTipDoc)
+                    .name(name)
                     .build();
         });
+    }
+
+    /**
+     * Ejecuta la búsqueda según los parámetros recibidos.
+     * Decide si usar búsqueda básica o avanzada basándose en los parámetros.
+     */
+    private Flux<ConductorDataDTO> ejecutarBusquedaSegunParametros(SearchConductorRequest request) {
+        // Lógica para decidir qué método usar
+        boolean esBusquedaBasica = esBusquedaBasica(request);
+        
+        if (esBusquedaBasica) {
+            log.info("🔍 Ejecutando búsqueda básica por documento y tipo de documento");
+            BuscarConductorModel buscarConductorModel = searchDriverRequestMapper.toDomain(request);
+            return driverCommandUseCase.buscarDatosDeConductorByNumDocAndIdTipDoc(buscarConductorModel);
+        } else {
+            log.info("🔍 Ejecutando búsqueda avanzada por parámetros dinámicos");
+            SearchDriverByParameters searchDriverByParameters = mapToSearchDriverByParameters(request);
+            return driverCommandUseCase.buscarConductorPorParametros(searchDriverByParameters);
+        }
+    }
+
+    /**
+     * Determina si la búsqueda debe ser básica o avanzada.
+     * Búsqueda básica: cuando se proporcionan numDoc E idTipDoc (sin name)
+     * Búsqueda avanzada: cuando se proporciona name O parámetros incompletos
+     */
+    private boolean esBusquedaBasica(SearchConductorRequest request) {
+        boolean tieneNumDoc = request.getNumDoc() != null && !request.getNumDoc().trim().isEmpty();
+        boolean tieneIdTipDoc = request.getIdTipDoc() != null && !request.getIdTipDoc().equals(0);
+        boolean tieneName = request.getName() != null && !request.getName().trim().isEmpty();
+        
+        // Es búsqueda básica si tiene numDoc Y idTipDoc, Y NO tiene name
+        return tieneNumDoc && tieneIdTipDoc && !tieneName;
+    }
+
+    /**
+     * Mapea SearchConductorRequest a SearchDriverByParameters para el nuevo método de búsqueda.
+     */
+    private SearchDriverByParameters mapToSearchDriverByParameters(SearchConductorRequest request) {
+        return SearchDriverByParameters.builder()
+                .numDoc(request.getNumDoc())
+                .idTipDoc(request.getIdTipDoc())
+                .name(request.getName())
+                .build();
     }
 
     /**
