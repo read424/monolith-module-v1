@@ -81,7 +81,7 @@ USER appuser
 COPY --from=build /app/module-core/target/*.jar /app/app.jar
 
 # Exponer puertos
-EXPOSE 8088
+EXPOSE 8088 9093
 
 # Comando para ejecutar la aplicación
 CMD ["java", "-Dreactor.tools.agent.enabled=false", "-Xms512m", "-Xmx1024m", "-jar", "app.jar"]
