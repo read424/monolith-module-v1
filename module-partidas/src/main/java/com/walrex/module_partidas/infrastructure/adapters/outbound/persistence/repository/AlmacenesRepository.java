@@ -80,6 +80,7 @@ public class AlmacenesRepository {
                 .bind("idArticulo", idArticulo)
                 .bind("idUnidad", idUnidad)
                 .bind("pesoRef", pesoRef)
+                .bind("lote", lote)
                 .bind("nuRollos", nuRollos)
                 .bind("idComprobante", idComprobante)
                 .map((row, metadata) -> row.get("id_detordeningreso", Integer.class))
