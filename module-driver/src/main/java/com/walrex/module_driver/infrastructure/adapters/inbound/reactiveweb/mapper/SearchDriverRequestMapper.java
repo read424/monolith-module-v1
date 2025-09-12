@@ -10,6 +10,7 @@ public interface SearchDriverRequestMapper {
 
     @Mapping(source = "numDoc", target = "numeroDocumento")
     @Mapping(source = "idTipDoc", target = "tipoDocumento.idTipoDocumento")
+    @Mapping(source = "name", target = "nombres")
     BuscarConductorModel toDomain(SearchConductorRequest request);
 
 }
