@@ -2,8 +2,7 @@ package com.walrex.module_driver.application.ports.input;
 
 import com.walrex.module_driver.domain.model.BuscarConductorModel;
 import com.walrex.module_driver.domain.model.DriverDomain;
-import com.walrex.module_driver.domain.model.dto.ConductorDataDTO;
-import com.walrex.module_driver.domain.model.dto.CreateDriverDTO;
+import com.walrex.module_driver.domain.model.dto.*;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -20,10 +19,19 @@ public interface DriverCommandUseCase {
 
     /**
      * Busca los datos de un conductor por número de documento y tipo de documento.
+     * Método original mantenido para compatibilidad hacia atrás.
      * 
-     * @param numDoc   Número de documento del conductor
-     * @param idTipDoc ID del tipo de documento
-     * @return Mono con los datos del conductor encontrado
+     * @param buscarConductorModel Modelo con número de documento y tipo de documento
+     * @return Flux con los datos del conductor encontrado
      */
     Flux<ConductorDataDTO> buscarDatosDeConductorByNumDocAndIdTipDoc(BuscarConductorModel buscarConductorModel);
+
+    /**
+     * Busca conductores usando parámetros dinámicos.
+     * Nuevo método para búsquedas avanzadas que incluye búsqueda por nombre.
+     * 
+     * @param searchDriverByParameters Parámetros de búsqueda dinámicos
+     * @return Flux con los datos de los conductores encontrados
+     */
+    Flux<ConductorDataDTO> buscarConductorPorParametros(SearchDriverByParameters searchDriverByParameters);
 }
