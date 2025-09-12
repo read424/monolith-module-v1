@@ -257,7 +257,7 @@ websocket:
   api:
     url: http://{HOST_API_WEBSOCKET}:{PORT_API_WEBSOCKET}/api/ws
   module:
-    port: ${WEBSOCKET_PORT}
+    port: 9093
     max-connections: 100
     ping-interval: 30000
     ping-timeout: 90000
