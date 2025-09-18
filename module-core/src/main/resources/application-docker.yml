@@ -255,7 +255,7 @@ spring:
     proxy-target-class: true
 websocket:
   api:
-    url: http://{HOST_API_WEBSOCKET}:{PORT_API_WEBSOCKET}/api/ws
+    url: http://${HOST_API_WEBSOCKET}:${PORT_API_WEBSOCKET}/api/ws
   module:
     port: 9093
     max-connections: 100
@@ -321,7 +321,7 @@ springdoc:
 lycet:
   api:
     token: EXnPrun0IjhqwyZaNSWLZpeJ9y1ktZOJ
-    base-url: http://{HOST_API_LYCET}:{PORT_API_LYCET}/api/v1
+    base-url: http://${HOST_API_LYCET}:${PORT_API_LYCET}/api/v1
     endpoint-despatch: /despatch/send
     timeout: 30
 logging:
