@@ -53,6 +53,25 @@ public class AlmacenesRepository {
                 .doOnError(error -> log.error("Error creando orden de ingreso: {}", error.getMessage()));
     }
 
+    public Mono<Integer> crearOrdenIngresoRechazo(Integer idCliente, Integer idAlmacen, Integer idMotivoRechazo, String observacion) {
+        String sql = """
+                INSERT INTO almacenes.ordeningreso (id_cliente, id_almacen, fec_ingreso, id_motivo_rechazo, observacion, status) VALUES (:idCliente, :idAlmacen, :fecIngreso, :idMotivoRechazo, :observacion, 1) RETURNING *
+                """;
+
+        log.debug("Creando orden de ingreso para cliente: {}, almacén: {}", idCliente, idAlmacen);
+
+        return databaseClient.sql(sql)
+                .bind("idCliente", idCliente)
+                .bind("idAlmacen", idAlmacen)
+                .bind("fecIngreso", LocalDate.now())
+                .bind("idMotivoRechazo", idMotivoRechazo)
+                .bind("observacion", observacion)
+                .map((row, metadata) -> row.get("id_ordeningreso", Integer.class))
+                .one()
+                .doOnSuccess(id -> log.info("Orden de ingreso creada con ID: {}", id))
+                .doOnError(error -> log.error("Error creando orden de ingreso: {}", error.getMessage()));
+    }
+
     /**
      * Crea un detalle de orden de ingreso
      * 
