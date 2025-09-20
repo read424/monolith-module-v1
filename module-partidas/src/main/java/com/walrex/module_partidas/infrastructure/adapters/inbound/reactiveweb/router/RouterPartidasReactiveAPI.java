@@ -26,13 +26,15 @@ public class RouterPartidasReactiveAPI {
     private final AlmacenTachoHandler almacenTachoHandler;
     private final DetalleIngresoHandler detalleIngresoHandler;
     private final SaveSuccessOutTachoHandler saveSuccessOutTachoHandler;
+    private final DeclineOutTachoHandler declineOutTachoHandler;
     private static final String PATH_PARTIDAS = "partidas";
 
     /**
      * Configura las rutas para la API de Partidas
      * 
      * Endpoints disponibles:
-     * - POST /partidas/out-success-tacho - Guardar éxito de salida de tacho
+     * - POST /partidas/out-tacho - Guardar éxito de salida de tacho
+     * - POST /partidas/decline-out-tacho - Declinar salida de tacho
      * - GET /partidas/almacen-tacho - Consultar almacén tacho con filtros
      * - GET /partidas/detalle-ingreso - Consultar detalle de ingreso con rollos
      *
@@ -47,6 +49,9 @@ public class RouterPartidasReactiveAPI {
                         .POST("/out-tacho",
                                 RequestPredicates.accept(MediaType.APPLICATION_JSON),
                                 saveSuccessOutTachoHandler::saveSuccessOutTacho)
+                        .POST("/decline-out-tacho",
+                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                declineOutTachoHandler::declineOutTacho)
                         .GET("/detalle-ingreso",
                                 RequestPredicates.accept(MediaType.APPLICATION_JSON),
                                 detalleIngresoHandler::consultarDetalleIngreso))

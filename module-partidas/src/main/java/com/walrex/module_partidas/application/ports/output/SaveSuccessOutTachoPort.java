@@ -47,6 +47,17 @@ public interface SaveSuccessOutTachoPort {
     Mono<Integer> crearOrdenIngreso(Integer idCliente, Integer idAlmacen);
 
     /**
+     * Crea una nueva orden de ingreso de rechazo
+     * 
+     * @param idCliente     ID del cliente
+     * @param idAlmacen     ID del almacén destino
+     * @param idMotivoRechazo ID del motivo de rechazo
+     * @param observacion   Observación
+     * @return Mono con el ID de la orden de ingreso creada
+     */
+    Mono<Integer> crearOrdenIngresoRechazo(Integer idCliente, Integer idAlmacen, Integer idMotivoRechazo, String observacion);
+
+    /**
      * Crea un detalle de orden de ingreso
      * 
      * @param idOrdenIngreso ID de la orden de ingreso
