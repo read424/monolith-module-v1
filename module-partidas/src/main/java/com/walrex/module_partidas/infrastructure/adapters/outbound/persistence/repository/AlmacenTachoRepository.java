@@ -11,7 +11,7 @@ import reactor.core.publisher.Flux;
 /**
  * Repository reactivo para Almacen Tacho usando proyección
  * Ejecuta consultas SQL complejas con múltiples JOINs
- * 
+ *
  * @author Ronald E. Aybar D.
  * @version 0.0.1-SNAPSHOT
  */
@@ -21,7 +21,7 @@ public interface AlmacenTachoRepository extends ReactiveCrudRepository<AlmacenTa
         /**
          * Consulta principal de almacén tacho con SQL complejo
          * Incluye múltiples JOINs y campos calculados
-         * 
+         *
          * @param idAlmacen ID del almacén
          * @param pageable  Configuración de paginación
          * @return Flux de proyecciones AlmacenTachoProjection
@@ -52,7 +52,7 @@ public interface AlmacenTachoRepository extends ReactiveCrudRepository<AlmacenTa
 
         /**
          * Consulta de almacén tacho sin paginación
-         * 
+         *
          * @param idAlmacen ID del almacén
          * @return Flux de proyecciones AlmacenTachoProjection
          */
@@ -73,7 +73,7 @@ public interface AlmacenTachoRepository extends ReactiveCrudRepository<AlmacenTa
                 LEFT OUTER JOIN laboratorio.tbcolores tc ON tc.id_colores = tr.id_colores
                 LEFT OUTER JOIN laboratorio.tbgamas tg ON tg.id_gama = tc.id_gama
                 LEFT OUTER JOIN laboratorio.tbtenido tt ON tt.id_tenido = tc.id_tipo_tenido
-                WHERE o.status=1 AND o.id_almacen = :idAlmacen
+                WHERE (o.status=1 OR o.stay_store='1') AND o.id_almacen = :idAlmacen
                 GROUP BY o.id_ordeningreso, d.id_detordeningreso, tp.id_partida, t.id_cliente, tr.id_receta, tc.id_colores, tt.id_tenido, tg.id_gama
                 ORDER BY o.id_ordeningreso DESC
             """)
@@ -82,7 +82,7 @@ public interface AlmacenTachoRepository extends ReactiveCrudRepository<AlmacenTa
         /**
          * Consulta de almacén tacho con búsqueda por código de partida
          * Incluye múltiples JOINs y campos calculados con filtro de búsqueda
-         * 
+         *
          * @param idAlmacen  ID del almacén
          * @param codPartida Código de partida para búsqueda (opcional)
          * @param limit      Límite de registros
@@ -106,7 +106,7 @@ public interface AlmacenTachoRepository extends ReactiveCrudRepository<AlmacenTa
                         LEFT OUTER JOIN laboratorio.tbcolores tc ON tc.id_colores = tr.id_colores
                         LEFT OUTER JOIN laboratorio.tbgamas tg ON tg.id_gama = tc.id_gama
                         LEFT OUTER JOIN laboratorio.tbtenido tt ON tt.id_tenido = tc.id_tipo_tenido
-                        WHERE o.status = 1 AND o.id_almacen = :idAlmacen
+                        WHERE (o.status = 1 OR o.stay_store='1') AND o.id_almacen = :idAlmacen
                         AND (:codPartida IS NULL OR (tp.cod_partida || CASE WHEN tp.id_partida_parent IS NULL THEN '' ELSE '-R'||tp.num_reproceso::varchar END) LIKE '%' || :codPartida || '%')
                         GROUP BY o.id_ordeningreso, d.id_detordeningreso, tp.id_partida, t.id_cliente, tr.id_receta, tc.id_colores, tt.id_tenido, tg.id_gama
                         ORDER BY o.id_ordeningreso DESC
