@@ -23,7 +23,8 @@ public interface AlmacenTachoRepository extends ReactiveCrudRepository<AlmacenTa
          * Incluye múltiples JOINs y campos calculados
          *
          * @param idAlmacen ID del almacén
-         * @param pageable  Configuración de paginación
+         * @param limit  Limite de registros por pagina
+         * @param offset
          * @return Flux de proyecciones AlmacenTachoProjection
          */
         @Query("""
