@@ -5,6 +5,8 @@ import java.util.List;
 
 import com.walrex.module_partidas.domain.model.ItemRollo;
 import com.walrex.module_partidas.domain.model.ProcesoPartida;
+import com.walrex.module_partidas.domain.model.dto.IngresoDocumentoDTO;
+import com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.entity.OrdenIngresoDocumentoEntity;
 import com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.projection.OrdenIngresoCompletaProjection;
 
 import reactor.core.publisher.Mono;
@@ -12,7 +14,7 @@ import reactor.core.publisher.Mono;
 /**
  * Puerto de salida para guardar el éxito de salida de tacho
  * Define el contrato para las operaciones de persistencia necesarias
- * 
+ *
  * @author Ronald E. Aybar D.
  * @version 0.0.1-SNAPSHOT
  */
@@ -20,7 +22,7 @@ public interface SaveSuccessOutTachoPort {
 
     /**
      * Consulta los rollos disponibles para una partida en un almacén específico
-     * 
+     *
      * @param idPartida ID de la partida
      * @param idAlmacen ID del almacén
      * @return Mono con lista de rollos disponibles
@@ -30,7 +32,7 @@ public interface SaveSuccessOutTachoPort {
     /**
      * Consulta los procesos de una partida para encontrar el próximo almacén
      * pendiente
-     * 
+     *
      * @param idPartida ID de la partida
      * @return Mono con lista de procesos de partida
      */
@@ -38,17 +40,17 @@ public interface SaveSuccessOutTachoPort {
 
     /**
      * Crea una nueva orden de ingreso
-     * 
+     *
      * @param idCliente     ID del cliente
+     * @param idOrigen      ID almacen origen
      * @param idAlmacen     ID del almacén destino
-     * @param idComprobante ID del comprobante (partida)
      * @return Mono con el ID de la orden de ingreso creada
      */
-    Mono<Integer> crearOrdenIngreso(Integer idCliente, Integer idAlmacen);
+    Mono<Integer> crearOrdenIngreso(Integer idCliente, Integer idOrigen, Integer idAlmacen);
 
     /**
      * Crea una nueva orden de ingreso de rechazo
-     * 
+     *
      * @param idCliente     ID del cliente
      * @param idAlmacen     ID del almacén destino
      * @param idMotivoRechazo ID del motivo de rechazo
@@ -59,7 +61,7 @@ public interface SaveSuccessOutTachoPort {
 
     /**
      * Crea un detalle de orden de ingreso
-     * 
+     *
      * @param idOrdenIngreso ID de la orden de ingreso
      * @param idArticulo     ID del artículo
      * @param idUnidad       ID de la unidad
@@ -74,7 +76,7 @@ public interface SaveSuccessOutTachoPort {
 
     /**
      * Crea un detalle de peso de orden de ingreso
-     * 
+     *
      * @param idOrdenIngreso    ID de la orden de ingreso
      * @param codRollo          Código del rollo
      * @param pesoRollo         Peso del rollo
@@ -87,7 +89,7 @@ public interface SaveSuccessOutTachoPort {
 
     /**
      * Actualiza el status de un detalle de peso de orden de ingreso a 0 (inactivo)
-     * 
+     *
      * @param idDetOrdenIngresoPeso ID del detalle de peso a actualizar
      * @return Mono<Void> indicando el éxito de la operación
      */
@@ -95,7 +97,7 @@ public interface SaveSuccessOutTachoPort {
 
     /**
      * Obtiene la cantidad de rollos de una orden de ingreso
-     * 
+     *
      * @param idOrdenIngreso ID de la orden de ingreso
      * @return Mono con la cantidad de rollos
      */
@@ -103,7 +105,7 @@ public interface SaveSuccessOutTachoPort {
 
     /**
      * Deshabilita el detalle de ingreso de una orden
-     * 
+     *
      * @param idOrdenIngreso ID de la orden de ingreso
      * @return Mono con el status actualizado
      */
@@ -111,7 +113,7 @@ public interface SaveSuccessOutTachoPort {
 
     /**
      * Deshabilita la orden de ingreso completa
-     * 
+     *
      * @param idOrdenIngreso ID de la orden de ingreso
      * @return Mono con el status actualizado
      */
@@ -119,9 +121,12 @@ public interface SaveSuccessOutTachoPort {
 
     /**
      * Consulta la información completa de una orden de ingreso
-     * 
+     *
      * @param idOrdenIngreso ID de la orden de ingreso
      * @return Mono con la información completa de la orden
      */
     Mono<OrdenIngresoCompletaProjection> consultarOrdenIngresoCompleta(Integer idOrdenIngreso);
+
+    Mono<OrdenIngresoDocumentoEntity> addDocumentoIngreso(IngresoDocumentoDTO ingresoDocumentoDTO);
+
 }
