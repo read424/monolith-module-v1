@@ -64,7 +64,7 @@ class SaveSuccessOutTachoServiceTest {
                                 .idCliente(45544)
                                 .rollos(Arrays.asList(detalle))
                                 .build();
-                
+
                 request_nuevo = SuccessPartidaTacho.builder()
                                 .idPartida(55702)
                                 .idAlmacen(36)
@@ -125,7 +125,7 @@ class SaveSuccessOutTachoServiceTest {
                                 .thenReturn(Mono.just(rollosDisponibles));
                 when(saveSuccessOutTachoPort.consultarProcesosPartida(55702))
                                 .thenReturn(Mono.just(procesos));
-                when(saveSuccessOutTachoPort.crearOrdenIngreso(45544, 37))
+                when(saveSuccessOutTachoPort.crearOrdenIngreso(45544, 5,37))
                                 .thenReturn(Mono.just(1001));
                 when(saveSuccessOutTachoPort.crearDetalleOrdenIngreso(1001, 1, 1, BigDecimal.ZERO, "1", Integer.valueOf(1),
                                 55702))
@@ -143,7 +143,7 @@ class SaveSuccessOutTachoServiceTest {
 
                 verify(saveSuccessOutTachoPort).consultarRollosDisponibles(55702, 36);
                 verify(saveSuccessOutTachoPort).consultarProcesosPartida(55702);
-                verify(saveSuccessOutTachoPort).crearOrdenIngreso(45544, 37);
+                verify(saveSuccessOutTachoPort).crearOrdenIngreso(45544, 5,37);
                 verify(saveSuccessOutTachoPort).crearDetalleOrdenIngreso(1001, 1, 1, BigDecimal.ZERO, "1", Integer.valueOf(1),
                                 55702);
                 verify(saveSuccessOutTachoPort).crearDetallePesoOrdenIngreso(1001, "1787-1-1", new BigDecimal("21.48"),
