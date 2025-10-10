@@ -8,6 +8,9 @@ import org.springframework.stereotype.Component;
 import com.walrex.module_partidas.application.ports.output.SaveSuccessOutTachoPort;
 import com.walrex.module_partidas.domain.model.ItemRollo;
 import com.walrex.module_partidas.domain.model.ProcesoPartida;
+import com.walrex.module_partidas.domain.model.dto.IngresoDocumentoDTO;
+import com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.entity.OrdenIngresoDocumentoEntity;
+import com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.mapper.IngresoDocumentoMapper;
 import com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.projection.OrdenIngresoCompletaProjection;
 import com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.repository.*;
 
@@ -19,7 +22,7 @@ import reactor.core.publisher.Mono;
  * Adaptador de persistencia para SaveSuccessOutTacho
  * Implementa el puerto de salida y se encarga de la comunicación con la base de
  * datos
- * 
+ *
  * @author Ronald E. Aybar D.
  * @version 0.0.1-SNAPSHOT
  */
@@ -30,7 +33,9 @@ public class SaveSuccessOutTachoPersistenceAdapter implements SaveSuccessOutTach
 
     private final DetalleIngresoRepository detalleIngresoRepository;
     private final ProcesoPartidaRepository procesoPartidaRepository;
+    private final OrdenIngresoDocumentoRepository ordenIngresoDocumentoRepository;
     private final AlmacenesRepository almacenesRepository;
+    private final IngresoDocumentoMapper ingresoDocumentoMapper;
 
     @Override
     public Mono<List<ItemRollo>> consultarRollosDisponibles(Integer idPartida, Integer idAlmacen) {
@@ -101,11 +106,11 @@ public class SaveSuccessOutTachoPersistenceAdapter implements SaveSuccessOutTach
     }
 
     @Override
-    public Mono<Integer> crearOrdenIngreso(Integer idCliente, Integer idAlmacen) {
+    public Mono<Integer> crearOrdenIngreso(Integer idCliente, Integer idOrigen, Integer idAlmacen) {
         log.debug("Creando orden de ingreso para cliente: {}, almacén: {}, comprobante: {}",
                 idCliente, idAlmacen);
 
-        return almacenesRepository.crearOrdenIngreso(idCliente, idAlmacen);
+        return almacenesRepository.crearOrdenIngreso(idCliente, idOrigen, idAlmacen);
     }
 
     @Override
@@ -167,5 +172,15 @@ public class SaveSuccessOutTachoPersistenceAdapter implements SaveSuccessOutTach
         log.debug("Consultando orden de ingreso completa: {}", idOrdenIngreso);
 
         return almacenesRepository.consultarOrdenIngresoCompleta(idOrdenIngreso);
+    }
+
+    @Override
+    public Mono<OrdenIngresoDocumentoEntity> addDocumentoIngreso(IngresoDocumentoDTO documentoIngreso) {
+        log.debug("Agregando documento de ingreso para orden: {}", documentoIngreso);
+        OrdenIngresoDocumentoEntity documentoIngresoEntity = ingresoDocumentoMapper.toEntity(documentoIngreso);
+
+        return ordenIngresoDocumentoRepository.save(documentoIngresoEntity)
+                .doOnSuccess(saved -> log.info("Documento de ingreso guardado con ID: {}", saved.getId()))
+                .doOnError(error -> log.error("Error guardando documento de ingreso: {}", error.getMessage()));
     }
 }
