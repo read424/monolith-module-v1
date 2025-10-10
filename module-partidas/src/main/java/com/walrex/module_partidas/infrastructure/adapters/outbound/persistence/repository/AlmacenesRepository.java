@@ -16,7 +16,7 @@ import reactor.core.publisher.Mono;
 /**
  * Repository para operaciones CRUD en las tablas de almacenes
  * Maneja ordenes de ingreso, detalles y pesos
- * 
+ *
  * @author Ronald E. Aybar D.
  * @version 0.0.1-SNAPSHOT
  */
@@ -29,15 +29,15 @@ public class AlmacenesRepository {
 
     /**
      * Crea una nueva orden de ingreso
-     * 
+     *
      * @param idCliente     ID del cliente
+     * @param idOrigen      ID del almacen de Origen
      * @param idAlmacen     ID del almacén destino
-     * @param idComprobante ID del comprobante (partida)
      * @return Mono con el ID de la orden creada
      */
-    public Mono<Integer> crearOrdenIngreso(Integer idCliente, Integer idAlmacen) {
+    public Mono<Integer> crearOrdenIngreso(Integer idCliente, Integer idOrigen, Integer idAlmacen) {
         String sql = """
-                INSERT INTO almacenes.ordeningreso (id_cliente, id_almacen, fec_ingreso, status) VALUES (:idCliente, :idAlmacen, :fecIngreso, 1) RETURNING *
+                INSERT INTO almacenes.ordeningreso (id_cliente, id_origen, id_almacen, fec_ingreso, id_motivo, fec_ref, status) VALUES (:idCliente, :idOrigen, :idAlmacen, :fecIngreso, 1, :fecReferencia, 1) RETURNING *
                 """;
 
         log.debug("Creando orden de ingreso para cliente: {}, almacén: {}",
@@ -45,8 +45,10 @@ public class AlmacenesRepository {
 
         return databaseClient.sql(sql)
                 .bind("idCliente", idCliente)
+                .bind("idOrigen", idOrigen)
                 .bind("idAlmacen", idAlmacen)
                 .bind("fecIngreso", LocalDate.now())
+                .bind("fecReferencia", LocalDate.now())
                 .map((row, metadata) -> row.get("id_ordeningreso", Integer.class))
                 .one()
                 .doOnSuccess(id -> log.info("Orden de ingreso creada con ID: {}", id))
@@ -74,7 +76,7 @@ public class AlmacenesRepository {
 
     /**
      * Crea un detalle de orden de ingreso
-     * 
+     *
      * @param idOrdenIngreso ID de la orden de ingreso
      * @param idArticulo     ID del artículo
      * @param idUnidad       ID de la unidad
@@ -87,8 +89,8 @@ public class AlmacenesRepository {
             BigDecimal pesoRef, String lote, Integer nuRollos, Integer idComprobante) {
         String sql = """
                 INSERT INTO almacenes.detordeningreso
-                (id_ordeningreso, id_articulo, id_unidad, peso_alm, lote, nu_rollos, id_comprobante, status)
-                VALUES (:idOrdenIngreso, :idArticulo, :idUnidad, :pesoRef, :lote, :nuRollos, :idComprobante, 1)
+                (id_ordeningreso, id_articulo, id_unidad, peso_alm, lote, nu_rollos, id_tipo_comprobante, id_comprobante, status)
+                VALUES (:idOrdenIngreso, :idArticulo, :idUnidad, :pesoRef, :lote, :nuRollos, 3, :idComprobante, 1)
                 RETURNING id_detordeningreso
                 """;
 
@@ -110,7 +112,7 @@ public class AlmacenesRepository {
 
     /**
      * Crea un detalle de peso de orden de ingreso
-     * 
+     *
      * @param idOrdenIngreso    ID de la orden de ingreso
      * @param codRollo          Código del rollo
      * @param pesoRollo         Peso del rollo
@@ -174,7 +176,7 @@ public class AlmacenesRepository {
 
     public Mono<Integer> deshabilitarDetalleIngreso(Integer idOrdenIngreso){
         String sql = """
-                UPDATE almacenes.detordeningresopeso SET status = 0 WHERE id_ordeningreso = :idOrdenIngreso RETURNING status
+                UPDATE almacenes.detordeningreso SET status = 0 WHERE id_ordeningreso = :idOrdenIngreso RETURNING status
                 """;
         return databaseClient.sql(sql)
                 .bind("idOrdenIngreso", idOrdenIngreso)
@@ -185,7 +187,7 @@ public class AlmacenesRepository {
     }
     /**
      * Actualiza el status de un detalle de peso de orden de ingreso a 0 (inactivo)
-     * 
+     *
      * @param idDetOrdenIngresoPeso ID del detalle de peso a actualizar
      * @return Mono<Void> indicando el éxito de la operación
      */
@@ -206,14 +208,14 @@ public class AlmacenesRepository {
 
     /**
      * Consulta la información completa de una orden de ingreso
-     * 
+     *
      * @param idOrdenIngreso ID de la orden de ingreso
      * @return Mono con la información completa de la orden
      */
     public Mono<OrdenIngresoCompletaProjection> consultarOrdenIngresoCompleta(Integer idOrdenIngreso) {
         String sql = """
                 SELECT id_ordeningreso, id_cliente, cod_ingreso, id_almacen
-                FROM almacenes.ordeningreso 
+                FROM almacenes.ordeningreso
                 WHERE id_ordeningreso = :idOrdenIngreso
                 """;
         return databaseClient.sql(sql)
@@ -226,7 +228,7 @@ public class AlmacenesRepository {
                 ))
                 .one()
                 .doOnSuccess(orden -> log.info("Orden de ingreso consultada: {}", orden))
-                .doOnError(error -> log.error("Error consultando orden de ingreso ID {}: {}", 
+                .doOnError(error -> log.error("Error consultando orden de ingreso ID {}: {}",
                         idOrdenIngreso, error.getMessage()));
     }
 }
