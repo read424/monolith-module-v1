@@ -15,7 +15,7 @@ import reactor.core.publisher.Flux;
  * Repository para consultas de procesos de partida usando R2dbcTemplate
  * Ejecuta consultas SQL complejas con múltiples JOINs para obtener información
  * completa
- * 
+ *
  * @author Ronald E. Aybar D.
  * @version 0.0.1-SNAPSHOT
  */
@@ -29,7 +29,7 @@ public class ProcesoPartidaRepository {
     /**
      * Consulta todos los procesos de una partida específica
      * Incluye información completa sobre el estado, máquinas y rutas
-     * 
+     *
      * @param idPartida ID de la partida a consultar
      * @return Flux de proyecciones ProcesoPartidaProjection
      */
@@ -38,9 +38,9 @@ public class ProcesoPartidaRepository {
                 SELECT tp.id_cliente, tp.id_partida, ppm.id_partida_maquina
                 , tp2.id_ruta, tp2.id_articulo
                 , COALESCE(ppm.id_proceso, t.id_proceso) AS id_proceso
-                , COALESCE(ppm.id_det_ruta, t.id_det_ruta) AS id_det_ruta
+                , COALESCE(ppm.id_det_ruta, t.id_det_ruta) AS id_det_ruta\s
                 , t2.no_proceso, t2.id_almacen
-                , ppm.id_maquina, ppm.id_tipo_maquina
+                , ppm.id_maquina, ppm.id_tipo_maquina\s
                 , CASE WHEN ppm.fec_real_inicio IS NULL THEN FALSE ELSE TRUE END AS iniciado
                 , CASE WHEN ppm.fec_real_fin IS NULL THEN FALSE ELSE TRUE END AS finalizado
                 , CASE WHEN COALESCE(ppm.status,0)=0 AND ppm.id_nivel_observ IS NULL THEN TRUE ELSE FALSE END AS is_pendiente
@@ -50,9 +50,10 @@ public class ProcesoPartidaRepository {
                 LEFT OUTER JOIN comercial.tborden_produccion tp2 ON tp2.id_ordenproduccion = tp.id_ordenproduccion
                 LEFT OUTER JOIN comercial.tbdetrutas t ON t.id_ruta = tp2.id_ruta
                 LEFT OUTER JOIN comercial.tbprocesos t2 ON t2.id_proceso = t.id_proceso
-                LEFT OUTER JOIN produccion.partidas_procesos_maquinas ppm ON ppm.id_partida = tp.id_partida AND (ppm.id_det_ruta=t.id_det_ruta OR ppm.id_proceso=t.id_proceso) AND ppm.is_adicional =0
+                LEFT OUTER JOIN comercial.tb_ruta_procesos_tipo_reprocesos trptr ON trptr.id_det_ruta = t.id_det_ruta AND trptr.type_reprocess = tp.type_reprocess\s
+                LEFT OUTER JOIN produccion.partidas_procesos_maquinas ppm ON ppm.id_partida = tp.id_partida AND (ppm.id_det_ruta=t.id_det_ruta OR ppm.id_proceso=t.id_proceso) AND ppm.is_adicional=0
                 LEFT OUTER JOIN catalogo.tbmaquina t3 ON t3.id_maquina = ppm.id_maquina
-                WHERE tp.id_partida = :idPartida
+                WHERE tp.id_partida = :idPartida AND CASE WHEN tp.type_reprocess IS NULL THEN 0 ELSE COALESCE(trptr.type_reprocess,0) END = COALESCE(tp.type_reprocess, 0)
                 ORDER BY t.id_det_ruta ASC
                 """;
 
@@ -69,7 +70,7 @@ public class ProcesoPartidaRepository {
 
     /**
      * Mapea una fila de resultado a ProcesoPartidaProjection
-     * 
+     *
      * @param row      Fila de resultado de la consulta
      * @param metadata Metadatos de la fila
      * @return Proyección del proceso de partida
