@@ -158,6 +158,20 @@
         </rollingPolicy>
     </appender>
 
+    <appender name="MODULE_COMERCIAL" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOGS_DIR}/module-comercial.json</file>
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdc>true</includeMdc>
+            <customFields>{"service":"${appName}","module":"comercial","environment":"${SPRING_PROFILES_ACTIVE:-dev}"}</customFields>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOGS_DIR}/archived/module-comercial-%d{yyyy-MM-dd}-%i.json</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
     <!-- Error File Appender -->
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOGS_DIR}/error.json</file>
@@ -229,6 +243,11 @@
 
     <logger name="com.walrex.notification" level="DEBUG" additivity="false">
         <appender-ref ref="MODULE_WEBSOCKET"/>
+        <appender-ref ref="ASYNC_JSON_FILE"/>
+    </logger>
+
+    <logger name="com.walrex.module_comercial" level="DEBUG" additivity="false">
+        <appender-ref ref="MODULE_COMERCIAL"/>
         <appender-ref ref="ASYNC_JSON_FILE"/>
     </logger>
 
