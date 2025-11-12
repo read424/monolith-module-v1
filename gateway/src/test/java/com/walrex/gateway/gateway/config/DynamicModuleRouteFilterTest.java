@@ -1,5 +1,6 @@
 package com.walrex.gateway.gateway.config;
 
+import com.walrex.gateway.gateway.infrastructure.adapters.outbound.consul.ConsulServiceResolver;
 import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.entity.ModulesUrl;
 import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.repository.ModulesUrlRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,13 +35,16 @@ public class DynamicModuleRouteFilterTest {
     @Mock
     private ModulesUrlRepository modulesUrlRepository;
 
+    @Mock
+    private ConsulServiceResolver consulServiceResolver;
+
     private DynamicModuleRouteFilter filter;
 
     private GatewayFilterChain chain;
 
     @BeforeEach
     void setUp(){
-        filter = new DynamicModuleRouteFilter(modulesUrlRepository);
+        filter = new DynamicModuleRouteFilter(modulesUrlRepository, consulServiceResolver);
     }
 
     @Test
