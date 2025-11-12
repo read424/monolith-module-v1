@@ -15,6 +15,7 @@ public class OrdenProductionPartidaResponseDTO {
     private String descArticulo;
     private Integer idOrden;
     private Integer idDetOS;
+    private Double precio;
     private Integer idRuta;
     private Integer idOrdenIngreso;
     private Integer cntPartidas;
