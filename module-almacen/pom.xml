@@ -189,6 +189,12 @@
 			<artifactId>avro-schemas</artifactId>
 			<version>${avro-schemas.monolith.version}</version>
 		</dependency>
+		<!-- Module Security Commons -->
+		<dependency>
+			<groupId>com.walrex</groupId>
+			<artifactId>module-security-commons</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
 		<!-- Métricas -->
 		<dependency>
 			<groupId>io.micrometer</groupId>
