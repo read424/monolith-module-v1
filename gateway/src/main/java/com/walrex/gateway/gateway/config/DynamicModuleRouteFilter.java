@@ -21,6 +21,7 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPatternParser;
 
+import com.walrex.gateway.gateway.infrastructure.adapters.outbound.consul.ConsulServiceResolver;
 import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.entity.ModulesUrl;
 import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.repository.ModulesUrlRepository;
 
@@ -32,6 +33,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<DynamicModuleRouteFilter.Config> {
     private final ModulesUrlRepository modulesUrlRepository;
+    private final ConsulServiceResolver consulServiceResolver;
     private final PathPatternParser pathPatternParser = new PathPatternParser();
 
     // Caché para mejorar el rendimiento
@@ -45,9 +47,13 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
     private static final int MAX_FORWARD_COUNT = 2;
     private static final String FORWARD_COUNT_KEY = "FORWARD_COUNT";
 
-    public DynamicModuleRouteFilter(ModulesUrlRepository modulesUrlRepository) {
+    public DynamicModuleRouteFilter(
+        ModulesUrlRepository modulesUrlRepository,
+        ConsulServiceResolver consulServiceResolver
+    ) {
         super(Config.class);
         this.modulesUrlRepository = modulesUrlRepository;
+        this.consulServiceResolver = consulServiceResolver;
     }
 
     @Override
@@ -61,6 +67,22 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
             Boolean isForwarded = exchange.getAttribute("GATEWAY_FORWARDED_REQUEST");
             if (isForwarded != null && isForwarded) {
                 log.debug("Petición ya forwardeada, saltando DynamicModuleRouteFilter");
+
+                // 🚨 PREVENCIÓN DE BUCLE INFINITO: Si el path es "/" después de un forward,
+                // significa que el forward falló y no encontró la ruta destino
+                if ("/".equals(path)) {
+                    String originalPath = exchange.getAttribute("ORIGINAL_PATH");
+                    log.error("🚫 BUCLE INFINITO DETECTADO: Path reducido a '/' después de forward. Ruta original: '{}'", originalPath);
+                    log.error("🚫 Esto indica que la ruta '{}' no existe en ningún módulo registrado", originalPath);
+                    exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
+                    exchange.getResponse().getHeaders().add("Content-Type", "application/json");
+                    String errorBody = String.format("{\"error\":\"Not Found\",\"message\":\"No se encontró el recurso: %s\",\"path\":\"%s\"}",
+                        originalPath != null ? originalPath : path,
+                        originalPath != null ? originalPath : path);
+                    DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(errorBody.getBytes());
+                    return exchange.getResponse().writeWith(Mono.just(buffer));
+                }
+
                 return chain.filter(exchange);
             }
 
@@ -171,11 +193,11 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
      */
     private ModulesUrl findPatternMatchInCache(String requestPath) {
         log.debug("🔍 Buscando en caché de patrones para: '{}'", requestPath);
-        
+
         for (String patternStr : patternPathCache.keySet()) {
             try {
                 ModulesUrl module = patternPathCache.get(patternStr);
-                
+
                 if (module.getIsPattern() != null && module.getIsPattern()) {
                     // 🎯 Usar regex compilado para isPattern = true
                     Pattern compiledPattern = getCompiledRegex(patternStr);
@@ -195,17 +217,55 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                 log.warn("⚠️ Error evaluando patrón '{}' contra ruta '{}': {}", patternStr, requestPath, e.getMessage());
             }
         }
-        
+
         log.debug("🔍 No se encontraron coincidencias en caché de patrones");
         return null;
     }
 
     /**
      * Procesa el enrutamiento basado en el módulo encontrado
+     *
+     * NUEVO: Integra Consul Service Discovery para resolver servicios externos
+     * - Si module.uri es null o "monolito-modular" → Forward interno (actual)
+     * - Si module.uri es un service_name → Consulta Consul y hace proxy externo
      */
     protected Mono<Void> processRouting(ModulesUrl module, String requestPath, ServerHttpRequest request,
                                       ServerWebExchange exchange,
                                       GatewayFilterChain chain) {
+        String serviceName = module.getUri();
+
+        // Distinguir entre servicio local (monolito) y servicios externos (Consul)
+        if (serviceName == null || serviceName.isEmpty() || "monolito-modular".equalsIgnoreCase(serviceName)) {
+            log.info("📍 Routing a monolito local (forward interno)");
+            return processRoutingInternal(module, requestPath, request, exchange, chain);
+        }
+
+        // Servicio externo: Consultar Consul
+        log.info("🌐 Consultando Consul para servicio: {}", serviceName);
+        return consulServiceResolver.resolveServiceUri(serviceName)
+            .flatMap(serviceUri -> {
+                log.info("✅ Servicio resuelto: {} → {}", serviceName, serviceUri);
+                return processRoutingExternal(module, requestPath, serviceUri, exchange, chain);
+            })
+            .onErrorResume(error -> {
+                log.error("❌ Error consultando Consul para '{}': {}", serviceName, error.getMessage());
+                exchange.getResponse().setStatusCode(HttpStatus.SERVICE_UNAVAILABLE);
+                exchange.getResponse().getHeaders().add("Content-Type", "application/json");
+                String errorBody = String.format(
+                    "{\"error\":\"Service Unavailable\",\"message\":\"No se pudo resolver el servicio '%s' desde Consul\",\"path\":\"%s\"}",
+                    serviceName, requestPath);
+                DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(errorBody.getBytes());
+                return exchange.getResponse().writeWith(Mono.just(buffer));
+            });
+    }
+
+    /**
+     * 🔧 Routing INTERNO para monolito (forward:/)
+     * Mantiene la lógica original sin cambios
+     */
+    private Mono<Void> processRoutingInternal(ModulesUrl module, String requestPath, ServerHttpRequest request,
+                                              ServerWebExchange exchange,
+                                              GatewayFilterChain chain) {
         //Incrementar contador de forwards
         Integer currentForwardCount = exchange.getAttribute(FORWARD_COUNT_KEY);
         if (currentForwardCount == null) {
@@ -213,12 +273,12 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
         }
         final Integer forwardCount = currentForwardCount + 1;
         exchange.getAttributes().put(FORWARD_COUNT_KEY, forwardCount);
-        
-        log.info("Incrementando forward count: {}/{} para módulo: {}", 
+
+        log.info("Incrementando forward count: {}/{} para módulo: {}",
                 forwardCount, MAX_FORWARD_COUNT, module.getModuleName());
 
         String newPath = processPath(requestPath, module);
-        log.info("🔧 Path procesado: '{}' -> '{}' (Forward #{}/{})", 
+        log.info("🔧 Path procesado: '{}' -> '{}' (Forward #{}/{})",
                 requestPath, newPath, forwardCount, MAX_FORWARD_COUNT);
 
         //Validar que la nueva ruta sea diferente para evitar bucles
@@ -252,7 +312,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
         URI forwardUri;
         try {
             forwardUri = new URI(forwardUriString);
-            log.info("Redirigiendo internamente: '{}' -> '{}' (Forward #{}/{})", 
+            log.info("Redirigiendo internamente: '{}' -> '{}' (Forward #{}/{})",
                     requestPath, forwardUri, forwardCount, MAX_FORWARD_COUNT);
         } catch (URISyntaxException e) {
             log.error("Error al construir URI de redirección: {}", e.getMessage());
@@ -322,7 +382,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
      */
     protected Mono<ModulesUrl> findModuleByPattern(String requestPath) {
         log.info("🔍 [findModuleByPattern] Buscando patrón REGEX para ruta: '{}'", requestPath);
-        
+
         return modulesUrlRepository.findAll()
                 .filter(module -> {
                     // Solo procesar módulos con isPattern = true
@@ -340,7 +400,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                 })
                 .next() // ⚡ IMPORTANTE: Tomar solo el PRIMER resultado
                 .doOnNext(module -> {
-                    log.info("✅ [findModuleByPattern] PRIMERA COINCIDENCIA encontrada: '{}' -> '{}'", 
+                    log.info("✅ [findModuleByPattern] PRIMERA COINCIDENCIA encontrada: '{}' -> '{}'",
                             requestPath, module.getPath());
                 })
                 .switchIfEmpty(Mono.defer(() -> {
@@ -423,18 +483,18 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
             Pattern compiledPattern = getCompiledRegex(module.getPath());
             if (compiledPattern != null) {
                 boolean matches = compiledPattern.matcher(requestPath).matches();
-                
+
                 if (matches) {
-                    log.info("✅ [REGEX] COINCIDENCIA: '{}' matches '{}' ({})", 
+                    log.info("✅ [REGEX] COINCIDENCIA: '{}' matches '{}' ({})",
                             requestPath, module.getPath(), module.getModuleName());
                     return true;
                 } else {
-                    log.debug("🔍 [REGEX] NO COINCIDE: '{}' vs '{}' ({})", 
+                    log.debug("🔍 [REGEX] NO COINCIDE: '{}' vs '{}' ({})",
                             requestPath, module.getPath(), module.getModuleName());
                 }
             }
         } catch (Exception e) {
-            log.warn("⚠️ [REGEX] Error evaluando '{}' para '{}': {}", 
+            log.warn("⚠️ [REGEX] Error evaluando '{}' para '{}': {}",
                     module.getPath(), requestPath, e.getMessage());
         }
         return false;
@@ -502,7 +562,59 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                 return null;
             }
         });
-    }    
+    }
+
+    /**
+     * 🆕 Routing EXTERNO para microservicios (http://IP:PORT)
+     *
+     * Delega el proxying a Spring Cloud Gateway que maneja automáticamente:
+     * - Headers (preserva, elimina hop-by-hop)
+     * - Body (streaming reactivo)
+     * - Conexiones (pooling con Netty)
+     * - Timeouts y Circuit Breakers
+     */
+    private Mono<Void> processRoutingExternal(ModulesUrl module, String requestPath,
+                                              String serviceUri,
+                                              ServerWebExchange exchange,
+                                              GatewayFilterChain chain) {
+        String newPath = processPath(requestPath, module);
+        String fullUrl = serviceUri + newPath;
+
+        log.info("🌐 Proxy externo: '{}' → '{}'", requestPath, fullUrl);
+
+        // Agregar query string si existe
+        String queryString = exchange.getRequest().getURI().getRawQuery();
+        if (queryString != null && !queryString.isEmpty()) {
+            fullUrl += "?" + queryString;
+        }
+
+        try {
+            URI externalUri = new URI(fullUrl);
+
+            // Spring Cloud Gateway maneja automáticamente el proxying
+            exchange.getAttributes().put(
+                ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR,
+                externalUri
+            );
+
+            log.debug("✅ URI externa configurada: {}", externalUri);
+
+            final String finalFullUrl = fullUrl;
+            return chain.filter(exchange)
+                .doOnSuccess(v -> log.info("✅ Proxy externo completado: {}", finalFullUrl))
+                .doOnError(e -> log.error("❌ Error en proxy externo '{}': {}", finalFullUrl, e.getMessage()));
+
+        } catch (URISyntaxException e) {
+            log.error("❌ URI inválida: {}", fullUrl, e);
+            exchange.getResponse().setStatusCode(HttpStatus.BAD_GATEWAY);
+            exchange.getResponse().getHeaders().add("Content-Type", "application/json");
+            String errorBody = String.format(
+                "{\"error\":\"Bad Gateway\",\"message\":\"URI inválida para servicio externo: %s\",\"path\":\"%s\"}",
+                fullUrl, requestPath);
+            DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(errorBody.getBytes());
+            return exchange.getResponse().writeWith(Mono.just(buffer));
+        }
+    }
 
     public static class Config {
         // Puedes agregar configuración si es necesario
