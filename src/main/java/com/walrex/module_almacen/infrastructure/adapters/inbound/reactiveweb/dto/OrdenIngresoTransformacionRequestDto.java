@@ -13,14 +13,15 @@ import java.util.List;
 @Builder
 public class OrdenIngresoTransformacionRequestDto {
     @NotNull(message = "Campo id_articulo es obligatorio")
+    @JsonProperty("id_articulo")
     private Integer idArticulo;
     @NotNull(message = "Campo cantidad es obligatorio")
     private Double cantidad;
     @NotNull(message = "Campo precio es obligatorio")
     private Double precio;
-    @Valid
     private UnidadMedidaRequest unidad;
     @JsonProperty("fec_ingreso")
     private LocalDate fecIngreso;
+    @JsonProperty("details")
     private List<ItemArticuloRequest> detalles;
 }

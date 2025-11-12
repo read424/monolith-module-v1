@@ -59,7 +59,7 @@ public class ObservabilityConfig {
     private void exportMetrics(PrometheusMeterRegistry registry){
         try{
             String metrics = registry.scrape();
-            WebClient.create("http://localhost:8081")
+            WebClient.create("http://127.0.0.1:8081")
                     .post()
                     .uri("/api/metrics/collect")
                     .contentType(MediaType.TEXT_PLAIN)
@@ -81,7 +81,7 @@ public class ObservabilityConfig {
                 )));
 
         OtlpGrpcSpanExporter exporter = OtlpGrpcSpanExporter.builder()
-                .setEndpoint("http://localhost:4317")
+                .setEndpoint("http://127.0.0.1:4317")
                 .build();
 
         SdkTracerProvider tracerProvider = SdkTracerProvider.builder()

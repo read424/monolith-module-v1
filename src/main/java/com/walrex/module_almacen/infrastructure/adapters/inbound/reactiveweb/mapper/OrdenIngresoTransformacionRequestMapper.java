@@ -12,12 +12,12 @@ import org.mapstruct.*;
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface OrdenIngresoTransformacionRequestMapper {
 
-    @Mapping(source = "idArticulo", target = "articulo", qualifiedByName = "mapArticulo")
+    @Mapping(source = "idArticulo", target = "articulo.idArticulo")
     @Mapping(source = "unidad", target = "unidad_ingreso", qualifiedByName = "mapUnidad")
     @Mapping(source = "fecIngreso", target = "fec_ingreso")
     @Mapping(source = "detalles", target = "detalles")
     OrdenIngresoTransformacionDTO toOrdenIngreso(OrdenIngresoTransformacionRequestDto dto);
-
+    /*
     @Named("mapArticulo")
     default ArticuloTransformacionDTO mapArticulo(Integer idArticulo) {
         if (idArticulo == null) return null;
@@ -25,6 +25,7 @@ public interface OrdenIngresoTransformacionRequestMapper {
                 .idArticulo(idArticulo)
                 .build();
     }
+     */
 
     @Named("mapUnidad")
     default UnidadMedidaDTO mapUnidad(UnidadMedidaRequest unidad) {
@@ -37,5 +38,11 @@ public interface OrdenIngresoTransformacionRequestMapper {
     }
 
     // Mapeo para los detalles
+    @Mapping(source = "id", target = "id_articulo")
+    @Mapping(source = "codigo", target = "cod_articulo")
+    @Mapping(source = "descripcion", target = "desc_articulo")
+    @Mapping(source = "idUnidad", target = "id_unidad")
+    @Mapping(source = "abrevUnidad", target = "abrev_unidad")
+    @Mapping(source = "idUnidadConsumo", target = "id_unidad_consumo")
     ItemArticuloTransformacionDTO itemsToDetalles(ItemArticuloRequest item);
 }

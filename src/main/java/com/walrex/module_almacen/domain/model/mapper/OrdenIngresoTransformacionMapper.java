@@ -6,6 +6,8 @@ import com.walrex.module_almacen.domain.model.DetalleOrdenIngreso;
 import com.walrex.module_almacen.domain.model.OrdenIngreso;
 import com.walrex.module_almacen.domain.model.dto.OrdenIngresoTransformacionDTO;
 import com.walrex.module_almacen.domain.model.enums.TypeAlmacen;
+import com.walrex.module_almacen.domain.model.enums.TypeCurrency;
+import com.walrex.module_almacen.domain.model.enums.TypeUnidadMedida;
 import org.mapstruct.*;
 
 import java.math.BigDecimal;
@@ -22,7 +24,7 @@ public interface OrdenIngresoTransformacionMapper {
 
     @Named("crearDetalleUnico")
     default List<DetalleOrdenIngreso> crearDetalleUnico(OrdenIngresoTransformacionDTO dto) {
-        if (dto == null || dto.getArticulo() == null) {
+        if (dto == null || dto.getArticulo().getIdArticulo() == null) {
             return Collections.emptyList();
         }
 
@@ -30,8 +32,9 @@ public interface OrdenIngresoTransformacionMapper {
                 .articulo(Articulo.builder()
                         .id(dto.getArticulo().getIdArticulo())
                         .build())
-                .idUnidad(dto.getUnidad_ingreso().getValue())
+                .idUnidad(TypeUnidadMedida.KILO.getId())
                 .cantidad(BigDecimal.valueOf(dto.getCantidad()))
+                .idMoneda(TypeCurrency.DOLLAR.getId())
                 .costo(BigDecimal.valueOf(dto.getPrecio()))
                 .build();
 

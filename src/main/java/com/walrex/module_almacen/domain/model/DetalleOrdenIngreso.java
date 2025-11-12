@@ -11,6 +11,7 @@ import java.util.List;
 public class DetalleOrdenIngreso {
     private Integer id;
     private Articulo articulo;
+    private Integer idDetalleOrdenCompra;
     private String lote;
     private Integer idTipoProducto;
     private Integer idTipoProductoFamilia;
@@ -21,5 +22,7 @@ public class DetalleOrdenIngreso {
     private Boolean excentoImp;
     private BigDecimal costo;
     private BigDecimal montoTotal;
+    private BigDecimal cantidadSaldo;
+    private Integer idLoteInventario;
     private List<DetalleRollo> detallesRollos;
 }

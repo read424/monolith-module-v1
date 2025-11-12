@@ -16,5 +16,6 @@ public class OrdenIngresoTransformacionDTO {
     private Almacen almacen;
     private UnidadMedidaDTO unidad_ingreso;
     private LocalDate fec_ingreso;
+    private Integer idUsuario;
     private List<ItemArticuloTransformacionDTO> detalles;
 }

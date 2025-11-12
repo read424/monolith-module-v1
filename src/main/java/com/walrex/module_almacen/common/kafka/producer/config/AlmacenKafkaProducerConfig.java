@@ -1,17 +1,17 @@
 package com.walrex.module_almacen.common.kafka.producer.config;
 
-import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringSerializer;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import reactor.kafka.sender.SenderOptions;
 
-import java.util.HashMap;
-import java.util.Map;
+import io.confluent.kafka.serializers.KafkaAvroSerializer;
+import reactor.kafka.sender.SenderOptions;
 
 @Configuration
 public class AlmacenKafkaProducerConfig {
@@ -22,12 +22,13 @@ public class AlmacenKafkaProducerConfig {
     private String bootstrapServers;
 
     // Inyección por constructor con Qualifier específico
-    public AlmacenKafkaProducerConfig(@Qualifier("almacenModuleSchemaRegistryConfig") Map<String, Object> schemaRegistryConfig) {
+    public AlmacenKafkaProducerConfig(
+            @Qualifier("AlmacenSchemaRegistryConfig") Map<String, Object> schemaRegistryConfig) {
         this.schemaRegistryConfig = schemaRegistryConfig;
     }
 
     @Bean(name = "almacenModuleProducerConfigs")
-    public Map<String, Object> almacenModuleProducerConfigs(){
+    public Map<String, Object> almacenModuleProducerConfigs() {
         Map<String, Object> producerProps = new HashMap<>();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
@@ -49,6 +50,11 @@ public class AlmacenKafkaProducerConfig {
 
         // Incluir configuración del Schema Registry
         producerProps.putAll(schemaRegistryConfig);
+
+        // Log para debug
+        System.out.println("🔧 Producer Properties: " + producerProps);
+        System.out.println("🔧 Schema Registry URL: " + producerProps.get("schema.registry.url"));
+
         return producerProps;
     }
 

@@ -1,23 +1,25 @@
 package com.walrex.module_almacen.domain.service;
 
-import com.walrex.module_almacen.application.ports.input.ProcesarAjusteInventarioUseCase;
-import com.walrex.module_almacen.application.ports.output.RegistrarEgresoPort;
-import com.walrex.module_almacen.application.ports.output.RegistrarIngresoPort;
-import com.walrex.module_almacen.domain.model.dto.*;
-import com.walrex.module_almacen.domain.model.mapper.ResultadoAjusteMapper;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.reactive.TransactionalOperator;
+
+import com.walrex.module_almacen.application.ports.input.ProcesarAjusteInventarioUseCase;
+import com.walrex.module_almacen.application.ports.output.RegistrarEgresoPort;
+import com.walrex.module_almacen.application.ports.output.RegistrarIngresoPort;
+import com.walrex.module_almacen.domain.model.dto.*;
+import com.walrex.module_almacen.domain.model.mapper.ResultadoAjusteMapper;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.util.function.Tuples;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,7 +52,7 @@ public class AjusteInventarioService implements ProcesarAjusteInventarioUseCase 
         log.info("Ajuste con {} ingresos y {} egresos [correlationId={}]",
                 num_ingresos, num_egresos, correlationId);
 
-        if (num_ingresos==0 && num_egresos==0) {
+        if (num_ingresos == 0 && num_egresos == 0) {
             log.warn("Ajuste de inventario sin ingresos ni egresos. TransactionId: {}", correlationId);
             MDC.remove("correlationId");
             return Mono.just(ResponseAjusteInventoryDTO.builder()
@@ -61,30 +63,32 @@ public class AjusteInventarioService implements ProcesarAjusteInventarioUseCase 
         }
 
         return procesarAjusteCompleto(request, correlationId)
-            .as(transactionalOperator::transactional)
-            .doOnSubscribe(s -> log.debug("Iniciando transacción para procesar ajuste [correlationId={}]", correlationId))
-            .doOnSuccess(response -> {
-                if (response.isSuccess()) {
-                    log.info("Ajuste de inventario procesado correctamente [correlationId={}]", correlationId);
-                } else {
-                    log.warn("Ajuste de inventario no exitoso: {} [correlationId={}]",
-                            response.getMessage(), correlationId);
-                }
-            })
-            .onErrorResume(error->{
-                log.error("Error durante la transacción para TransactionId: {}. Error: {}",
-                        correlationId, error.getMessage(), error);
+                .as(transactionalOperator::transactional)
+                .doOnSubscribe(
+                        s -> log.debug("Iniciando transacción para procesar ajuste [correlationId={}]", correlationId))
+                .doOnSuccess(response -> {
+                    if (response.isSuccess()) {
+                        log.info("Ajuste de inventario procesado correctamente [correlationId={}]", correlationId);
+                    } else {
+                        log.warn("Ajuste de inventario no exitoso: {} [correlationId={}]",
+                                response.getMessage(), correlationId);
+                    }
+                })
+                .onErrorResume(error -> {
+                    log.error("Error durante la transacción para TransactionId: {}. Error: {}",
+                            correlationId, error.getMessage(), error);
 
-                return Mono.just(ResponseAjusteInventoryDTO.builder()
-                        .isSuccess(false)
-                        .message("Error al procesar ajuste de inventario: "+error.getMessage())
-                        .transactionId(correlationId)
-                    .build());
-            })
-            .doFinally(signal -> MDC.remove("correlationId"));
+                    return Mono.just(ResponseAjusteInventoryDTO.builder()
+                            .isSuccess(false)
+                            .message("Error al procesar ajuste de inventario: " + error.getMessage())
+                            .transactionId(correlationId)
+                            .build());
+                })
+                .doFinally(signal -> MDC.remove("correlationId"));
     }
 
-    private Mono<ResponseAjusteInventoryDTO> procesarAjusteCompleto(RequestAjusteInventoryDTO ajuste, String transactionId){
+    private Mono<ResponseAjusteInventoryDTO> procesarAjusteCompleto(RequestAjusteInventoryDTO ajuste,
+            String transactionId) {
         log.debug("Procesando ajuste completo. TransactionId: {}, AlmacenId: {}, MotivoId: {}",
                 transactionId, ajuste.getId_almacen(), ajuste.getId_motivo());
 
@@ -93,21 +97,17 @@ public class AjusteInventarioService implements ProcesarAjusteInventarioUseCase 
                     int size = ingresoResult.getDetalles() != null ? ingresoResult.getDetalles().size() : 0;
                     log.debug("Procesados {} ingresos. TransactionId: {}", size, transactionId);
                 })
-                .flatMap(ingresoResult ->
-                    procesarEgresos(ajuste, transactionId)
+                .flatMap(ingresoResult -> procesarEgresos(ajuste, transactionId)
                         .doOnSuccess(egresoResult -> {
                             int size = egresoResult.getDetalles() != null ? egresoResult.getDetalles().size() : 0;
                             log.debug("Procesados {} egresos. TransactionId: {}", size, transactionId);
                         })
-                        .map(egresoResult->
-                            Tuples.of(ingresoResult, egresoResult)
-                        )
-                )
-                .map(tuple->{
+                        .map(egresoResult -> Tuples.of(ingresoResult, egresoResult)))
+                .map(tuple -> {
                     OrdenIngresoDTO ingresoResult = tuple.getT1();
                     OrdenEgresoDTO egresoResult = tuple.getT2();
 
-                    String idReferencia = construirIdReferencia(ingresoResult, egresoResult);
+                    // String idReferencia = construirIdReferencia(ingresoResult, egresoResult);
                     int ingresosCount = ingresoResult.getDetalles().size();
                     int egresosCount = egresoResult.getDetalles().size();
 
@@ -128,13 +128,12 @@ public class AjusteInventarioService implements ProcesarAjusteInventarioUseCase 
                 });
     }
 
-    private Mono<OrdenIngresoDTO> procesarIngresos(RequestAjusteInventoryDTO ingreso, String transactionId){
-        if(ingreso.getIngresos()==null || ingreso.getIngresos().isEmpty()){
+    private Mono<OrdenIngresoDTO> procesarIngresos(RequestAjusteInventoryDTO ingreso, String transactionId) {
+        if (ingreso.getIngresos() == null || ingreso.getIngresos().isEmpty()) {
             log.debug("No hay ingresos para procesar. TransactionId: {}", transactionId);
             return Mono.just(OrdenIngresoDTO.builder()
-                .detalles(Collections.emptyList())
-                .build()
-            );
+                    .detalles(Collections.emptyList())
+                    .build());
         }
         log.debug("Procesando {} ingresos para TransactionId: {}",
                 ingreso.getIngresos().size(), transactionId);
@@ -144,24 +143,22 @@ public class AjusteInventarioService implements ProcesarAjusteInventarioUseCase 
                 ingreso.getFec_actualizacion(),
                 "AJUSTE DE INVENTARIO",
                 ingreso.getIngresos(),
-                transactionId
-        ).doOnSuccess(result -> {
-            log.debug("Ingresos procesados exitosamente. OrdenId: {}, TransactionId: {}",
-                    result.getId(), transactionId);
-        })
-        .doOnError(error -> {
-            log.error("Error al procesar ingresos. TransactionId: {}, Error: {}",
-                    transactionId, error.getMessage(), error);
-        });
+                transactionId).doOnSuccess(result -> {
+                    log.debug("Ingresos procesados exitosamente. OrdenId: {}, TransactionId: {}",
+                            result.getId(), transactionId);
+                })
+                .doOnError(error -> {
+                    log.error("Error al procesar ingresos. TransactionId: {}, Error: {}",
+                            transactionId, error.getMessage(), error);
+                });
     }
 
-    private Mono<OrdenEgresoDTO> procesarEgresos(RequestAjusteInventoryDTO egreso, String transactionId){
-        if(egreso.getEgresos()==null || egreso.getEgresos().isEmpty()){
+    private Mono<OrdenEgresoDTO> procesarEgresos(RequestAjusteInventoryDTO egreso, String transactionId) {
+        if (egreso.getEgresos() == null || egreso.getEgresos().isEmpty()) {
             log.debug("No hay egresos para procesar. TransactionId: {}", transactionId);
             return Mono.just(OrdenEgresoDTO.builder()
                     .detalles(Collections.emptyList())
-                    .build()
-            );
+                    .build());
         }
         log.debug("Procesando {} egresos para TransactionId: {}", egreso.getEgresos().size(), transactionId);
 
@@ -171,26 +168,23 @@ public class AjusteInventarioService implements ProcesarAjusteInventarioUseCase 
                 egreso.getFec_actualizacion(),
                 "AJUSTE DE INVENTARIO",
                 egreso.getEgresos(),
-                transactionId
-        ).doOnSuccess(result -> {
-            log.debug("Egresos procesados exitosamente. OrdenId: {}, TransactionId: {}",
-                result.getId(), transactionId);
-        })
-        .doOnError(error -> {
-            log.error("Error al procesar egresos. TransactionId: {}, Error: {}",
-                transactionId, error.getMessage(), error);
-        });
+                transactionId).doOnSuccess(result -> {
+                    log.debug("Egresos procesados exitosamente. OrdenId: {}, TransactionId: {}",
+                            result.getId(), transactionId);
+                })
+                .doOnError(error -> {
+                    log.error("Error al procesar egresos. TransactionId: {}, Error: {}",
+                            transactionId, error.getMessage(), error);
+                });
     }
 
     private ResultAjustIngresoDTO construirResultadoIngresos(OrdenIngresoDTO ingresoResult) {
         if (ingresoResult == null || ingresoResult.getId() == null) {
             return null;
         }
-        List<ItemResultSavedDTO> detalles = ingresoResult.getDetalles() != null ?
-                ingresoResult.getDetalles().stream()
-                        .map(resultadoAjusteMapper::detalleIngresoToItemResult)
-                        .collect(Collectors.toList()) :
-                Collections.emptyList();
+        List<ItemResultSavedDTO> detalles = ingresoResult.getDetalles() != null ? ingresoResult.getDetalles().stream()
+                .map(resultadoAjusteMapper::detalleIngresoToItemResult)
+                .collect(Collectors.toList()) : Collections.emptyList();
 
         return ResultAjustIngresoDTO.builder()
                 .id(ingresoResult.getId().intValue())
@@ -204,11 +198,9 @@ public class AjusteInventarioService implements ProcesarAjusteInventarioUseCase 
             return null;
         }
 
-        List<ItemArticuloEgreso> detalles = egresoResult.getDetalles() != null ?
-                egresoResult.getDetalles().stream()
-                        .map(resultadoAjusteMapper::detalleSalidaToItemResult)
-                        .collect(Collectors.toList()) :
-                Collections.emptyList();
+        List<ItemArticuloEgreso> detalles = egresoResult.getDetalles() != null ? egresoResult.getDetalles().stream()
+                .map(resultadoAjusteMapper::detalleSalidaToItemResult)
+                .collect(Collectors.toList()) : Collections.emptyList();
 
         return ResultAjustEgresoDTO.builder()
                 .id(egresoResult.getId().intValue())
@@ -217,18 +209,21 @@ public class AjusteInventarioService implements ProcesarAjusteInventarioUseCase 
                 .build();
     }
 
-    private String construirIdReferencia(OrdenIngresoDTO ingreso, OrdenEgresoDTO egreso){
-        StringBuilder ref = new StringBuilder();
-        if(ingreso!=null && ingreso.getId()!=null){
-            ref.append("I").append(ingreso.getId());
-        }
-        if(egreso!=null && egreso.getId()!=null){
-            if(ref.length()>0){
-                ref.append("-");
-            }
-            ref.append("E").append(egreso.getId());
-        }
-
-        return ref.length()>0 ? ref.toString():null;
-    }
+    /*
+     * private String construirIdReferencia(OrdenIngresoDTO ingreso, OrdenEgresoDTO
+     * egreso) {
+     * StringBuilder ref = new StringBuilder();
+     * if (ingreso != null && ingreso.getId() != null) {
+     * ref.append("I").append(ingreso.getId());
+     * }
+     * if (egreso != null && egreso.getId() != null) {
+     * if (ref.length() > 0) {
+     * ref.append("-");
+     * }
+     * ref.append("E").append(egreso.getId());
+     * }
+     * 
+     * return ref.length() > 0 ? ref.toString() : null;
+     * }
+     */
 }

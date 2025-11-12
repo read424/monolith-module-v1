@@ -6,11 +6,11 @@ public enum TypeAlmacen {
 
     private final int id;
 
-    TypeAlmacen(int id){
-        this.id=id;
+    TypeAlmacen(int id) {
+        this.id = id;
     }
 
-    public int getId(){
+    public int getId() {
         return id;
     }
 

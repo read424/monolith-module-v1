@@ -16,7 +16,7 @@ public class OrdenIngresoAdapterFactoryImpl implements OrdenIngresoAdapterFactor
     public OrdenIngresoAdapterFactoryImpl(
             OrdenIngresoLogisticaPort ordenIngresoLogisticaAdapter,
             @Qualifier("telaCruda") OrdenIngresoLogisticaPort ordenIngresoTelaCrudaAdapter,
-            @Qualifier("transformacion") OrdenIngresoLogisticaPort ordenIngresoTransformacionAdapter
+            @Qualifier("Ingresotransformacion") OrdenIngresoLogisticaPort ordenIngresoTransformacionAdapter
     ){
         this.ordenIngresoLogisticaAdapter=ordenIngresoLogisticaAdapter;
         this.ordenIngresoTelaCrudaAdapter=ordenIngresoTelaCrudaAdapter;

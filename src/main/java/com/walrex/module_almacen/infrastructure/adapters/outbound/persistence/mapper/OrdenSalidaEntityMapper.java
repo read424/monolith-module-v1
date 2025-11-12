@@ -12,7 +12,6 @@ import java.time.ZoneOffset;
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface OrdenSalidaEntityMapper {
 
-    @Mapping(source = "id", target = "id_ordensalida")
     @Mapping(source = "motivo.idMotivo", target = "id_motivo")
     @Mapping(source = "isInterno", target = "is_interno")
     @Mapping(source = "idTipoComprobante", target = "id_tipo_comprobante")
@@ -22,7 +21,6 @@ public interface OrdenSalidaEntityMapper {
     @Mapping(source = "fecRegistro", target = "create_at", qualifiedByName = "mapLocalDateToOffsetDateTime")
     OrdenSalidaEntity toEntity(OrdenEgresoDTO dto);
 
-    @Mapping(source = "id_ordensalida", target = "id")
     @Mapping(source = "id_motivo", target = "motivo.idMotivo")
     @Mapping(source = "is_interno", target = "isInterno")
     @Mapping(source = "id_tipo_comprobante", target = "idTipoComprobante")

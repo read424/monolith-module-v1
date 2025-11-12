@@ -6,5 +6,9 @@ import lombok.Data;
 @Data
 @Builder
 public class TransformacionResponseDTO {
-    private Long id_transformacion;
+    private Long idOrdenIngreso;
+    private String codigoIngreso;
+    private Long idOrdenSalida;
+    private String codigoSalida;
+    private Boolean success;
 }

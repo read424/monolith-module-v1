@@ -7,11 +7,11 @@ import com.walrex.module_almacen.domain.model.Articulo;
 import com.walrex.module_almacen.domain.model.DetalleOrdenIngreso;
 import com.walrex.module_almacen.domain.model.OrdenIngreso;
 import com.walrex.module_almacen.domain.model.enums.TypeAlmacen;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.ArticuloEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetailsIngresoEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.OrdenIngresoEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.ArticuloIngresoLogisticaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenIngresoEntityMapper;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.ArticuloAlmacenRepository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.DetailsIngresoRepository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.OrdenIngresoRepository;
@@ -82,7 +82,7 @@ public class OrdenIngresoTransformacionPersistenceAdapterTest {
     @Test
     void deberiaGuardarOrdenTransformacionExitosamente() {
         // Given
-        ArticuloEntity articuloConversion = ArticuloEntity.builder()
+        ArticuloInventory articuloConversion = ArticuloInventory.builder()
                 .idUnidad(1)
                 .idUnidadConsumo(6)
                 .isMultiplo("1")

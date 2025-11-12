@@ -2,6 +2,8 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 
 import com.walrex.module_almacen.domain.model.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.*;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.ItemKardexDTOToKardexEntityMapper;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.KardexRepository;
 import io.r2dbc.spi.R2dbcException;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,8 +19,6 @@ import reactor.test.StepVerifier;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,7 +28,8 @@ import static org.mockito.Mockito.*;
 public class StandardKardexRegistrationStrategyTest {
     @Mock
     private KardexRepository kardexRepository;
-
+    @Mock
+    private ItemKardexDTOToKardexEntityMapper itemKardexDTOToKardexEntityMapper;
     @Captor
     private ArgumentCaptor<KardexEntity> kardexCaptor;
 
@@ -41,13 +42,13 @@ public class StandardKardexRegistrationStrategyTest {
     private Articulo articulo;
     private DetalleOrdenIngreso detalle;
     private DetailsIngresoEntity detalleEntity;
-    private ArticuloEntity articuloEntity;
+    private ArticuloInventory articuloEntity;
     private MotivoEntity motivoEntity;
     private AlmacenEntity almacenEntity;
 
     @BeforeEach
     void setUp(){
-        strategy = new StandardKardexRegistrationStrategy(kardexRepository);
+        strategy = new StandardKardexRegistrationStrategy(kardexRepository, itemKardexDTOToKardexEntityMapper);
 
         // Inicializar datos de prueba
         motivo = Motivo.builder()

@@ -1,13 +1,11 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper;
 
-import com.walrex.module_almacen.domain.model.dto.DetalleEgresoDTO;
-import com.walrex.module_almacen.domain.model.dto.DetalleSalidaDTO;
-import com.walrex.module_almacen.domain.model.dto.ItemProductDTO;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetailSalidaEntity;
-import org.mapstruct.*;
-import org.mapstruct.factory.Mappers;
-
 import java.util.List;
+
+import org.mapstruct.*;
+
+import com.walrex.module_almacen.domain.model.dto.*;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetailSalidaEntity;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, unmappedTargetPolicy = ReportingPolicy.IGNORE)
 public interface DetailSalidaMapper {
@@ -20,9 +18,12 @@ public interface DetailSalidaMapper {
     @Mapping(source = "idOrdenEgreso", target = "id_ordensalida")
     @Mapping(source = "id", target = "id_detalle_orden")
     @Mapping(source = "totalMonto", target = "tot_monto")
+    @Mapping(source = "articulo.id", target = "id_articulo")
+    @Mapping(source = "idUnidad", target = "id_unidad")
     DetailSalidaEntity toEntity(DetalleEgresoDTO dto);
 
     List<DetailSalidaEntity> toEntityList(List<ItemProductDTO> dtos);
+
     List<ItemProductDTO> toDtoList(List<DetailSalidaEntity> entities);
 
     @Mapping(source = "id_detalle_orden", target = "id")

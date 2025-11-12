@@ -45,6 +45,9 @@
 		<janino.version>3.1.12</janino.version>
 		<micrometer.version>1.13.5</micrometer.version>
 		<testcontainers.version>1.19.3</testcontainers.version>
+		<springwolf.version>1.5.0</springwolf.version>
+		<jackson-datatype.version>2.19.0</jackson-datatype.version>
+		<avro-schemas.monolith.version>0.1.0-SNAPSHOT</avro-schemas.monolith.version>
 	</properties>
 	<repositories>
 		<repository>
@@ -56,6 +59,12 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webflux</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>io.projectreactor</groupId>
+					<artifactId>reactor-tools</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -71,6 +80,10 @@
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-aop</artifactId>
 		</dependency>
 		<dependency>
@@ -80,6 +93,28 @@
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis-reactive</artifactId>
+			<version>3.4.0</version>
+		</dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+		<!-- ✅ RESILIENCE4J -->
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-ratelimiter</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-bulkhead</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.github.resilience4j</groupId>
+			<artifactId>resilience4j-timelimiter</artifactId>
 		</dependency>
 		<!-- Logback y SLF4J -->
 		<dependency>
@@ -128,6 +163,17 @@
 			<artifactId>kafka-schema-registry-client</artifactId>
 			<version>7.9.0</version>
 		</dependency>
+		<!-- ✅ APACHE POI para Excel -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>5.2.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.4</version>
+		</dependency>
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>r2dbc-postgresql</artifactId>
@@ -141,7 +187,7 @@
 		<dependency>
 			<groupId>com.walrex</groupId>
 			<artifactId>avro-schemas</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
+			<version>${avro-schemas.monolith.version}</version>
 		</dependency>
 		<!-- Métricas -->
 		<dependency>
@@ -175,26 +221,6 @@
 			<artifactId>opentelemetry-kafka-clients-2.6</artifactId>
 			<version>1.19.0-alpha</version>
 		</dependency>
-		<dependency>
-			<groupId>io.projectreactor</groupId>
-			<artifactId>reactor-tools</artifactId>
-			<version>3.7.4</version>
-		</dependency>
-		<!--dependency>
-			<groupId>io.github.resilience4j</groupId>
-			<artifactId>resilience4j-spring-boot3</artifactId>
-			<version>2.3.0</version>
-		</dependency>
-		<dependency>
-			<groupId>io.github.resilience4j</groupId>
-			<artifactId>resilience4j-reactor</artifactId>
-			<version>2.3.0</version>
-		</dependency-->
-		<dependency>
-			<groupId>com.walrex</groupId>
-			<artifactId>avro-schemas</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
 		<!--Utility-->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
@@ -207,6 +233,36 @@
 			<artifactId>mapstruct</artifactId>
 			<version>${org.mapstruct.version}</version>
 		</dependency>
+		<!--documentacion-->
+		<!-- OpenAPI/Swagger para WebFlux -->
+		<dependency>
+			<groupId>org.springdoc</groupId>
+			<artifactId>springdoc-openapi-webflux-ui</artifactId>
+			<version>1.8.0</version>
+		</dependency>
+		<!--dependency>
+			<groupId>io.github.springwolf</groupId>
+			<artifactId>springwolf-core</artifactId>
+			<version>${springwolf.version}</version>
+		</dependency-->
+		<!-- Para Kafka -->
+		<!--dependency>
+			<groupId>io.github.springwolf</groupId>
+			<artifactId>springwolf-kafka</artifactId>
+			<version>${springwolf.version}</version>
+		</dependency-->
+		<!-- Para RabbitMQ -->
+		<!--dependency>
+			<groupId>io.github.springwolf</groupId>
+			<artifactId>springwolf-amqp</artifactId>
+			<version>${springwolf.version}</version>
+		</dependency-->
+		<!-- UI Web (opcional pero recomendado) -->
+		<!--dependency>
+			<groupId>io.github.springwolf</groupId>
+			<artifactId>springwolf-ui</artifactId>
+			<version>${springwolf.version}</version>
+		</dependency-->
 		<!--Test-->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -216,6 +272,23 @@
 		<dependency>
 			<groupId>io.projectreactor</groupId>
 			<artifactId>reactor-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-core</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<version>3.27.3</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.tngtech.archunit</groupId>
+			<artifactId>archunit-junit5</artifactId>
+			<version>1.2.1</version>
 			<scope>test</scope>
 		</dependency>
 		<!-- Dependencias TestContainers -->

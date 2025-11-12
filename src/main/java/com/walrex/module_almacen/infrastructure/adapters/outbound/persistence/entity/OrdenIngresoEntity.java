@@ -7,19 +7,16 @@ import org.springframework.data.relational.core.mapping.Table;
 
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.Date;
 
-@Getter
-@Setter
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode
-@ToString
 @Builder
 @Table("almacenes.ordeningreso")
 public class OrdenIngresoEntity {
-    @Id()
-    private Long id_ordeningreso;
+    @Id
+    @Column("id_ordeningreso")
+    private Long id;
     private Integer id_cliente;
     private Integer id_motivo;
     private Integer id_origen;
@@ -35,6 +32,7 @@ public class OrdenIngresoEntity {
     private String nu_serie;
     private String cod_ingreso;
     private Integer id_almacen;
+    private Integer id_orden;
     private String descripcion;
     private String comprobante_ref;
     private Integer condicion;

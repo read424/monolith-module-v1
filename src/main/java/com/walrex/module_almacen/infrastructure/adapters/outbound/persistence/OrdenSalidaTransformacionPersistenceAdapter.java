@@ -1,13 +1,18 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 
+import com.walrex.module_almacen.application.ports.output.KardexRegistrationStrategy;
 import com.walrex.module_almacen.application.ports.output.OrdenSalidaLogisticaPort;
+import com.walrex.module_almacen.domain.model.Articulo;
+import com.walrex.module_almacen.domain.model.dto.ItemKardexDTO;
 import com.walrex.module_almacen.domain.model.exceptions.StockInsuficienteException;
 import com.walrex.module_almacen.domain.model.dto.DetalleEgresoDTO;
 import com.walrex.module_almacen.domain.model.dto.OrdenEgresoDTO;
 import com.walrex.module_almacen.domain.model.enums.TypeMovimiento;
+import com.walrex.module_almacen.domain.model.mapper.DetEgresoLoteEntityToItemKardexMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.DetailSalidaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenSalidaEntityMapper;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +24,6 @@ import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
-import java.time.OffsetDateTime;
 import java.util.Date;
 
 @RequiredArgsConstructor
@@ -33,17 +36,18 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
     private final DetalleInventoryRespository detalleInventoryRespository;
     private final OrdenSalidaEntityMapper ordenSalidaEntityMapper;
     private final DetailSalidaMapper detailSalidaMapper;
-    private final KardexRepository kardexRepository;
+    private final KardexRegistrationStrategy kardexStrategy;
+    private final DetEgresoLoteEntityToItemKardexMapper detEgresoLoteEntityToItemKardexMapper;
 
     @Override
     @Transactional
     public Mono<OrdenEgresoDTO> guardarOrdenSalida(OrdenEgresoDTO ordenSalida) {
-        log.info("Guardando orden de salida por transformación: {}", ordenSalida.getMotivo().getIdMotivo());
+        log.info("Guardando orden de salida por transformación: {}", ordenSalida);
         return guardarOrdenPrincipal(ordenSalida)
                 .flatMap(this::procesarDetalles)
                 .flatMap(this::procesarEntregaYLotes)
+                .flatMap(this::actualizarEstadoEntrega)
                 .flatMap(this::registrarKardexConLotes)
-                .flatMap(orden -> actualizarEstadoEntrega(orden.getId().intValue(), true))
                 .doOnSuccess(orden ->
                         log.info("✅ Orden de salida por transformación completada: {}", orden.getId()));
     }
@@ -53,15 +57,11 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
         Integer id_usuario = 18;
         OrdenSalidaEntity entity = ordenSalidaEntityMapper.toEntity(ordenSalida);
         entity.setEntregado(0); // Inicialmente entregado estará en 0
-        entity.setCreate_at(OffsetDateTime.now());
-        entity.setFec_entrega(null);
-        entity.setId_user_entrega(null);
-        entity.setId_usuario(null);
         entity.setStatus(1); // Activa
 
         return ordenSalidaRepository.save(entity)
                 .map(savedEntity -> {
-                    ordenSalida.setId(savedEntity.getId_ordensalida());
+                    ordenSalida.setId(savedEntity.getId());
                     ordenSalida.setCodEgreso(savedEntity.getCod_salida());
                     return ordenSalida;
                 })
@@ -70,7 +70,7 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
     }
 
     private Mono<OrdenEgresoDTO> procesarDetalles(OrdenEgresoDTO ordenSalida) {
-        log.debug("Guardando {} detalles de salida", ordenSalida.getDetalles().size());
+        log.debug("Guardando {} detalles de salida detalles: {} ", ordenSalida.getDetalles().size(), ordenSalida.getDetalles());
 
         return Flux.fromIterable(ordenSalida.getDetalles())
                 .flatMap(detalle -> procesarDetalle(detalle, ordenSalida))
@@ -82,22 +82,33 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
     }
 
     private Mono<DetalleEgresoDTO> procesarDetalle(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenSalida) {
+        log.info("DetalleEgresoDTO {}:", detalle);
         detalle.setIdOrdenEgreso(ordenSalida.getId());
         return guardarDetalleOrdenEgreso(detalle, ordenSalida);
     }
 
     protected Mono<DetalleEgresoDTO> guardarDetalleOrdenEgreso(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenEgreso){
         DetailSalidaEntity detalleEntity = detailSalidaMapper.toEntity(detalle);
-
+        detalleEntity.setEntregado(0);
+        log.info("DetailSalidaEntity {}:", detalleEntity);
         return detalleSalidaRepository.save(detalleEntity)
                 .map(savedEntity -> {
                     detalle.setId(savedEntity.getId_detalle_orden());
-                    detalle.setIdOrdenEgreso(ordenEgreso.getId());
                     return detalle;
                 })
                 .doOnSuccess(savedDetalle ->
                         log.debug("Detalle guardado: artículo {} con ID {}",
-                                savedDetalle.getArticulo().getId(), savedDetalle.getId()));
+                                savedDetalle.getArticulo(), savedDetalle.getId())
+                );
+    }
+
+    // ✅ Registrar kardex usando datos de detalle_salida_lote
+    protected Mono<OrdenEgresoDTO> registrarKardexConLotes(OrdenEgresoDTO ordenSalida) {
+        log.debug("Registrando kardex con información de lotes");
+
+        return Flux.fromIterable(ordenSalida.getDetalles())
+                .flatMap(detalle -> registrarKardexPorDetalle(detalle, ordenSalida))
+                .then(Mono.just(ordenSalida));
     }
 
     // ✅ Nuevo método para procesar entrega y activar triggers
@@ -111,19 +122,24 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
 
     // ✅ Método auxiliar para procesar cada detalle
     protected Mono<DetalleEgresoDTO> procesarEntregaYConversion(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenSalida) {
-        return detalleSalidaRepository.assignedDelivered(detalle.getId().intValue())
-                .doOnSuccess(updated ->
-                        log.debug("Detalle {} marcado como entregado, trigger de lotes ejecutado", detalle.getId()))
-                .then(buscarInfoConversion(detalle, ordenSalida))
-                .flatMap(infoConversion -> aplicarConversion(detalle, infoConversion))
-                .doOnSuccess(detalleActualizado ->
-                        log.debug("✅ Stock actualizado para artículo {}: {}",
-                                detalleActualizado.getArticulo().getId(),
-                                detalleActualizado.getArticulo().getStock()));
+        return buscarInfoConversion(detalle, ordenSalida)
+                .doOnNext(articuloInfo -> actualizarInfoArticulo(detalle, articuloInfo)) // ✅ Actualizar detalle
+                .flatMap(articuloInfo -> validarStockDisponible(detalle, articuloInfo))
+                .flatMap(infoConversion->
+                    detalleSalidaRepository.assignedDelivered(detalle.getId().intValue())
+                        .doOnSuccess(updated->
+                                log.debug("✅ Detalle {} marcado como entregado, trigger de lotes ejecutado", detalle.getId())
+                        )
+                        .then(Mono.just(detalle))
+                )
+                .doOnSuccess(detalleActualizado->log.debug("✅ Stock actualizado para artículo {}: {}",
+                        detalleActualizado.getArticulo().getId(),
+                        detalleActualizado.getArticulo().getStock())
+                );
     }
 
     // Método para buscar información de conversión por articulo
-    protected Mono<ArticuloEntity> buscarInfoConversion(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenEgreso) {
+    protected Mono<ArticuloInventory> buscarInfoConversion(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenEgreso) {
         // ✅ Validar que detalle no sea null
         if (detalle == null) {
             return Mono.error(new IllegalArgumentException("El detalle no puede ser null"));
@@ -175,38 +191,59 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
                 );
     }
 
-    // Método para aplicar conversión
-    protected Mono<DetalleEgresoDTO> aplicarConversion(DetalleEgresoDTO detalle, ArticuloEntity infoConversion) {
-        // ✅ Validar que idUnidad no sea null
-        if (detalle.getIdUnidad() == null) {
-            String errorMsg = String.format("ID de unidad no puede ser null para el detalle %d del artículo %d",
-                    detalle.getId(),
-                    detalle.getArticulo().getId());
-            log.error("❌ {}", errorMsg);
-            return Mono.error(new IllegalArgumentException(errorMsg));
+    /**
+     * Actualiza la información del artículo en el detalle con datos de conversión
+     */
+    private void actualizarInfoArticulo(DetalleEgresoDTO detalle, ArticuloInventory articuloInfo) {
+        if (detalle.getArticulo() == null) {
+            detalle.setArticulo(Articulo.builder().id(articuloInfo.getIdArticulo()).build());
         }
-        if (!detalle.getIdUnidad().equals(infoConversion.getIdUnidadConsumo())) {
-            detalle.getArticulo().setIdUnidadSalida(infoConversion.getIdUnidadConsumo());
-            detalle.getArticulo().setIs_multiplo(infoConversion.getIsMultiplo());
-            detalle.getArticulo().setValor_conv(infoConversion.getValorConv());
-            detalle.getArticulo().setStock(infoConversion.getStock());
-        } else {
-            detalle.getArticulo().setIdUnidadSalida(detalle.getIdUnidad());
-        }
-        return Mono.just(detalle);
+        // ✅ Setear información de conversión desde ArticuloInventory
+        Articulo articulo =detalle.getArticulo();
+
+        articulo.setIdUnidad(articuloInfo.getIdUnidad());
+        articulo.setIdUnidadSalida(articuloInfo.getIdUnidadConsumo());
+        articulo.setIs_multiplo(articuloInfo.getIsMultiplo());
+        articulo.setValor_conv(articuloInfo.getValorConv());
+        articulo.setStock(articuloInfo.getStock());
+        log.debug("✅ Información de artículo actualizada - Stock: {}, Unidad: {}, Conversión: {}",
+                articulo.getStock(), articulo.getIdUnidad(), articulo.getValor_conv());
     }
 
-    // ✅ Registrar kardex usando datos de detalle_salida_lote
-    protected Mono<OrdenEgresoDTO> registrarKardexConLotes(OrdenEgresoDTO ordenSalida) {
-        log.debug("Registrando kardex con información de lotes");
+    private Mono<ArticuloInventory> validarStockDisponible(DetalleEgresoDTO detalle, ArticuloInventory articuloInfo){
+        BigDecimal stockDisponible = detalle.getArticulo().getStock();
+        BigDecimal cantidadSalidaSolicitada= BigDecimal.valueOf(detalle.getCantidad());
+        if(stockDisponible==null){
+            return Mono.error(new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format("No se encontró stock disponible para el artículo %d", detalle.getArticulo().getId())));
+        }
+        if(!detalle.getIdUnidad().equals(detalle.getArticulo().getId())){
+            Integer valorConv = detalle.getArticulo().getValor_conv();
+            if (valorConv == null) {
+                String errorMsg = String.format("Valor de conversión no configurado para artículo %d",
+                        detalle.getArticulo().getId());
+                log.error("❌ {}", errorMsg);
+                return Mono.error(new IllegalArgumentException(errorMsg));
+            }
+            BigDecimal factorConversion = BigDecimal.valueOf(Math.pow(10, valorConv));
+            cantidadSalidaSolicitada=cantidadSalidaSolicitada
+                    .multiply(factorConversion)
+                    .setScale(6, RoundingMode.HALF_UP);
+        }
 
-        return Flux.fromIterable(ordenSalida.getDetalles())
-                .flatMap(detalle -> registrarKardexPorDetalle(detalle, ordenSalida))
-                .then(Mono.just(ordenSalida));
+        if(stockDisponible.compareTo(cantidadSalidaSolicitada)<0){
+            return Mono.error(new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    String.format("Stock insuficiente. Disponible: %s, Solicitado: %s",
+                            stockDisponible, cantidadSalidaSolicitada)
+            ));
+        }
+        log.info("✅ Stock validado - Disponible: {}, Solicitado: {}", stockDisponible, cantidadSalidaSolicitada);
+        return Mono.just(articuloInfo);
     }
+
 
     protected Mono<Void> registrarKardexPorDetalle(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenSalida) {
-        if (detalle.getArticulo().getStock().compareTo(BigDecimal.ZERO) < 0) {
+        if (detalle.getArticulo().getStock().compareTo(BigDecimal.ZERO)==0) {
             String errorMsg = String.format("Stock insuficiente para artículo %d. Stock actual: %s",
                     detalle.getArticulo().getId(),
                     detalle.getArticulo().getStock());
@@ -228,85 +265,129 @@ public class OrdenSalidaTransformacionPersistenceAdapter implements OrdenSalidaL
             cantidadConvertida = BigDecimal.valueOf(detalle.getCantidad()).multiply(factorConversion).setScale(6, RoundingMode.HALF_UP);
         }
 
-        // ✅ Preparar stock inicial (stock actual + cantidad que va a salir)
-        BigDecimal stockAntesDeSalida = detalle.getArticulo().getStock().add(cantidadConvertida);//20000+60000=80000
-        detalle.getArticulo().setStock(stockAntesDeSalida);//80000
+        // ✅ Validar que cantidad convertida no sea mayor o igual al stock
+        if (cantidadConvertida.compareTo(detalle.getArticulo().getStock()) > 0) {
+            String errorMsg = String.format("Cantidad solicitada (%s) es mayor o igual al stock disponible (%s) para artículo %d",
+                    cantidadConvertida,
+                    detalle.getArticulo().getStock(),
+                    detalle.getArticulo().getId());
+            log.error("❌ {}", errorMsg);
+            return Mono.error(new StockInsuficienteException(errorMsg));
+        }
 
         log.debug("📊 Preparando kardex para artículo {}: stock_inicial={}, cantidad_convertida={}, stock_antes_salida={}",
                 detalle.getArticulo().getId(),
-                detalle.getArticulo().getStock().subtract(cantidadConvertida),
+                detalle.getArticulo().getStock(),
                 cantidadConvertida,
-                stockAntesDeSalida);
+                detalle.getArticulo().getStock());
         return detalleSalidaLoteRepository.findByIdDetalleOrden(detalle.getId())
-            .concatMap(salidaLote -> registrarKardexPorLote(salidaLote, detalle, ordenSalida))
-            .then();
+                .switchIfEmpty(Flux.error(new IllegalStateException(
+                        String.format("No se encontraron lotes para el detalle %d", detalle.getId()))))
+                .concatMap(salidaLote -> registrarKardexPorLote(salidaLote, detalle, ordenSalida))
+                .then();
     }
 
     protected Mono<Void> registrarKardexPorLote(DetailSalidaLoteEntity salidaLote,
                                                 DetalleEgresoDTO detalle,
                                                 OrdenEgresoDTO ordenSalida) {
 
-        // ✅ Consultar saldo actual del artículo
-        BigDecimal saldoStockActual = detalle.getArticulo().getStock();//
+        // ✅ Mapear base y completar información
+        ItemKardexDTO itemKardexDTO = configurarItemKardex(salidaLote, detalle, ordenSalida);
 
-        // ✅ Consultar saldo actual del lote, en este momento el disparador ya desconto la cantidad total previa
-        Mono<BigDecimal> saldoLoteMono = detalleInventoryRespository.getStockLote(salidaLote.getId_lote())
-                .map(lote -> BigDecimal.valueOf(lote.getCantidadDisponible()).add(BigDecimal.valueOf(salidaLote.getCantidad())))
-                .switchIfEmpty(Mono.just(BigDecimal.ZERO));
-
-        return saldoLoteMono
-                .flatMap(saldoLoteActual -> {
-                    BigDecimal cantidadSalida = BigDecimal.valueOf(salidaLote.getCantidad());
-
-                    // ✅ Crear registro de kardex
-                    KardexEntity kardexEntity = KardexEntity.builder()
-                            .tipo_movimiento(TypeMovimiento.INTERNO_TRANSFORMACION.getId())
-                            .detalle(String.format("SALIDA TRANSFORMACIÓN - ( %s )", ordenSalida.getCodEgreso()))
-                            .cantidad(cantidadSalida.negate())
-                            .costo(BigDecimal.valueOf(salidaLote.getMonto_consumo()))
-                            .valorTotal(BigDecimal.valueOf(salidaLote.getTotal_monto()).negate())
-                            .fecha_movimiento(LocalDate.now())
-                            .id_articulo(detalle.getArticulo().getId())
-                            .id_unidad(detalle.getIdUnidad())
-                            .id_unidad_salida(detalle.getIdUnidad())
-                            .id_almacen(ordenSalida.getAlmacenOrigen().getIdAlmacen())
-                            .saldo_actual(saldoStockActual) // ✅ Stock ANTES de esta salida específica
-                            .id_documento(ordenSalida.getId().intValue())
-                            .id_lote(salidaLote.getId_lote())
-                            .id_detalle_documento(detalle.getId().intValue())
-                            .saldoLote(saldoLoteActual)
-                            .build();
-
-                    return kardexRepository.save(kardexEntity)
-                            .doOnSuccess(kardex -> {
-                                // ✅ Actualizar stock para próxima iteración
-                                BigDecimal nuevoStock = saldoStockActual.subtract(cantidadSalida);
-                                detalle.getArticulo().setStock(nuevoStock);
-                                log.info("✅ Kardex registrado: artículo {} lote {} cantidad {} - Stock: {} → {}",
-                                        detalle.getArticulo().getId(),
-                                        salidaLote.getId_lote(),
-                                        cantidadSalida,
-                                        saldoStockActual,
-                                        nuevoStock);
-                            })
+        return consultarInventarioLote(salidaLote.getId_lote())
+                .flatMap(lote_inventario->{
+                    itemKardexDTO.setSaldoLote(BigDecimal.valueOf(lote_inventario.getCantidadDisponible()).add(BigDecimal.valueOf(salidaLote.getCantidad())));
+                    log.info("itemKardexDTO: {}", itemKardexDTO);
+                    return kardexStrategy.registrarKardex(itemKardexDTO)
+                            .doOnSuccess(kardexGuardado -> log.info("✅ Kardex registrado con ID: {}, item: {}", kardexGuardado.getId_kardex(), kardexGuardado))
+                            .doOnError(error -> log.error("❌ Error registrando kardex: {}", error.getMessage()))
                             .then();
                 });
     }
 
+    private ItemKardexDTO configurarItemKardex(DetailSalidaLoteEntity salidaLote,
+                                               DetalleEgresoDTO detalle,
+                                               OrdenEgresoDTO ordenSalida) {
+        //mapear
+        ItemKardexDTO itemKardexDTO = detEgresoLoteEntityToItemKardexMapper.toItemKardex(salidaLote);
+        itemKardexDTO.setFechaMovimiento(ordenSalida.getFecRegistro());
+
+        itemKardexDTO.setIdArticulo(detalle.getArticulo().getId());
+        itemKardexDTO.setIdUnidad(detalle.getIdUnidad());
+
+        String descripcionKardex = String.format("SALIDA TRANSFORMACION - (%s) ", ordenSalida.getCodEgreso());
+        itemKardexDTO.setTypeKardex(TypeMovimiento.APROBACION_SALIDA_REQUERIMIENTO.getId());
+        itemKardexDTO.setIdAlmacen(ordenSalida.getAlmacenOrigen().getIdAlmacen());
+
+        itemKardexDTO.setIdUnidadSalida(detalle.getArticulo().getIdUnidadSalida());
+        itemKardexDTO.setDescripcion(descripcionKardex);
+
+        // ✅ Consultar saldo actual del artículo
+        itemKardexDTO.setSaldoStock(detalle.getArticulo().getStock());
+        itemKardexDTO.setIdLote(salidaLote.getId_lote());
+
+        itemKardexDTO.setValorUnidad(BigDecimal.valueOf(salidaLote.getMonto_consumo()));
+        itemKardexDTO.setValorTotal(BigDecimal.valueOf(salidaLote.getTotal_monto()));
+        return itemKardexDTO;
+    }
+
     @Override
-    public Mono<OrdenEgresoDTO> actualizarEstadoEntrega(Integer idOrden, boolean entregado) {
-        log.info("Actualizando estado de entrega para orden: {} a {}", idOrden, entregado);
+    public Mono<OrdenEgresoDTO> actualizarEstadoEntrega(OrdenEgresoDTO ordenEgresoDTO) {
+        log.info("Actualizando estado de entrega para orden: {} ", ordenEgresoDTO.getId());
 
-        Date fechaEntrega = entregado ? new Date() : null;
+        Date fechaEntrega = new Date();
 
-        return ordenSalidaRepository.asignarEntregado(fechaEntrega, 1, 1, 1, idOrden)
-                .flatMap(entity ->
-                        // Actualizar detalles como entregados
-                        actualizarDetallesEntregados(idOrden.longValue())
-                                .then(Mono.just(ordenSalidaEntityMapper.toDomain(entity)))
+        return ordenSalidaRepository.asignarEntregado(fechaEntrega, ordenEgresoDTO.getIdUsuarioEntrega(), ordenEgresoDTO.getIdSupervisor(), ordenEgresoDTO.getIdUsuarioEntrega(), ordenEgresoDTO.getId().intValue())
+                .flatMap(entityFromUpdate ->
+                        ordenSalidaRepository.findById(ordenEgresoDTO.getId())
+                                .map(entityWithTrigger -> {
+                                    log.info("🔍 Código generado por trigger: {}", entityWithTrigger.getCod_salida());
+                                    ordenEgresoDTO.setCodEgreso(entityWithTrigger.getCod_salida());
+                                    ordenEgresoDTO.setEntregado(entityWithTrigger.getEntregado());
+                                    return ordenEgresoDTO;
+                                })
+                                .switchIfEmpty(Mono.error(new IllegalStateException(
+                                        "Orden no encontrada después del update: " + ordenEgresoDTO.getId())))
+                )
+                .switchIfEmpty(
+                        consultarOrdenActual(ordenEgresoDTO.getId())
+                                .flatMap(ordenActual -> {
+                                    if (ordenActual.getEntregado() == 1) {
+                                        // ✅ Ya estaba entregada - OK
+                                        log.warn("⚠️ Orden {} ya estaba entregada por otro proceso", ordenEgresoDTO.getId());
+                                        ordenEgresoDTO.setCodEgreso(ordenActual.getCod_salida());
+                                        ordenEgresoDTO.setEntregado(1);
+                                        return Mono.just(ordenEgresoDTO);
+                                    } else {
+                                        // ❌ Error inesperado
+                                        return Mono.error(new IllegalStateException(
+                                                "No se pudo actualizar la orden " + ordenEgresoDTO.getId()));
+                                    }
+                                })
+                                .switchIfEmpty(Mono.error(new IllegalArgumentException(
+                                        "Orden no encontrada: " + ordenEgresoDTO.getId())))
                 )
                 .doOnSuccess(orden ->
-                        log.info("Estado de entrega actualizado para orden: {}", idOrden));
+                        log.info("Estado de entrega actualizado para orden: {}", ordenEgresoDTO.getId()));
+    }
+
+    // ✅ AGREGAR ESTE MÉTODO TAMBIÉN
+    private Mono<OrdenSalidaEntity> consultarOrdenActual(Long idOrden) {
+        return ordenSalidaRepository.findById(idOrden);
+    }
+
+    /**
+     * Consulta el inventario completo del lote
+     */
+    private Mono<DetalleInventaryEntity> consultarInventarioLote(Integer idLote) {
+        log.debug("🔍 Consultando inventario completo para lote: {}", idLote);
+
+        return detalleInventoryRespository.getStockLote(idLote)
+                .doOnNext(inventario ->
+                        log.debug("✅ Inventario encontrado para lote {}: cantidad={}",
+                                idLote, inventario.getCantidadDisponible()))
+                .switchIfEmpty(Mono.error(new StockInsuficienteException(
+                        String.format("No se encontró inventario para el lote %d", idLote))));
     }
 
     private Mono<Void> actualizarDetallesEntregados(Long idOrdenSalida) {

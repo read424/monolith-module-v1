@@ -4,7 +4,7 @@ import com.walrex.module_almacen.domain.model.Almacen;
 import com.walrex.module_almacen.domain.model.Articulo;
 import com.walrex.module_almacen.domain.model.dto.DetalleEgresoDTO;
 import com.walrex.module_almacen.domain.model.dto.OrdenEgresoDTO;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.ArticuloEntity;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.ArticuloAlmacenRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -47,7 +47,7 @@ public class BaseInventarioAdapterTest {
                         .build())
                 .build();
 
-        ArticuloEntity infoConversion = ArticuloEntity.builder()
+        ArticuloInventory infoConversion = ArticuloInventory.builder()
                 .idUnidadConsumo(6)
                 .isMultiplo("1")
                 .valorConv(2)
@@ -77,7 +77,7 @@ public class BaseInventarioAdapterTest {
                         .build())
                 .build();
 
-        ArticuloEntity infoConversion = ArticuloEntity.builder()
+        ArticuloInventory infoConversion = ArticuloInventory.builder()
                 .idUnidadConsumo(6)
                 .isMultiplo("1")
                 .valorConv(1)
@@ -104,7 +104,7 @@ public class BaseInventarioAdapterTest {
                         .build())
                 .build();
 
-        ArticuloEntity infoConversion = ArticuloEntity.builder()
+        ArticuloInventory infoConversion = ArticuloInventory.builder()
                 .idUnidadConsumo(6)
                 .build();
 
@@ -134,7 +134,7 @@ public class BaseInventarioAdapterTest {
                         .build())
                 .build();
 
-        ArticuloEntity articuloEntity = ArticuloEntity.builder()
+        ArticuloInventory articuloEntity = ArticuloInventory.builder()
                 .idArticulo(100)
                 .idUnidadConsumo(6)
                 .stock(BigDecimal.valueOf(1000))
@@ -255,7 +255,7 @@ public class BaseInventarioAdapterTest {
                         .build())
                 .build();
 
-        ArticuloEntity infoConversion = ArticuloEntity.builder()
+        ArticuloInventory infoConversion = ArticuloInventory.builder()
                 .idArticulo(100)
                 .idUnidadConsumo(6)
                 .isMultiplo("1")
@@ -327,7 +327,7 @@ public class BaseInventarioAdapterTest {
                         .build())
                 .build();
 
-        ArticuloEntity infoConversion = ArticuloEntity.builder()
+        ArticuloInventory infoConversion = ArticuloInventory.builder()
                 .idArticulo(100)
                 .idUnidadConsumo(6)
                 .build();
@@ -352,12 +352,12 @@ public class BaseInventarioAdapterTest {
 
         // ✅ Exponer método protegido para testing
         @Override
-        public Mono<DetalleEgresoDTO> aplicarConversion(DetalleEgresoDTO detalle, ArticuloEntity infoConversion) {
+        public Mono<DetalleEgresoDTO> aplicarConversion(DetalleEgresoDTO detalle, ArticuloInventory infoConversion) {
             return super.aplicarConversion(detalle, infoConversion);
         }
 
         @Override
-        public Mono<ArticuloEntity> buscarInfoConversion(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenEgreso) {
+        public Mono<ArticuloInventory> buscarInfoConversion(DetalleEgresoDTO detalle, OrdenEgresoDTO ordenEgreso) {
             return super.buscarInfoConversion(detalle, ordenEgreso);
         }
 

@@ -13,11 +13,10 @@ public interface OrdenSalidaLogisticaPort {
 
     /**
      * Actualiza el estado de entrega de una orden de salida
-     * @param idOrden ID de la orden
-     * @param entregado estado de entrega
+     * @param ordenEgresoDTO de la orden
      * @return orden actualizada
      */
-    Mono<OrdenEgresoDTO> actualizarEstadoEntrega(Integer idOrden, boolean entregado);
+    Mono<OrdenEgresoDTO> actualizarEstadoEntrega(OrdenEgresoDTO ordenEgresoDTO);
 
     /**
      * Procesa la salida por lotes

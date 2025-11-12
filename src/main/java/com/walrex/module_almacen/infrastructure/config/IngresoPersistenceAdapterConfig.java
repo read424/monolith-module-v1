@@ -3,6 +3,7 @@ package com.walrex.module_almacen.infrastructure.config;
 import com.walrex.module_almacen.application.ports.input.OrdenSalidaAdapterFactory;
 import com.walrex.module_almacen.application.ports.output.KardexRegistrationStrategy;
 import com.walrex.module_almacen.application.ports.output.OrdenIngresoLogisticaPort;
+import com.walrex.module_almacen.domain.model.mapper.DetIngresoEntityToItemKardexMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.ArticuloIngresoLogisticaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenIngresoEntityMapper;
@@ -23,7 +24,9 @@ public class IngresoPersistenceAdapterConfig {
             DetailsIngresoRepository detalleRepository,
             OrdenIngresoEntityMapper mapper,
             ArticuloIngresoLogisticaMapper articuloIngresoLogisticaMapper,
-            KardexRepository kardexRepository) {
+            DetalleInventoryRespository detalleInventoryRespository,
+            KardexRepository kardexRepository,
+            DetailOrdenCompraAlmacenRepository detailOrdenCompraAlmacenRepository ) {
 
         return OrdenIngresoLogisticaPersistenceAdapter.builder()
                 .ordenIngresoRepository(ordenIngresoRepository)
@@ -31,7 +34,9 @@ public class IngresoPersistenceAdapterConfig {
                 .detalleRepository(detalleRepository)
                 .mapper(mapper)
                 .articuloIngresoLogisticaMapper(articuloIngresoLogisticaMapper)
+                .detalleInventoryRespository(detalleInventoryRespository)
                 .kardexRepository(kardexRepository)
+                .detailOrdenCompraAlmacenRepository(detailOrdenCompraAlmacenRepository)
                 .build();
     }
 
@@ -56,7 +61,7 @@ public class IngresoPersistenceAdapterConfig {
     }
 
     @Bean
-    @Qualifier("transformacion")
+    @Qualifier("Ingresotransformacion")
     public OrdenIngresoLogisticaPort ordenIngresoTransformacionAdapter(
             OrdenIngresoRepository ordenIngresoRepository,
             ArticuloAlmacenRepository articuloRepository,
@@ -64,7 +69,9 @@ public class IngresoPersistenceAdapterConfig {
             OrdenIngresoEntityMapper mapper,
             ArticuloIngresoLogisticaMapper articuloIngresoLogisticaMapper,
             KardexRegistrationStrategy kardexStrategy,
-            OrdenSalidaAdapterFactory salidaAdapterFactory) {
+            DetalleInventoryRespository detalleInventoryRespository,
+            OrdenSalidaAdapterFactory salidaAdapterFactory,
+            DetIngresoEntityToItemKardexMapper detIngresoEntityToItemKardexMapper) {
 
         return OrdenIngresoTransformacionPersistenceAdapter.builder()
                 .ordenIngresoRepository(ordenIngresoRepository)
@@ -73,15 +80,41 @@ public class IngresoPersistenceAdapterConfig {
                 .mapper(mapper)
                 .articuloIngresoLogisticaMapper(articuloIngresoLogisticaMapper)
                 .kardexStrategy(kardexStrategy)
+                .detalleInventoryRespository(detalleInventoryRespository)
                 .salidaAdapterFactory(salidaAdapterFactory)
+                .detIngresoEntityToItemKardexMapper(detIngresoEntityToItemKardexMapper)
                 .build();
+    }
+
+    @Bean
+    @Qualifier("ingresoMovimiento")
+    public OrdenIngresoLogisticaPort movimientoIngresoAdapter(
+            OrdenIngresoRepository ordenIngresoRepository,
+            ArticuloAlmacenRepository articuloRepository,
+            DetailsIngresoRepository detalleRepository,
+            OrdenIngresoEntityMapper mapper,
+            ArticuloIngresoLogisticaMapper articuloIngresoLogisticaMapper,
+            StandardKardexRegistrationStrategy kardexStrategy,
+            InventoryRepository inventoryRepository,
+            DetalleInventoryRespository detalleInventoryRepository) {
+
+        return new MovimientoIngresoAdapter(
+                ordenIngresoRepository,
+                articuloRepository,
+                detalleRepository,
+                mapper,
+                articuloIngresoLogisticaMapper,
+                kardexStrategy,
+                inventoryRepository,
+                detalleInventoryRepository
+        );
     }
 
     @Bean
     public OrdenIngresoAdapterFactory ordenIngresoAdapterFactory(
             OrdenIngresoLogisticaPort ordenIngresoLogisticaAdapter,
             @Qualifier("telaCruda") OrdenIngresoLogisticaPort ordenIngresoTelaCrudaAdapter,
-            @Qualifier("transformacion") OrdenIngresoLogisticaPort ordenIngresoTransformacionAdapter) {
+            @Qualifier("Ingresotransformacion") OrdenIngresoLogisticaPort ordenIngresoTransformacionAdapter) {
 
         return new OrdenIngresoAdapterFactoryImpl(
                 ordenIngresoLogisticaAdapter,

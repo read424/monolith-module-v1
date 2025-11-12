@@ -6,6 +6,30 @@ spring:
       exclude: static/**,public/**
     livereload:
       enabled: false
+  cache:
+    type: REDIS
+    redis:
+      time-to-live: 15m
+  data:
+    redis:
+      host: ${HOST_REDIS:127.0.0.1}
+      port: ${PORT_REDIS:6379}
+      password: ${PASSWORD_REDIS:}
+      database: ${DB_REDIS:0}
+      timeout: 2000ms
+  # Configuración de RabbitMQ
+  rabbitmq:
+    host: ${RABBITMQ_HOST:127.0.0.1}
+    port: ${RABBITMQ_PORT:5673}
+    username: ${RABBITMQ_USERNAME:admin}
+    password: ${RABBITMQ_PASSWORD:password123}
+    virtual-host: ${RABBITMQ_VHOST:/}
+    connection-timeout: 60000
+    requested-heartbeat: 60
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
   resilience4j:
     circuitbreaker:
       instances:
@@ -21,24 +45,37 @@ spring:
             - java.util.concurrent.TimeoutException
             - org.apache.kafka.common.errors.TimeoutException
             - org.apache.kafka.common.errors.NetworkException
+        guiaRemisionKafkaProducer:
+          failureRateThreshold: 60
+          waitDurationInOpenState: 10000
+          permittedNumberOfCallsInHalfOpenState: 3
+          slidingWindowSize: 10
+          minimumNumberOfCalls: 5
+          automaticTransitionFromOpenToHalfOpenEnabled: true
+          recordExceptions:
+            - java.io.IOException
+            - java.util.concurrent.TimeoutException
+            - org.apache.kafka.common.errors.TimeoutException
+            - org.apache.kafka.common.errors.NetworkException
+            - org.apache.kafka.common.errors.RetriableException
   r2dbc:
     url: r2dbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5432}/${DB_NAME:erp_tlm_2021}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:12345}
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:localhost:9094}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:127.0.0.1}:9092
     properties:
       auto.create.topics.enabled: true
       security:
         protocol: PLAINTEXT
-      schema.registry.url: ${SCHEMA_REGISTRY_SERVER:http://localhost:8081}
+      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
     consumer:
       group-id: mailing-group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
-        schema.registry.url: ${SCHEMA_REGISTRY_SERVER:http://localhost:8081}
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
         auto.registry.schemas: true
         max.partition.fetch.bytes: 10485760
         specific.avro.reader: true
@@ -46,7 +83,7 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
       properties:
-        schema.registry.url: ${SCHEMA_REGISTRY_SERVER:http://localhost:8081}
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
         auto.registry.schemas: true
         use.latest.version: true
         specific.avro.reader: true

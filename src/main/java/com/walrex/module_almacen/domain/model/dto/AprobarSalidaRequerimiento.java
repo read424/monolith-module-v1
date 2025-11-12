@@ -26,11 +26,13 @@ public class AprobarSalidaRequerimiento {
     private Integer idAlmacenOrigen;
     @JsonProperty("id_almacen_destino")
     private Integer idAlmacenDestino;
+    private Integer idUsuario;
     @JsonProperty("id_usuario_entrega")
     private Integer idUsuarioEntrega;
     private String entregado;
     @JsonProperty("id_personal_supervisor")
     private Integer idUsuarioSupervisor;
+    private Integer idUsuarioDeclara;
     @JsonProperty("fec_entrega")
     private Date fecEntrega;
     @JsonProperty("productos")
