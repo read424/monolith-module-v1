@@ -1,11 +1,11 @@
 package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb;
 
 import com.walrex.module_almacen.application.ports.input.CrearOrdenIngresoUseCase;
-import com.walrex.module_almacen.domain.model.JwtUserInfo;
 import com.walrex.module_almacen.domain.model.OrdenIngreso;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.mapper.OrdenIngresoLogisticaMapper;
-import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.JwtUserContextService;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.OrdenIngresoLogisticaRequestDto;
+import com.walrex.module_security_commons.domain.model.JwtUserInfo;
+import com.walrex.module_security_commons.infrastructure.adapters.JwtUserContextService;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.ResponseCreateOrdenIngresoLogisticaDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

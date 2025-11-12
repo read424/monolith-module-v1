@@ -10,12 +10,12 @@ import org.springframework.web.reactive.function.server.ServerResponse;
 import org.springframework.web.server.ServerWebInputException;
 
 import com.walrex.module_almacen.application.ports.input.AprobarSalidaInsumosUseCase;
-import com.walrex.module_almacen.domain.model.JwtUserInfo;
 import com.walrex.module_almacen.domain.model.dto.OrdenEgresoDTO;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.dto.AprobarSalidaRequestDTO;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.mapper.ApproveDeliverRequestMapper;
-import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.JwtUserContextService;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.OrdenEgresoResponse;
+import com.walrex.module_security_commons.domain.model.JwtUserInfo;
+import com.walrex.module_security_commons.infrastructure.adapters.JwtUserContextService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

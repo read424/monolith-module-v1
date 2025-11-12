@@ -11,13 +11,13 @@ import org.springframework.web.server.ServerWebInputException;
 
 import com.walrex.module_almacen.application.ports.input.ConsultarRollosDisponiblesDevolucionUseCase;
 import com.walrex.module_almacen.application.ports.input.RegistrarDevolucionRollosUseCase;
-import com.walrex.module_almacen.domain.model.JwtUserInfo;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.mapper.*;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.request.ConsultarRollosDisponiblesRequest;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.request.RegistrarDevolucionRollosRequest;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.response.ConsultarRollosDisponiblesResponse;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.response.RegistrarDevolucionRollosResponse;
-import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.JwtUserContextService;
+import com.walrex.module_security_commons.domain.model.JwtUserInfo;
+import com.walrex.module_security_commons.infrastructure.adapters.JwtUserContextService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
