@@ -3,8 +3,22 @@ server:
 spring:
   application:
     name: module-core
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:default}
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  cache:
+    type: REDIS
+    redis:
+      time-to-live: 15m
+  data:
+    redis:
+      host: ${HOST_REDIS:127.0.0.1}
+      port: ${PORT_REDIS:6379}
+      password: ${PASSWORD_REDIS:}
+      database: ${DB_REDIS:0}
+      timeout: 2000ms
   main:
     web-application-type: reactive
     banner-mode: console
@@ -20,13 +34,6 @@ spring:
         wiretap: true
       httpserver:
         wiretap: true
-      #routes:
-        #- id: auth-route
-          #uri: http://localhost:8088
-          #predicates:
-            #- Path=/api/v2/auth/**
-          #filters:
-            #- StripPrefix=2
     circuitbreaker:
       resilience4j:
         configs:
@@ -67,10 +74,10 @@ spring:
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:12345}
   kafka:
-    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:localhost:9094}
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVER_0:127.0.0.1:9092}
     properties:
       auto.create.topics.enabled: true
-      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+      schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
       security:
         protocol: PLAINTEXT
     consumer:
@@ -83,13 +90,13 @@ spring:
       value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
         max.partition.fetch.bytes: 10485760
-        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
         specific.avro.reader: true
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
       properties:
-        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:localhost}:${SCHEMA_REGISTRY_PORT:8081}
+        schema.registry.url: http://${SCHEMA_REGISTRY_SERVER:127.0.0.1}:${SCHEMA_REGISTRY_PORT:8081}
         auto.registry.schemas: true
         use.latest.version: true
         specific.avro.reader: true
@@ -129,6 +136,7 @@ spring:
     user: ${DB_USER:postgres}
     password: ${DB_PASSWORD:12345}
     locations: classpath:db/migration
+    baseline-version: 0
     baseline-on-migrate: true
     validate-on-migrate: true
     out-of-order: false
@@ -141,12 +149,15 @@ flyway:
     verbose: true
 logging:
   level:
+    reactor.tools: OFF
     com.walrex: DEBUG
     com.walrex.gateway: TRACE
     org.springframework.web.reactive: DEBUG
-    #org.springframework.cloud.gateway: DEBUG
-    #reactor.netty: DEBUG
-
+    org.springframework.boot.reactor: OFF
+reactor:
+  tools:
+    agent:
+      enabled: false
 security:
   jwt:
     secret-key: ${SECRET_KEY_JWT:l7kP8lgYRt/PyIh/tBDYlg4QWCLf2RSOJ8oLPNV6O34=}
@@ -164,7 +175,6 @@ kafka:
     almacen:
       create-ingreso-ajuste: ajuste-ingreso-message
       create-ingreso-ajuste-response: ajuste-ingreso-response
-
 app:
   mail:
     templates:

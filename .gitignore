@@ -4,6 +4,9 @@
 # Log files
 *.log
 
+# Trace files
+traces/
+
 # Package Files
 *.jar
 *.war
