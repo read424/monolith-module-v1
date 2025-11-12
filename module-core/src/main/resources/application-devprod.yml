@@ -1,0 +1,344 @@
+server:
+  port: 8088
+spring:
+  main:
+    web-application-type: reactive
+    banner-mode: console
+  application:
+    name: module-core
+  security:
+    enabled: false
+  cache:
+    type: REDIS
+    redis:
+      time-to-live: 15m
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      password:
+      database: 0
+      timeout: 2000ms
+      time-to-live: 15m
+  rabbitmq:
+    host: 192.168.1.90
+    port: 5673
+    username: admin
+    password: p4s5W0Rd1234
+    virtual-host: /
+    connection-timeout: 60000
+    requested-heartbeat: 60
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+  resilience4j:
+    circuitbreaker:
+      instances:
+        ecomprobantesLycetService:
+          registerHealthIndicator: true
+          slidingWindowSize: 10
+          minimumNumberOfCalls: 5
+          permittedNumberOfCallsInHalfOpenState: 3
+          automaticTransitionFromOpenToHalfOpenEnabled: true
+          waitDurationInOpenState: 60s
+          failureRateThreshold: 50
+          eventConsumerBufferSize: 10
+          recordExceptions:
+            - org.springframework.web.reactive.function.client.WebClientResponseException
+            - java.net.ConnectException
+            - java.net.SocketTimeoutException
+            - java.util.concurrent.TimeoutException
+          ignoreExceptions:
+            - com.walrex.module_ecomprobantes.domain.exceptions.BusinessException
+        comprobante-generation:
+          failure-rate-threshold: 50
+          minimum-number-of-calls: 5
+          sliding-window-size: 10
+          wait-duration-in-open-state: 30s
+          permitted-number-of-calls-in-half-open-state: 3
+          automatic-transition-from-open-to-half-open-enabled: true
+          record-exceptions:
+            - java.io.IOException
+            - java.util.concurrent.TimeoutException
+            - org.springframework.web.reactive.function.client.WebClientException
+            - java.sql.SQLException
+        kafkaProducer:
+          failure-rate-threshold: 50
+          minimum-number-of-calls: 2
+          sliding-window-size: 5
+          wait-duration-in-open-state: 5000
+          permitted-number-of-calls-in-half-open-state: 2
+          automatic-transition-from-open-to-half-open-enabled: true
+          recordExceptions:
+            - org.apache.kafka.common.errors.TimeoutException
+            - org.apache.kafka.common.errors.NetworkException
+            - org.apache.kafka.common.errors.RetriableException
+        kafka-consumer:
+          failure-rate-threshold: 70
+          minimum-number-of-calls: 5
+          sliding-window-size: 10
+          wait-duration-in-open-state: 20s
+          permitted-number-of-calls-in-half-open-state: 2
+          record-exception:
+            - org.apache.kafka.common.errors.TimeoutException
+            - org.apache.kafka.common.errors.NetworkException
+            - org.apache.kafka.common.errors.RetriableException
+        guiaRemisionKafkaProducer:
+          failureRateThreshold: 60
+          waitDurationInOpenState: 10000
+          permittedNumberOfCallsInHalfOpenState: 3
+          slidingWindowSize: 10
+          minimumNumberOfCalls: 5
+          automaticTransitionFromOpenToHalfOpenEnabled: true
+          recordExceptions:
+            - java.io.IOException
+            - java.util.concurrent.TimeoutException
+            - org.apache.kafka.common.errors.TimeoutException
+            - org.apache.kafka.common.errors.NetworkException
+            - org.apache.kafka.common.errors.RetriableException
+    ratelimiter:
+      instances:
+        comprobante-processing:
+          limit-for-period: 50
+          limit-refresh-period: 60s
+          timeout-duration: 5s
+          register-health-indicator: true
+        kafka-events:
+          limit-for-period: 100
+          limit-refresh-period: 60s
+          timeout-duration: 3s
+        ecomprobantesLycetService:
+          registerHealthIndicator: true
+          limitForPeriod: 10
+          limitRefreshPeriod: 1s
+          timeoutDuration: 5s
+          eventConsumerBufferSize: 10
+    bulkhead:
+      instances:
+        comprobante-service:
+          max-concurrent-calls: 10
+          max-wait-duration: 5s
+        kafka-processing:
+          max-concurrent-calls: 20
+          max-wait-duration: 3s
+        ecomprobantesLycetService:
+          registerHealthIndicator: true
+          maxConcurrentCalls: 5
+          maxWaitDuration: 1s
+          eventConsumerBufferSize: 10
+    timelimiter:
+      instances:
+        comprobante-timeout:
+          timeout-duration: 45s
+          cancel-running-future: true
+        kafka-timeout:
+          timeout-duration: 30s
+          cancel-running-future: true
+        ecomprobantesLycetService:
+          timeoutDuration: 30s
+          cancelRunningFuture: true
+  cloud:
+    gateway:
+      enabled: true
+      discovery:
+        locator:
+          enabled: false
+      httpclient:
+        wiretap: true
+      httpserver:
+        wiretap: true
+    circuitbreaker:
+      resilience4j:
+        configs:
+          default:
+            slidingWindowSize: 10
+            failureRateThreshold: 50
+            waitDurationInOpenState: 10000
+            permittedNumberOfCallsInHalfOpenState: 5
+            registerHealthIndicator: true
+            timeLimiterConfig:
+              timeoutDuration: 10s
+            recordExceptions:
+              - java.util.concurrent.TimeoutException
+              - org.springframework.web.reactive.function.client.WebClientResponseException
+            ignoreExceptions:
+              - java.lang.IllegalArgumentException
+        instances:
+          kafkaProducer:
+            timeoutDuration: 5s
+            baseConfig: default
+            slidingWindowType: COUNT_BASED
+            slidingWindowSize: 20
+            timeLimiterConfig:
+              timeoutDuration: 10s
+            waitDurationInOpenState: 30000
+            automaticTransitionFromOpenToHalfOpenEnabled: true
+          articleProducerKafka:
+            timeoutDuration: 5s
+            baseConfig: default
+            slidingWindowType: COUNT_BASED
+            slidingWindowSize: 20
+            timeLimiterConfig:
+              timeoutDuration: 10s
+            waitDurationInOpenState: 30000
+            automaticTransitionFromOpenToHalfOpenEnabled: true
+  r2dbc:
+    url: r2dbc:postgresql://192.168.1.90:5432/erp_tlm_2021
+    username: postgres
+    password: 12345
+  kafka:
+    bootstrap-servers: 192.168.1.90:9092
+    properties:
+      auto.create.topics.enabled: true
+      schema.registry.url: http://192.168.1.90:8081
+      security:
+        protocol: PLAINTEXT
+    consumer:
+      group-id: rol-service-group
+      auto-offset-reset: latest #earliest asegura leer desde el principio
+      enable-auto-commit: true
+      session-timeout-ms: 60000
+      heartbeat-interval-ms: 20000
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
+      properties:
+        max.partition.fetch.bytes: 10485760
+        schema.registry.url: http://192.168.1.90:8081
+        specific.avro.reader: true
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+      properties:
+        schema.registry.url: http://192.168.1.90:8081
+        auto.registry.schemas: true
+        use.latest.version: true
+        specific.avro.reader: true
+  totp:
+    code:
+      digits: 6
+    time:
+      period: 300
+  mail:
+    host: mail.texlamerced.com
+    port: 465
+    username: raybar@texlamerced.com
+    password: Sistemas2023@.
+    properties:
+      mail:
+        debug: true
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          socketFactory:
+            port: 465
+            class: javax.net.ssl.SSLSocketFactory
+        transport:
+          protocol: smtp
+      from: noreply@texlamerced.com
+  graphql:
+    graphiql:
+      enabled: true
+    schema:
+      printer:
+        enabled: true
+  flyway:
+    enabled: false
+    url: jdbc:postgresql://192.168.1.90:5432/erp_tlm_2021
+    user: postgres
+    password: 12345
+    locations: classpath:db/migration
+    baseline-version: 0
+    baseline-on-migrate: true
+    validate-on-migrate: true
+    out-of-order: true
+  aop:
+    auto: true
+    proxy-target-class: true
+websocket:
+  api:
+    url: http://192.168.1.90:3355/api/ws
+  module:
+    port: 5555
+    max-connections: 100
+    ping-interval: 30000
+    ping-timeout: 90000
+    upgrade-timeout: 15000
+    max-frame-payload-length: 32768
+    allow-custom-requests: false
+    cors:
+      origin: "*"
+flyway:
+  modules:
+    enabled: false
+    verbose: true
+reactor:
+  tools:
+    agent:
+      enabled: false
+security:
+  jwt:
+    secret-key: l7kP8lgYRt/PyIh/tBDYlg4QWCLf2RSOJ8oLPNV6O34=
+    expiration-time: 36000
+    refresh-toke:
+      expiration: 604800000
+kafka:
+  topics:
+    password-recovery: "email-requests-topic"
+    rol-details: "detail-rol"
+    response-rol-details: "details-rol-response"
+    role-and-details: "role_and_detail"
+    get-info-articulos: "articulo-by-code"
+    almacen:
+      create-ingreso-ajuste: ajuste-ingreso-message
+      create-ingreso-ajuste-response: ajuste-ingreso-response
+      create-comprobante-guia-remision: create-comprobante-guia-remision
+      response-create-guia-remision-remitente: response-create-comprobante-grr
+rabbitmq:
+  almacen:
+    exchange:
+      devolucion: "devolucion.exchange"
+app:
+  mail:
+    templates:
+      recovery: "reset-password.html"
+# Configuración OpenAPI/Swagger
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+    tags-sorter: alpha
+    doc-expansion: none
+    disable-swagger-default-url: true
+  packages-to-scan: com.walrex
+  paths-to-match: /api/**, /v1/**, /**
+  group-configs:
+    - group: motivos-devolucion
+      display-name: "Motivos de Devolución"
+      paths-to-match: /almacen/motivos-devolucion/**
+lycet:
+  api:
+    token: EXnPrun0IjhqwyZaNSWLZpeJ9y1ktZOJ
+    base-url: http://localhost:8880/api/v1
+    endpoint-despatch: /despatch/send
+    timeout: 30
+logging:
+  level:
+    reactor.tools: OFF
+    com.walrex: DEBUG
+    com.walrex.gateway: TRACE
+    com.walrex.module_ecomprobantes: DEBUG
+    com.walrex.module_driver: DEBUG
+    org.springframework.web.reactive: DEBUG
+    org.springframework.boot.reactor: OFF
+    com.corundumstudio.socketio: DEBUG
+    # R2DBC logging para debugging de consultas SQL
+    io.r2dbc.postgresql: DEBUG
+    org.springframework.data.r2dbc: DEBUG
+    org.springframework.r2dbc: DEBUG
+    io.r2dbc: DEBUG
