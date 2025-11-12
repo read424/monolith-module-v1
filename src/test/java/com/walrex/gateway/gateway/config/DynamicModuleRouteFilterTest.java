@@ -4,104 +4,222 @@ import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.e
 import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.repository.ModulesUrlRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
 import org.springframework.mock.http.server.reactive.MockServerHttpResponse;
 import org.springframework.mock.web.server.MockServerWebExchange;
 import org.springframework.web.server.ServerWebExchange;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ExtendWith(MockitoExtension.class)
 public class DynamicModuleRouteFilterTest {
+    @Mock
     private ModulesUrlRepository modulesUrlRepository;
+
     private DynamicModuleRouteFilter filter;
+
     private GatewayFilterChain chain;
 
     @BeforeEach
     void setUp(){
-        modulesUrlRepository = mock(ModulesUrlRepository.class);
         filter = new DynamicModuleRouteFilter(modulesUrlRepository);
-        chain = mock(GatewayFilterChain.class);
-        when(chain.filter(any(ServerWebExchange.class))).thenReturn(Mono.empty());
     }
 
     @Test
-    void shouldRedirectRequestWhenModuleFound(){
-        //Arrange
-        String originalPath= "/api/v2/auth/signin";
-        String expectedNewPath = "/auth/signin";
+    void testProcessPath_Strip2Segments() {
+        // Given
+        String requestPath = "/api/v2/almacen/ingreso-logistica";
+        ModulesUrl module = new ModulesUrl();
+        module.setStripPrefixCount(2);
 
-        ModulesUrl module = ModulesUrl.builder()
-                .id(1L)
-                .moduleName("auth")
-                .path(originalPath)
+        // When
+        String result = filter.processPath(requestPath, module);
+
+        // Then
+        assertEquals("/almacen/ingreso-logistica", result);
+    }
+
+    @Test
+    void testProcessPath_NoStrip() {
+        // Given
+        String requestPath = "/api/v2/almacen/ingreso-logistica";
+        ModulesUrl module = new ModulesUrl();
+        module.setStripPrefixCount(null); // Sin strip
+
+        // When
+        String result = filter.processPath(requestPath, module);
+
+        // Then
+        assertEquals("/api/v2/almacen/ingreso-logistica", result);
+    }
+
+    @Test
+    void testProcessPath_StripZero() {
+        // Given
+        String requestPath = "/api/v2/almacen/ingreso-logistica";
+        ModulesUrl module = new ModulesUrl();
+        module.setStripPrefixCount(0);
+
+        // When
+        String result = filter.processPath(requestPath, module);
+
+        // Then
+        assertEquals("/api/v2/almacen/ingreso-logistica", result);
+    }
+
+    @Test
+    void testProcessRouting_Success() {
+        //Given
+        ModulesUrl module = new ModulesUrl();
+        module.setStripPrefixCount(2);
+
+        String requestPath = "/api/v2/almacen/ingreso-logistica";
+
+        ServerHttpRequest request = mock(ServerHttpRequest.class);
+        ServerHttpRequest.Builder requestBuilder = mock(ServerHttpRequest.Builder.class);
+        ServerHttpRequest modifiedRequest = mock(ServerHttpRequest.class);
+        ServerWebExchange exchange = mock(ServerWebExchange.class);
+        ServerWebExchange.Builder exchangeBuilder = mock(ServerWebExchange.Builder.class);
+        ServerWebExchange mutatedExchange = mock(ServerWebExchange.class);
+        GatewayFilterChain chain = mock(GatewayFilterChain.class);
+
+        URI mockUri = URI.create("http://localhost/api/v2/almacen/ingreso-logistica");
+        Map<String, Object> attributes = new HashMap<>();
+
+        when(request.getURI()).thenReturn(mockUri);
+        when(request.getBody()).thenReturn(Flux.empty());
+        when(request.mutate()).thenReturn(requestBuilder);
+        when(requestBuilder.path(anyString())).thenReturn(requestBuilder);
+        when(requestBuilder.build()).thenReturn(modifiedRequest);
+
+        when(exchange.getRequest()).thenReturn(request);
+        when(exchange.getAttributes()).thenReturn(attributes);
+        when(exchange.mutate()).thenReturn(exchangeBuilder);
+        when(exchangeBuilder.request(any(ServerHttpRequest.class))).thenReturn(exchangeBuilder);
+        when(exchangeBuilder.build()).thenReturn(mutatedExchange);
+
+        when(chain.filter(any())).thenReturn(Mono.empty());
+
+        // When
+        Mono<Void> result = filter.processRouting(module, requestPath, request, exchange, chain);
+
+        // Then
+        StepVerifier.create(result)
+                .verifyComplete();
+    }
+
+    @Test
+    void testProcessRouting_VerifyForwardUri() {
+        // Given
+        ModulesUrl module = new ModulesUrl();
+        module.setStripPrefixCount(2);
+
+        String requestPath = "/api/v2/almacen/ingreso-logistica";
+
+        ServerHttpRequest request = mock(ServerHttpRequest.class);
+        ServerHttpRequest.Builder requestBuilder = mock(ServerHttpRequest.Builder.class);
+        ServerHttpRequest modifiedRequest = mock(ServerHttpRequest.class);
+        ServerWebExchange exchange = mock(ServerWebExchange.class);
+        ServerWebExchange.Builder exchangeBuilder = mock(ServerWebExchange.Builder.class);
+        ServerWebExchange mutatedExchange = mock(ServerWebExchange.class);
+        GatewayFilterChain chain = mock(GatewayFilterChain.class);
+
+        URI mockUri = URI.create("http://localhost/api/v2/almacen/ingreso-logistica");
+        Map<String, Object> attributes = mock(Map.class);
+
+        when(request.getURI()).thenReturn(mockUri);
+        when(request.getBody()).thenReturn(Flux.empty());
+        when(request.mutate()).thenReturn(requestBuilder);
+        when(requestBuilder.path(anyString())).thenReturn(requestBuilder);
+        when(requestBuilder.build()).thenReturn(modifiedRequest);
+
+        when(exchange.getRequest()).thenReturn(request);
+        when(exchange.getAttributes()).thenReturn(attributes);
+        when(exchange.mutate()).thenReturn(exchangeBuilder);
+        when(exchangeBuilder.request(any(ServerHttpRequest.class))).thenReturn(exchangeBuilder);
+        when(exchangeBuilder.build()).thenReturn(mutatedExchange);
+
+        lenient().when(chain.filter(any())).thenReturn(Mono.empty());
+
+        // When
+        filter.processRouting(module, requestPath, request, exchange, chain);
+
+        // Then - Verificar GATEWAY_FORWARDED_REQUEST
+        verify(attributes).put("GATEWAY_FORWARDED_REQUEST", true);
+
+        // Then
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        verify(exchange.getAttributes()).put(eq(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR), uriCaptor.capture());
+
+        URI capturedUri = uriCaptor.getValue();
+        assertEquals("forward:/almacen/ingreso-logistica", capturedUri.toString());
+    }
+
+    @Test
+    void testFindModuleByPattern_Found() {
+        // Given
+        String requestPath = "/api/v2/almacen/ingreso-logistica";
+
+        ModulesUrl module1 = ModulesUrl.builder()
+                .path("/api/v2/almacen/**")
                 .stripPrefixCount(2)
-                .uri("")
+                .moduleName("almacen")
+                .build();
+        ModulesUrl module2 = ModulesUrl.builder()
+                .path("/api/v2/user/**")
+                .stripPrefixCount(2)
+                .moduleName("user")
                 .build();
 
-        when(modulesUrlRepository.findByPath(originalPath))
-                .thenReturn(Mono.just(module));
+        when(modulesUrlRepository.findAll())
+                .thenReturn(Flux.just(module1, module2));
 
-        MockServerHttpRequest request = MockServerHttpRequest.post(originalPath).build();
-        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        // When
+        Mono<ModulesUrl> result = filter.findModuleByPattern(requestPath);
 
-        // Capturar el exchange modificado que se pasa al siguiente filtro
-        ArgumentCaptor<ServerWebExchange> exchangeCaptor = ArgumentCaptor.forClass(ServerWebExchange.class);
-        when(chain.filter(exchangeCaptor.capture())).thenReturn(Mono.empty());
-
-        //Act
-        GatewayFilter gatewayFilter = filter.apply(new DynamicModuleRouteFilter.Config());
-        Mono<Void> result = gatewayFilter.filter(exchange, chain);
-
-        //Assert
+        // Then
         StepVerifier.create(result)
+                .expectNext(module1)
                 .verifyComplete();
-
-        verify(modulesUrlRepository).findByPath(originalPath);
-        verify(chain).filter(any(ServerWebExchange.class));
-
-        // Verificar el path en el exchange capturado
-        ServerWebExchange capturedExchange = exchangeCaptor.getValue();
-        assertThat(capturedExchange.getRequest().getPath().value()).isEqualTo(expectedNewPath);
-
-        // Verificar que el atributo GATEWAY_REQUEST_URL_ATTR se configuró correctamente
-        URI requestUrl = capturedExchange.getAttribute(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR);
-        assertThat(requestUrl).isNotNull();
-        assertThat(requestUrl.getPath()).isEqualTo(expectedNewPath);
     }
 
     @Test
-    void shouldReturnNotFoundWhenModuleNotFound() {
-        // Arrange
-        String originalPath = "/api/v2/unknown/path";
+    void testFindModuleByPattern_NotFound() {
+        // Given
+        String requestPath = "/api/v2/reports/daily";
 
-        when(modulesUrlRepository.findByPath(originalPath))
-                .thenReturn(Mono.empty());
+        ModulesUrl module1 = ModulesUrl.builder()
+                .path("/api/v2/almacen/**")
+                .stripPrefixCount(2)
+                .moduleName("almacen")
+                .build();
 
-        MockServerHttpRequest request = MockServerHttpRequest.post(originalPath).build();
-        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        when(modulesUrlRepository.findAll())
+                .thenReturn(Flux.just(module1));
 
-        // Act
-        GatewayFilter gatewayFilter = filter.apply(new DynamicModuleRouteFilter.Config());
-        Mono<Void> result = gatewayFilter.filter(exchange, chain);
+        // When
+        Mono<ModulesUrl> result = filter.findModuleByPattern(requestPath);
 
-        // Assert
+        // Then
         StepVerifier.create(result)
-                .verifyComplete();
-
-        verify(modulesUrlRepository).findByPath(originalPath);
-        verify(chain, never()).filter(any()); // El chain nunca debería ser llamado
-
-        // Verificar que la respuesta tenga estado 404
-        assertThat(exchange.getResponse().getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+                .verifyComplete(); // Sin elementos
     }
 }
