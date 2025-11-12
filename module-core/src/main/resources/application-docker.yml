@@ -136,6 +136,17 @@ spring:
           timeoutDuration: 30s
           cancelRunningFuture: true
   cloud:
+    consul:
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: false
+        health-check-path: /actuator/health
+        health-check-internal: 15s
+        instance-id: ${spring.application.name}-${random.value}
+        prefer-ip-address: true
+        fail-fast: false
     gateway:
       enabled: true
       discovery:
