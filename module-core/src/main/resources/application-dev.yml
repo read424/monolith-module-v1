@@ -139,6 +139,17 @@ spring:
           timeoutDuration: 30s
           cancelRunningFuture: true
   cloud:
+    consul:
+      host: ${CONSUL_HOST:localhost}
+      port: ${CONSUL_PORT:8500}
+      discovery:
+        enabled: true
+        register: false  # El monolito NO se auto-registra en dev
+        health-check-path: /actuator/health
+        health-check-interval: 15s
+        instance-id: ${spring.application.name}-${random.value}
+        prefer-ip-address: true
+        fail-fast: false  # No fallar si Consul no está disponible en dev
     gateway:
       enabled: true
       discovery:
@@ -333,6 +344,7 @@ logging:
     com.walrex: DEBUG
     com.walrex.gateway: TRACE
     com.walrex.module_ecomprobantes: DEBUG
+    com.walrex.module_comercial: DEBUG
     com.walrex.module_driver: DEBUG
     org.springframework.web.reactive: DEBUG
     org.springframework.boot.reactor: OFF

@@ -3,6 +3,7 @@ package com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -35,6 +36,7 @@ public class OrdenIngresoLogisticaRequestDto {
 
     private LocalDateTime fec_ref;
 
+    @JsonProperty("comprobante_ref")
     private String comprobanteRef;
 
     @NotNull(message = "Cliente/Proveedor es obligatorio")

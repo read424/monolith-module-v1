@@ -1,11 +1,11 @@
 package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb;
 
 import com.walrex.module_almacen.application.ports.input.ProcesarTransformacionUseCase;
-import com.walrex.module_almacen.domain.model.JwtUserInfo;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.dto.OrdenIngresoTransformacionRequestDto;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.mapper.OrdenIngresoTransformacionRequestMapper;
-import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.JwtUserContextService;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.ResponseCreateOrdenIngresoLogisticaDto;
+import com.walrex.module_security_commons.domain.model.JwtUserInfo;
+import com.walrex.module_security_commons.infrastructure.adapters.JwtUserContextService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;

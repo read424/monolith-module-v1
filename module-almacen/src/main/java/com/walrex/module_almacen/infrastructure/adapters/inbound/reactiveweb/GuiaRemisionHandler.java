@@ -7,10 +7,10 @@ import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 
 import com.walrex.module_almacen.application.ports.input.GenerarGuiaRemisionUseCase;
-import com.walrex.module_almacen.domain.model.JwtUserInfo;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.mapper.GuiaRemisionRequestMapper;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.request.GenerarGuiaRemisionRequest;
-import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.JwtUserContextService;
+import com.walrex.module_security_commons.domain.model.JwtUserInfo;
+import com.walrex.module_security_commons.infrastructure.adapters.JwtUserContextService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,6 +1,29 @@
 version: '3.9'
 name: walrex
 services:
+  consul:
+    image: hashicorp/consul:1.18
+    container_name: consul-server
+    restart: always
+    ports:
+      - "8500:8500"   # HTTP API y UI
+      - "8600:8600/udp"  # DNS
+    command: >
+      agent -server -ui -bootstrap-expect=1
+      -client=0.0.0.0
+      -bind=0.0.0.0
+    environment:
+      - CONSUL_BIND_INTERFACE=eth0
+    volumes:
+      - consul_data:/consul/data
+    networks:
+      - walrex-network-app
+    healthcheck:
+      test: ["CMD", "consul", "members"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   api-monolith:
     build:
       context: .
@@ -23,8 +46,13 @@ services:
       SECRET_KEY_JWT: ${SECRET_KEY_JWT}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
       HOST_REDIS: ${HOST_REDIS}
+      CONSUL_HOST: consul
+      CONSUL_PORT: 8500
     env_file:
       - .env
+    depends_on:
+      consul:
+        condition: service_healthy
     volumes:
       - app_logs:/app/logs
       - app_traces:/app/traces
@@ -68,3 +96,4 @@ volumes:
   app_traces:
   sonarqube_data:
   sonarqube_extensions:
+  consul_data:

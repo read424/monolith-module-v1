@@ -20,11 +20,13 @@ import lombok.extern.slf4j.Slf4j;
         "com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository",
         "com.walrex.module_ecomprobantes.infrastructure.adapters.outbound.persistence.repository",
         "com.walrex.module_driver.infrastructure.adapters.outbound.persistence.repository",
-        "com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.repository"
+        "com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.repository",
+        "com.walrex.module_comercial.infrastructure.adapters.outbound.persistence.repository"
 })
 @ComponentScan(basePackages = {
         "com.walrex",
         "com.walrex.module_core",
+        "com.walrex.security.commons",
         "com.walrex.gateway",
         "com.walrex.notification",
         "com.walrex.module_common",
