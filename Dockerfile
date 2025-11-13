@@ -18,6 +18,7 @@ COPY ./module-users/pom.xml ./module-users/pom.xml
 COPY ./module-role/pom.xml ./module-role/pom.xml
 COPY ./gateway/pom.xml ./gateway/pom.xml
 COPY ./module-common/pom.xml ./module-common/pom.xml
+COPY ./module-security-commons/pom.xml ./module-security-commons/pom.xml
 COPY ./module-articulos/pom.xml ./module-articulos/pom.xml
 COPY ./module-almacen/pom.xml ./module-almacen/pom.xml
 COPY ./module-mailing/pom.xml ./module-mailing/pom.xml
@@ -25,12 +26,14 @@ COPY ./module-partidas/pom.xml ./module-partidas/pom.xml
 COPY ./module-ecomprobantes/pom.xml ./module-ecomprobantes/pom.xml
 COPY ./module-websocket/pom.xml ./module-websocket/pom.xml
 COPY ./module-driver/pom.xml ./module-driver/pom.xml
+COPY ./module-comercial/pom.xml ./module-comercial/pom.xml
 
 # Descargar dependencias (aprovechando caché de Docker)
 RUN mvn dependency:go-offline -B
 
 # Copiar código fuente
 COPY ./module-common/src ./module-common/src
+COPY ./module-security-commons/src ./module-security-commons/src
 COPY ./module-core/src ./module-core/src
 COPY ./module-users/src ./module-users/src
 COPY ./module-role/src ./module-role/src
@@ -42,6 +45,7 @@ COPY ./module-partidas/src ./module-partidas/src
 COPY ./module-ecomprobantes/src ./module-ecomprobantes/src
 COPY ./module-websocket/src ./module-websocket/src
 COPY ./module-driver/src ./module-driver/src
+COPY ./module-comercial/src ./module-comercial/src
 COPY ./src ./src
 
 # Compilar el proyecto completo (avro-schemas ya está disponible en .m2)
