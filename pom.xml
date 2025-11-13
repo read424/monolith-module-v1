@@ -29,6 +29,7 @@
 	</scm>
 	<modules>
 		<module>module-common</module>
+        <module>module-security-commons</module>
 		<module>gateway</module>
         <module>module-websocket</module>
 		<module>module-users</module>
@@ -40,6 +41,7 @@
 		<module>module-core</module>
 		<module>module-ecomprobantes</module>
 		<module>module-driver</module>
+        <module>module-comercial</module>
 	</modules>
 	<properties>
 		<java.version>21</java.version>
@@ -299,6 +301,12 @@
 							<path>
 								<groupId>org.projectlombok</groupId>
 								<artifactId>lombok</artifactId>
+								<version>${lombok.version}</version>
+							</path>
+							<path>
+								<groupId>org.mapstruct</groupId>
+								<artifactId>mapstruct-processor</artifactId>
+								<version>${mapstruct.version}</version>
 							</path>
 						</annotationProcessorPaths>
 					</configuration>
