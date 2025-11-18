@@ -345,9 +345,10 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                     .request(mutatedRequest)
                     .build();
 
-            exchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, loadBalancedUri);
-            exchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR, newRoute);
-            exchange.getAttributes().put(DYNAMIC_MODULE_ROUTE_PROCESSED, true);
+            // ✅ Poner atributos en mutatedExchange (no en exchange original)
+            mutatedExchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, loadBalancedUri);
+            mutatedExchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR, newRoute);
+            mutatedExchange.getAttributes().put(DYNAMIC_MODULE_ROUTE_PROCESSED, true);
 
             return chain.filter(mutatedExchange)
                 .doOnSuccess(v -> log.info("LoadBalancer proxy completed for {}", loadBalancedUri))
