@@ -41,6 +41,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
     private final ConcurrentHashMap<String, ModulesUrl> patternPathCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Pattern> compiledRegexCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, PathPattern> compiledPathPatternCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, URI> lbUriCache = new ConcurrentHashMap<>();
     private final AtomicLong lastCacheRefresh = new AtomicLong(System.currentTimeMillis());
     private final long CACHE_TTL = 60000; // 1 minuto
 
@@ -341,43 +342,60 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
 
         log.info("LoadBalancer routing: {} -> {}", requestPath, fullUri);
 
-        try {
-            URI loadBalancedUri = new URI(fullUri);
-
-            Route originalRoute = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
-            if(originalRoute==null){
-                exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
-                return exchange.getResponse().setComplete();
-            }
-            Route newRoute = Route.async()
-                        .id(originalRoute.getId())
-                        .uri(loadBalancedUri)
-                        .order(originalRoute.getOrder())
-                        .asyncPredicate(originalRoute.getPredicate())
-                        .metadata(originalRoute.getMetadata())
-                        .build();
-
-            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
-                    .path(newPath)
-                        .build();
-
-            ServerWebExchange mutatedExchange = exchange.mutate()
-                    .request(mutatedRequest)
-                    .build();
-
-            // ✅ Poner atributos en mutatedExchange (no en exchange original)
-            mutatedExchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, loadBalancedUri);
-            mutatedExchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR, newRoute);
-            mutatedExchange.getAttributes().put(DYNAMIC_MODULE_ROUTE_PROCESSED, true);
-
-            return chain.filter(mutatedExchange)
-                .doOnSuccess(v -> log.info("LoadBalancer proxy completed for {}", loadBalancedUri))
-                .doOnError(e -> log.error("Error during LoadBalancer proxy {} : {}", loadBalancedUri, e.getMessage()));
-        } catch (URISyntaxException e) {
-            log.error("Invalid lb URI: {}", fullUri, e);
+        // Usar caché para la URI del LoadBalancer
+        URI loadBalancedUri = getCachedLbUri(fullUri);
+        if (loadBalancedUri == null) {
+            log.error("Invalid lb URI: {}", fullUri);
             exchange.getResponse().setStatusCode(HttpStatus.BAD_GATEWAY);
             return exchange.getResponse().setComplete();
         }
+
+        Route originalRoute = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
+        if (originalRoute == null) {
+            exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+            return exchange.getResponse().setComplete();
+        }
+
+        Route newRoute = Route.async()
+                .id(originalRoute.getId())
+                .uri(loadBalancedUri)
+                .order(originalRoute.getOrder())
+                .asyncPredicate(originalRoute.getPredicate())
+                .metadata(originalRoute.getMetadata())
+                .build();
+
+        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                .path(newPath)
+                .build();
+
+        ServerWebExchange mutatedExchange = exchange.mutate()
+                .request(mutatedRequest)
+                .build();
+
+        // Poner atributos en mutatedExchange (no en exchange original)
+        mutatedExchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, loadBalancedUri);
+        mutatedExchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR, newRoute);
+        mutatedExchange.getAttributes().put(DYNAMIC_MODULE_ROUTE_PROCESSED, true);
+
+        return chain.filter(mutatedExchange)
+                .doOnSuccess(v -> log.debug("LoadBalancer proxy completed for {}", loadBalancedUri))
+                .doOnError(e -> log.error("Error during LoadBalancer proxy {} : {}", loadBalancedUri, e.getMessage()));
+    }
+
+    /**
+     * Obtiene o crea una URI cacheada para LoadBalancer
+     */
+    private URI getCachedLbUri(String uriString) {
+        return lbUriCache.computeIfAbsent(uriString, s -> {
+            try {
+                URI uri = new URI(s);
+                log.debug("URI LoadBalancer cacheada: '{}'", s);
+                return uri;
+            } catch (URISyntaxException e) {
+                log.error("Error creando URI '{}': {}", s, e.getMessage());
+                return null;
+            }
+        });
     }
 
     private boolean matchesModule(String requestPath, ModulesUrl module) {
@@ -479,6 +497,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                     patternPathCache.clear();
                     compiledRegexCache.clear();
                     compiledPathPatternCache.clear();
+                    lbUriCache.clear();
 
                     for (ModulesUrl module : modules) {
                         if (module.getPath() != null && !module.getPath().isEmpty()) {
