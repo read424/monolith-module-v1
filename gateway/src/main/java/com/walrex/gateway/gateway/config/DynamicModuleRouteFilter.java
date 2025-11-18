@@ -10,7 +10,9 @@ import java.util.regex.Pattern;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
+import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.PathContainer;
@@ -21,7 +23,6 @@ import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.util.pattern.PathPattern;
 import org.springframework.web.util.pattern.PathPatternParser;
 
-import com.walrex.gateway.gateway.infrastructure.adapters.outbound.consul.ConsulServiceResolver;
 import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.entity.ModulesUrl;
 import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.repository.ModulesUrlRepository;
 
@@ -33,7 +34,6 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<DynamicModuleRouteFilter.Config> {
     private final ModulesUrlRepository modulesUrlRepository;
-    private final ConsulServiceResolver consulServiceResolver;
     private final PathPatternParser pathPatternParser = new PathPatternParser();
 
     // Caché para mejorar el rendimiento
@@ -46,146 +46,107 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
     // 🔥 CONSTANTE PARA MÁXIMO DE FORWARDS
     private static final int MAX_FORWARD_COUNT = 2;
     private static final String FORWARD_COUNT_KEY = "FORWARD_COUNT";
+    private static final String DYNAMIC_MODULE_ROUTE_PROCESSED = "DYNAMIC_MODULE_ROUTE_PROCESSED";
+    private static final String GATEWAY_FORWARDED_REQUEST = "GATEWAY_FORWARDED_REQUEST";
 
     public DynamicModuleRouteFilter(
-        ModulesUrlRepository modulesUrlRepository,
-        ConsulServiceResolver consulServiceResolver
+        ModulesUrlRepository modulesUrlRepository
     ) {
         super(Config.class);
         this.modulesUrlRepository = modulesUrlRepository;
-        this.consulServiceResolver = consulServiceResolver;
     }
 
     @Override
     public GatewayFilter apply(Config config){
-        return ((exchange, chain) -> {
+        return new OrderedGatewayFilter((exchange, chain) -> {
+            Integer loopCounter = exchange.getAttributeOrDefault("LOOP_COUNTER", 0);
+            loopCounter++;
+            exchange.getAttributes().put("LOOP_COUNTER", loopCounter);
+
             String path = exchange.getRequest().getPath().value();
             String threadName = Thread.currentThread().getName();
             log.error("🟣 [5] DynamicModuleRouteFilter [{}] - Path: '{}'", threadName, path);
 
+            URI gatewayUrlAttr = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR);
             // ✅ Verificar si es una petición forward para evitar bucles
-            Boolean isForwarded = exchange.getAttribute("GATEWAY_FORWARDED_REQUEST");
-            if (isForwarded != null && isForwarded) {
-                log.debug("Petición ya forwardeada, saltando DynamicModuleRouteFilter");
-
-                // 🚨 PREVENCIÓN DE BUCLE INFINITO: Si el path es "/" después de un forward,
-                // significa que el forward falló y no encontró la ruta destino
-                if ("/".equals(path)) {
-                    String originalPath = exchange.getAttribute("ORIGINAL_PATH");
-                    log.error("🚫 BUCLE INFINITO DETECTADO: Path reducido a '/' después de forward. Ruta original: '{}'", originalPath);
-                    log.error("🚫 Esto indica que la ruta '{}' no existe en ningún módulo registrado", originalPath);
-                    exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
-                    exchange.getResponse().getHeaders().add("Content-Type", "application/json");
-                    String errorBody = String.format("{\"error\":\"Not Found\",\"message\":\"No se encontró el recurso: %s\",\"path\":\"%s\"}",
-                        originalPath != null ? originalPath : path,
-                        originalPath != null ? originalPath : path);
-                    DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(errorBody.getBytes());
-                    return exchange.getResponse().writeWith(Mono.just(buffer));
-                }
-
+            Boolean forwarded = exchange.getAttribute(GATEWAY_FORWARDED_REQUEST);
+            if ((forwarded != null && forwarded)) {
+                log.debug("✅ [Loop#{}] Request already forwarded -> SKIP", loopCounter);
                 return chain.filter(exchange);
             }
 
-            // Verificar si esta solicitud ya ha sido procesada por este filtro
-            Boolean processed = exchange.getAttribute("DYNAMIC_MODULE_ROUTE_PROCESSED");
+            Boolean processed = exchange.getAttribute(DYNAMIC_MODULE_ROUTE_PROCESSED);
             if (processed != null && processed) {
-                // Esta solicitud ya ha sido procesada, pasar al siguiente filtro
+                log.debug("✅ [Loop#{}] Already processed by dynamic route filter -> SKIP", loopCounter);
+                if (loopCounter > 5) {
+                    log.error("❌ [Loop#{}] LOOP DETECTION: Demasiadas iteraciones para path: {} processed", loopCounter, path);
+                    exchange.getResponse().setStatusCode(HttpStatus.LOOP_DETECTED);
+                    return exchange.getResponse().setComplete();
+                }
                 return chain.filter(exchange);
             }
+            log.debug("[Loop#{}] DynamicModuleRouteFilter - path='{}' gatewayUrlAttr={} forwarded={} processed={}",
+                loopCounter, path, gatewayUrlAttr, forwarded, processed);
 
-            // ✅ Control de contador de forwards por solicitud
-            Integer forwardCount = exchange.getAttribute(FORWARD_COUNT_KEY);
-            if (forwardCount == null) {
-                forwardCount = 0;
-            }
-
-            // Marcar esta solicitud como procesada para evitar bucles
-            exchange.getAttributes().put("DYNAMIC_MODULE_ROUTE_PROCESSED", true);
-
-            // Obtener o inicializar el contador de redirecciones
-            Integer redirectCount = exchange.getAttribute("REDIRECT_COUNT");
-            if (redirectCount == null) {
-                redirectCount = 0;
-            }
-
-            log.info("🔢 Forward Count actual: {}/{}", forwardCount, MAX_FORWARD_COUNT);
-
-            if (forwardCount >= MAX_FORWARD_COUNT) {
-                log.error("🚫 LÍMITE DE FORWARDS EXCEDIDO ({}/{}). Devolviendo 404", forwardCount, MAX_FORWARD_COUNT);
-                exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
+            // ✅ PROTECCIÓN ADICIONAL: Contador de loops
+            if (loopCounter > 5) {
+                log.error("❌ [Loop#{}] LOOP DETECTION: Demasiadas iteraciones para path: {}", loopCounter, path);
+                exchange.getResponse().setStatusCode(HttpStatus.LOOP_DETECTED);
                 return exchange.getResponse().setComplete();
             }
-
-            ServerHttpRequest request = exchange.getRequest();
-            String requestPath;
-
-            if (exchange.getAttribute("ORIGINAL_PATH") != null) {
-                requestPath = exchange.getAttribute("ORIGINAL_PATH");
-                log.info("📍 Usando ruta original desde atributo: {}", requestPath);
-            } else {
-                requestPath = request.getPath().value();
-                log.info("📍 Usando ruta actual: {}", requestPath);
-                // Si la ruta es solo "/", podría indicar que perdimos la ruta original
-                if ("/".equals(requestPath)) {
-                    log.warn("⚠️ Se recibió una ruta vacía (/), lo cual podría indicar un problema de redirección");
-                }
-            }
-
-            if(System.currentTimeMillis()-lastCacheRefresh.get()>CACHE_TTL){
+            // Refresh cache periodically
+            if (System.currentTimeMillis() - lastCacheRefresh.get() > CACHE_TTL) {
                 refreshCache();
             }
 
-            // 🎯 PASO 1: Búsqueda exacta en caché
-            ModulesUrl cachedExactModule = exactPathCache.get(requestPath);
-            if (cachedExactModule != null) {
-                log.info("Módulo encontrado en caché (coincidencia exacta): {}", requestPath);
-                return processRouting(cachedExactModule, requestPath, request, exchange, chain);
+            final ServerHttpRequest request = exchange.getRequest();
+            final String requestPath;
+            if (exchange.getAttribute("ORIGINAL_PATH") != null) {
+                requestPath = exchange.getAttribute("ORIGINAL_PATH");
+            } else {
+                requestPath = request.getPath().value();
             }
 
-            // 🎯 PASO 2: Búsqueda por patrón en caché
-            ModulesUrl cachedPatternModule = findPatternMatchInCache(requestPath);
-            if (cachedPatternModule != null) {
-                log.info("✅ Módulo encontrado en caché (coincidencia de patrón): {}", requestPath);
-                return processRouting(cachedPatternModule, requestPath, request, exchange, chain);
+            ModulesUrl exact = exactPathCache.get(requestPath);
+            if (exact != null) {
+                log.debug("Found exact cache for '{}'", requestPath);
+                return processRouting(exact, requestPath, request, exchange, chain);
             }
 
-            // 🎯 PASO 3: Búsqueda exacta en BD
+            ModulesUrl cachedPattern = findPatternMatchInCache(requestPath);
+            if (cachedPattern != null) {
+                log.debug("Found pattern cache for '{}'", requestPath);
+                return processRouting(cachedPattern, requestPath, request, exchange, chain);
+            }
+
             return modulesUrlRepository.findAll()
-                .filter(module -> {
-                    if(isExactMatch(requestPath, module)){
-                        log.info("✅ Coincidencia EXACTA encontrada: '{}' -> '{}'", requestPath, module.getPath());
-                        return true;
-                    }
-                    if (isSpringPatternMatch(requestPath, module)) {
-                        log.info("✅ Coincidencia PATRÓN SPRING encontrada: '{}' -> '{}'", requestPath, module.getPath());
-                        return true;
-                    }
-
-                    if (isRegexMatch(requestPath, module)) {
-                        log.info("✅ Coincidencia REGEX encontrada: '{}' -> '{}'", requestPath, module.getPath());
-                        return true;
-                    }
-                    return false;
-                })
-                .next() // ⚡ Tomar solo el PRIMER resultado que coincida
+                .filter(module -> matchesModule(requestPath, module))
+                .next()
                 .doOnNext(module -> {
-                    log.info("🎯 Módulo seleccionado para routing: '{}' -> '{}'", requestPath, module.getPath());
-                    // Cachear el resultado para futuras consultas
-                    if (module.getIsPattern() != null && module.getIsPattern()) {
+                    // cache according to type
+                    if (isRegexPattern(module.getPath())) {
                         patternPathCache.put(module.getPath(), module);
-                    } else if (module.getPath().contains("*")) {
+                        getCompiledRegex(module.getPath());
+                    } else if (isSpringPattern(module.getPath())) {
                         patternPathCache.put(module.getPath(), module);
                     } else {
-                        exactPathCache.put(requestPath, module);
+                        exactPathCache.put(module.getPath(), module);
                     }
+                    log.debug("Selected module {} for path {}", module.getModuleName(), requestPath);
                 })
                 .flatMap(module -> processRouting(module, requestPath, request, exchange, chain))
                 .switchIfEmpty(Mono.defer(() -> {
-                    log.warn("❌ No se encontró configuración para la ruta: {}", requestPath);
+                    // If a GATEWAY_REQUEST_URL_ATTR was already set by other logic, don't 404
+                    URI configuredUri = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR);
+                    if (configuredUri != null) {
+                        log.debug("GATEWAY_REQUEST_URL_ATTR already present ({}). Letting chain continue.", configuredUri);
+                        return chain.filter(exchange);
+                    }
+                    log.warn("No module configuration found for path: {}", requestPath);
                     exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
                     return exchange.getResponse().setComplete();
                 }));
-        });
+        }, 9500);
     }
 
     /**
@@ -229,153 +190,201 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
      * - Si module.uri es null o "monolito-modular" → Forward interno (actual)
      * - Si module.uri es un service_name → Consulta Consul y hace proxy externo
      */
-    protected Mono<Void> processRouting(ModulesUrl module, String requestPath, ServerHttpRequest request,
-                                      ServerWebExchange exchange,
-                                      GatewayFilterChain chain) {
-        String serviceName = module.getUri();
+    protected Mono<Void> processRouting(ModulesUrl module,
+                                        String requestPath,
+                                        ServerHttpRequest request,
+                                        ServerWebExchange exchange,
+                                        GatewayFilterChain chain) {
+        String serviceUri = module.getUri();
 
-        // Distinguir entre servicio local (monolito) y servicios externos (Consul)
-        if (serviceName == null || serviceName.isEmpty() || "monolito-modular".equalsIgnoreCase(serviceName)) {
-            log.info("📍 Routing a monolito local (forward interno)");
+        // 1) Internal forward (same app / monolito)
+        if (serviceUri == null || serviceUri.isBlank() || "monolito-modular".equalsIgnoreCase(serviceUri)) {
+            log.debug("-> Internal forward (monolito) for module {}", module.getModuleName());
             return processRoutingInternal(module, requestPath, request, exchange, chain);
         }
 
-        // Servicio externo: Consultar Consul
-        log.info("🌐 Consultando Consul para servicio: {}", serviceName);
-        return consulServiceResolver.resolveServiceUri(serviceName)
-            .flatMap(serviceUri -> {
-                log.info("✅ Servicio resuelto: {} → {}", serviceName, serviceUri);
-                return processRoutingExternal(module, requestPath, serviceUri, exchange, chain);
-            })
-            .onErrorResume(error -> {
-                log.error("❌ Error consultando Consul para '{}': {}", serviceName, error.getMessage());
-                exchange.getResponse().setStatusCode(HttpStatus.SERVICE_UNAVAILABLE);
-                exchange.getResponse().getHeaders().add("Content-Type", "application/json");
-                String errorBody = String.format(
-                    "{\"error\":\"Service Unavailable\",\"message\":\"No se pudo resolver el servicio '%s' desde Consul\",\"path\":\"%s\"}",
-                    serviceName, requestPath);
-                DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(errorBody.getBytes());
-                return exchange.getResponse().writeWith(Mono.just(buffer));
-            });
+        if (serviceUri.startsWith("lb://")) {
+            log.debug("-> LoadBalancer routing for '{}'", serviceUri);
+            return processRoutingWithLoadBalancer(module, requestPath, serviceUri, exchange, chain);
+        }
+
+        log.debug("-> Treating '{}' as external host, prefixing http://", serviceUri);
+        return processRoutingExternal(module, requestPath, serviceUri, exchange, chain);
     }
 
     /**
      * 🔧 Routing INTERNO para monolito (forward:/)
      * Mantiene la lógica original sin cambios
      */
-    private Mono<Void> processRoutingInternal(ModulesUrl module, String requestPath, ServerHttpRequest request,
+    private Mono<Void> processRoutingInternal(ModulesUrl module,
+                                              String requestPath,
+                                              ServerHttpRequest request,
                                               ServerWebExchange exchange,
                                               GatewayFilterChain chain) {
         //Incrementar contador de forwards
-        Integer currentForwardCount = exchange.getAttribute(FORWARD_COUNT_KEY);
-        if (currentForwardCount == null) {
-            currentForwardCount = 0;
+        Integer forwardCount = exchange.getAttributeOrDefault(FORWARD_COUNT_KEY, 0);
+        if (forwardCount >= MAX_FORWARD_COUNT) {
+            log.error("Forward limit exceeded ({}) for path {}", MAX_FORWARD_COUNT, requestPath);
+            exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
+            return exchange.getResponse().setComplete();
         }
-        final Integer forwardCount = currentForwardCount + 1;
-        exchange.getAttributes().put(FORWARD_COUNT_KEY, forwardCount);
-
-        log.info("Incrementando forward count: {}/{} para módulo: {}",
-                forwardCount, MAX_FORWARD_COUNT, module.getModuleName());
+        exchange.getAttributes().put(FORWARD_COUNT_KEY, forwardCount + 1);
 
         String newPath = processPath(requestPath, module);
-        log.info("🔧 Path procesado: '{}' -> '{}' (Forward #{}/{})",
-                requestPath, newPath, forwardCount, MAX_FORWARD_COUNT);
-
-        //Validar que la nueva ruta sea diferente para evitar bucles
-        if (requestPath.equals(newPath)) {
-            log.error("BUCLE DETECTADO: Nueva ruta igual a la original: '{}'", newPath);
+        if (newPath == null || newPath.isBlank()) {
+            log.error("Invalid newPath after processPath (original: {})", requestPath);
             exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
             return exchange.getResponse().setComplete();
         }
 
-        //Validar que la nueva ruta sea válida
-        if (newPath == null || newPath.trim().isEmpty()) {
-            log.error("Ruta procesada inválida: '{}' para ruta original: '{}'", newPath, requestPath);
+        if (newPath.equals(requestPath)) {
+            log.error("Detected forwarding loop: newPath == requestPath ({})", newPath);
             exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
             return exchange.getResponse().setComplete();
         }
 
-        // Marcar como forwardeada
-        exchange.getAttributes().put("GATEWAY_FORWARDED_REQUEST", true);
-        log.debug("Marcando petición como forwardeada");
+        log.info("Forwarding internally: {} -> {} (forward #{})", requestPath, newPath, forwardCount + 1);
 
-        URI originalUri = request.getURI();
-        String queryString = originalUri.getRawQuery();
-
-        // Construir la URI de redirección
-        StringBuilder forwardUriBuilder = new StringBuilder("forward:").append(newPath);
-        if (queryString != null && !queryString.isEmpty() && !newPath.contains("?")) {
-            forwardUriBuilder.append("?").append(queryString);
-        }
-        String forwardUriString = forwardUriBuilder.toString();
-
-        URI forwardUri;
-        try {
-            forwardUri = new URI(forwardUriString);
-            log.info("Redirigiendo internamente: '{}' -> '{}' (Forward #{}/{})",
-                    requestPath, forwardUri, forwardCount, MAX_FORWARD_COUNT);
-        } catch (URISyntaxException e) {
-            log.error("Error al construir URI de redirección: {}", e.getMessage());
-            exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
-            return exchange.getResponse().setComplete();
+        // mark attributes minimally
+        exchange.getAttributes().put(GATEWAY_FORWARDED_REQUEST, true);
+        exchange.getAttributes().put(DYNAMIC_MODULE_ROUTE_PROCESSED, true);
+        if (exchange.getAttribute("ORIGINAL_PATH") == null) {
+            exchange.getAttributes().put("ORIGINAL_PATH", requestPath);
         }
 
-        exchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, forwardUri);
+        // prepare forward URI with query string preserved
+        String rawQuery = request.getURI().getRawQuery();
+        String forwardUriString = "forward:" + newPath + (rawQuery != null && !rawQuery.isEmpty() ? "?" + rawQuery : "");
+        exchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, URI.create(forwardUriString));
 
-        // Preservar el cuerpo de la solicitud
         Mono<byte[]> cachedBody = DataBufferUtils.join(exchange.getRequest().getBody())
             .map(dataBuffer -> {
-                byte[] content = new byte[dataBuffer.readableByteCount()];
-                dataBuffer.read(content);
-                DataBufferUtils.release(dataBuffer);
-                return content;
+                try {
+                    byte[] bytes = new byte[dataBuffer.readableByteCount()];
+                    dataBuffer.read(bytes);
+                    return bytes;
+                } finally {
+                    DataBufferUtils.release(dataBuffer);
+                }
             })
+            .defaultIfEmpty(new byte[0])
             .cache();
 
-        // Crear la solicitud modificada
-        ServerHttpRequest modifiedRequest;
-        if (newPath.contains("?")) {
-            modifiedRequest = request.mutate()
-                .path(newPath.substring(0, newPath.indexOf("?")))
-                .build();
-        } else {
-            modifiedRequest = request.mutate()
-                .path(newPath)
-                .build();
-        }
+        // build base mutated request (path only)
+        ServerHttpRequest baseMutatedRequest = request.mutate()
+            .path(newPath.contains("?") ? newPath.substring(0, newPath.indexOf("?")) : newPath)
+            .build();
 
-        ServerWebExchange mutatedExchange = exchange.mutate()
-                .request(modifiedRequest)
-                .build();
+        // create decorator that will re-inject the cached body when requested by handlers
+        Mono<ServerHttpRequest> mutatedRequestMono = cachedBody.map(bytes -> {
+            if (bytes.length == 0) {
+                return baseMutatedRequest;
+            }
+            return new ServerHttpRequestDecorator(baseMutatedRequest) {
+                @Override
+                public Flux<DataBuffer> getBody() {
+                    DataBufferFactory bufferFactory = exchange.getResponse().bufferFactory();
+                    DataBuffer buffer = bufferFactory.wrap(bytes);
+                    return Flux.just(buffer);
+                }
+            };
+        });
 
-        // ✅ Transferir TODOS los atributos del exchange original
-        for (String key : exchange.getAttributes().keySet()) {
-            mutatedExchange.getAttributes().put(key, exchange.getAttributes().get(key));
-        }
+        return mutatedRequestMono.flatMap(mutReq -> {
+            ServerWebExchange mutatedExchange = exchange.mutate().request(mutReq).build();
 
-        // Continuar con la cadena de filtros
-        return cachedBody
-                .defaultIfEmpty(new byte[0])
-                .flatMap(bytes -> {
-                    if (bytes.length > 0) {
-                        ServerHttpRequest requestWithBody = new ServerHttpRequestDecorator(modifiedRequest) {
-                            @Override
-                            public Flux<DataBuffer> getBody() {
-                                DataBufferFactory bufferFactory = mutatedExchange.getResponse().bufferFactory();
-                                DataBuffer buffer = bufferFactory.wrap(bytes);
-                                return Flux.just(buffer);
-                            }
-                        };
-                        return chain.filter(mutatedExchange.mutate().request(requestWithBody).build())
-                                .doOnSuccess(v -> log.info("✅ Forward #{} completado: '{}' -> '{}'", forwardCount, requestPath, newPath))
-                                .doOnError(e -> log.error("❌ Error en forward #{}: '{}' -> '{}': {}", forwardCount, requestPath, newPath, e.getMessage()));
-                    } else {
-                        return chain.filter(mutatedExchange)
-                                .doOnSuccess(v -> log.info("✅ Forward #{} completado (sin cuerpo): '{}' -> '{}'", forwardCount, requestPath, newPath))
-                                .doOnError(e -> log.error("❌ Error en forward #{}: '{}' -> '{}': {}", forwardCount, requestPath, newPath, e.getMessage()));
-                    }
-                });
+            // transfer a minimal safe set of attributes
+            mutatedExchange.getAttributes().put(FORWARD_COUNT_KEY, exchange.getAttribute(FORWARD_COUNT_KEY));
+            mutatedExchange.getAttributes().put(GATEWAY_FORWARDED_REQUEST, true);
+            mutatedExchange.getAttributes().put("ORIGINAL_PATH", exchange.getAttribute("ORIGINAL_PATH"));
+            mutatedExchange.getAttributes().put(DYNAMIC_MODULE_ROUTE_PROCESSED, true);
+
+            return chain.filter(mutatedExchange)
+                .doOnSuccess(v -> log.info("Internal forward completed: {} -> {}", requestPath, newPath))
+                .doOnError(e -> log.error("Error on internal forward {} -> {} : {}", requestPath, newPath, e.getMessage()));
+        });
     }
+
+    private Mono<Void> processRoutingWithLoadBalancer(ModulesUrl module,
+                                                      String requestPath,
+                                                      String lbUri,
+                                                      ServerWebExchange exchange,
+                                                      GatewayFilterChain chain) {
+
+        String newPath = processPath(requestPath, module);
+
+        String fullUri = lbUri + newPath;
+        String queryString = exchange.getRequest().getURI().getRawQuery();
+        if (queryString != null && !queryString.isEmpty()) {
+            fullUri += "?" + queryString;
+        }
+
+        log.info("LoadBalancer routing: {} -> {}", requestPath, fullUri);
+
+        try {
+            URI loadBalancedUri = new URI(fullUri);
+
+            Route originalRoute = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
+            if(originalRoute==null){
+                exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+                return exchange.getResponse().setComplete();
+            }
+            Route newRoute = Route.async()
+                        .id(originalRoute.getId())
+                        .uri(loadBalancedUri)
+                        .order(originalRoute.getOrder())
+                        .asyncPredicate(originalRoute.getPredicate())
+                        .metadata(originalRoute.getMetadata())
+                        .build();
+
+            ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                    .path(newPath)
+                        .build();
+
+            ServerWebExchange mutatedExchange = exchange.mutate()
+                    .request(mutatedRequest)
+                    .build();
+
+            exchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, loadBalancedUri);
+            exchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR, newRoute);
+            exchange.getAttributes().put(DYNAMIC_MODULE_ROUTE_PROCESSED, true);
+
+            return chain.filter(mutatedExchange)
+                .doOnSuccess(v -> log.info("LoadBalancer proxy completed for {}", loadBalancedUri))
+                .doOnError(e -> log.error("Error during LoadBalancer proxy {} : {}", loadBalancedUri, e.getMessage()));
+        } catch (URISyntaxException e) {
+            log.error("Invalid lb URI: {}", fullUri, e);
+            exchange.getResponse().setStatusCode(HttpStatus.BAD_GATEWAY);
+            return exchange.getResponse().setComplete();
+        }
+    }
+
+    private boolean matchesModule(String requestPath, ModulesUrl module) {
+        String pattern = module.getPath();
+        if (pattern == null) return false;
+
+        // If the module explicitly set isPattern flag and you want to rely on it, you can,
+        // but we implement robust auto-detection:
+        if (isRegexPattern(pattern)) {
+            return isRegexMatch(requestPath, module);
+        } else if (isSpringPattern(pattern)) {
+            return isSpringPatternMatch(requestPath, module);
+        } else {
+            return isExactMatch(requestPath, module);
+        }
+    }
+
+    private boolean isRegexPattern(String path) {
+        if (path == null) return false;
+        // consider typical regex meta-characters
+        return path.matches(".*[\\^$+()\\\\\\[\\]|].*");
+    }
+
+    private boolean isSpringPattern(String path) {
+        if (path == null) return false;
+        return path.contains("*") || path.contains("{");
+    }
+
 
     /**
      * Encuentra un módulo que coincida con un patrón para la ruta dada
@@ -555,10 +564,10 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
         return compiledRegexCache.computeIfAbsent(regex, r -> {
             try {
                 Pattern pattern = Pattern.compile(r);
-                log.debug("📝 Regex compilado: '{}'", r);
+                log.debug("Regex compilado: '{}'", r);
                 return pattern;
             } catch (Exception e) {
-                log.error("🚫 Error compilando regex '{}': {}", r, e.getMessage());
+                log.error("Error compilando regex '{}': {}", r, e.getMessage());
                 return null;
             }
         });
@@ -614,6 +623,24 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
             DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(errorBody.getBytes());
             return exchange.getResponse().writeWith(Mono.just(buffer));
         }
+    }
+
+    private static class OrderedGatewayFilter implements GatewayFilter, Ordered {
+        private final GatewayFilter delegate;
+        private final int order;
+
+        public OrderedGatewayFilter(GatewayFilter delegate, int order){
+            this.delegate = delegate;
+            this.order = order;
+        }
+
+        @Override
+        public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain){
+            return delegate.filter(exchange, chain);
+        }
+
+        @Override
+        public int getOrder(){ return order;}
     }
 
     public static class Config {
