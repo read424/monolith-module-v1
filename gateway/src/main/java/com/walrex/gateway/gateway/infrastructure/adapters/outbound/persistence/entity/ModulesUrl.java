@@ -24,6 +24,7 @@ public class ModulesUrl {
     private String path;
     private Integer stripPrefixCount;
     private String status;
+    @Column("ispattern")
     private Boolean isPattern;
     private LocalDateTime created_at;
     private LocalDateTime updated_at;
