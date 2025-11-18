@@ -31,13 +31,19 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
     @Override
     public GatewayFilter apply(Config config) {
         return ((exchange, chain) -> {
+            Boolean jwtProcessed = exchange.getAttribute("JWT_ALREADY_PROCESSED");
+            if (jwtProcessed != null && jwtProcessed) {
+                log.debug("✅ JWT ya procesado anteriormente");
+                return chain.filter(exchange);
+            }
+
             // ✅ LOG INICIAL - Confirmar que el filtro se ejecuta
-            log.error("🚀 [JWT-FILTER-START] JwtHeaderFilter INICIANDO para: {} {} - Thread: {}",
+            log.error("[JWT-FILTER-START] JwtHeaderFilter INICIANDO para: {} {} - Thread: {}",
                     exchange.getRequest().getMethod(),
                     exchange.getRequest().getPath().value(),
                     Thread.currentThread().getName());
 
-            log.error("🔴 [GATEWAY-JWT] Procesando: {} {} - Thread: {}",
+            log.error("[GATEWAY-JWT] Procesando: {} {} - Thread: {}",
                     exchange.getRequest().getMethod(),
                     exchange.getRequest().getPath().value(),
                     Thread.currentThread().getName());
@@ -147,9 +153,17 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
                                     .header("Authorization", "Bearer " + token)
                                     .build();
 
+                            ServerWebExchange mutatedExchange = exchange.mutate().request(mutatedRequest).build();
+
+                            // ✅ Transferir atributos críticos que no deben perderse
+                            mutatedExchange.getAttributes().putAll(exchange.getAttributes());
+
+                            // ✅ Marcar que JWT ya fue procesado
+                            mutatedExchange.getAttributes().put("JWT_ALREADY_PROCESSED", true);
+
                             log.error(
-                                    "✅ [4] JwtHeaderFilter - Headers agregados, continuando con la cadena de filtros");
-                            return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                                "✅ [4] JwtHeaderFilter - Headers agregados, continuando con la cadena de filtros");
+                            return chain.filter(mutatedExchange);
                         } catch (Exception e) {
                             log.error("❌ [4] JwtHeaderFilter - Error procesando claims del JWT: {}", e.getMessage(), e);
                             return unauthorizedResponse(exchange, "Error procesando token");
