@@ -65,8 +65,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
             exchange.getAttributes().put("LOOP_COUNTER", loopCounter);
 
             String path = exchange.getRequest().getPath().value();
-            String threadName = Thread.currentThread().getName();
-            log.error("🟣 [5] DynamicModuleRouteFilter [{}] - Path: '{}'", threadName, path);
+            log.debug("DynamicModuleRouteFilter - Path: '{}'", path);
 
             URI gatewayUrlAttr = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR);
             // ✅ Verificar si es una petición forward para evitar bucles
