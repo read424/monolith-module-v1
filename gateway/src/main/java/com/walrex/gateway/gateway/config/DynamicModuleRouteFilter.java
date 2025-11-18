@@ -9,10 +9,10 @@ import java.util.regex.Pattern;
 
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.cloud.gateway.filter.OrderedGatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
-import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.PathContainer;
@@ -666,24 +666,6 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
             DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(errorBody.getBytes());
             return exchange.getResponse().writeWith(Mono.just(buffer));
         }
-    }
-
-    private static class OrderedGatewayFilter implements GatewayFilter, Ordered {
-        private final GatewayFilter delegate;
-        private final int order;
-
-        public OrderedGatewayFilter(GatewayFilter delegate, int order){
-            this.delegate = delegate;
-            this.order = order;
-        }
-
-        @Override
-        public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain){
-            return delegate.filter(exchange, chain);
-        }
-
-        @Override
-        public int getOrder(){ return order;}
     }
 
     public static class Config {
