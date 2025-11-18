@@ -35,16 +35,13 @@ public class DynamicModuleRouteFilterTest {
     @Mock
     private ModulesUrlRepository modulesUrlRepository;
 
-    @Mock
-    private ConsulServiceResolver consulServiceResolver;
-
     private DynamicModuleRouteFilter filter;
 
     private GatewayFilterChain chain;
 
     @BeforeEach
     void setUp(){
-        filter = new DynamicModuleRouteFilter(modulesUrlRepository, consulServiceResolver);
+        filter = new DynamicModuleRouteFilter(modulesUrlRepository);
     }
 
     @Test
