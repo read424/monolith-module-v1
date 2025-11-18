@@ -40,6 +40,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
     private final ConcurrentHashMap<String, ModulesUrl> exactPathCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, ModulesUrl> patternPathCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Pattern> compiledRegexCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, PathPattern> compiledPathPatternCache = new ConcurrentHashMap<>();
     private final AtomicLong lastCacheRefresh = new AtomicLong(System.currentTimeMillis());
     private final long CACHE_TTL = 60000; // 1 minuto
 
@@ -151,26 +152,30 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
 
     /**
      * 🔍 Busca en el caché de patrones un módulo que coincida con la ruta solicitada
+     * Optimizado: usa patrones pre-compilados para mejor performance
      */
     private ModulesUrl findPatternMatchInCache(String requestPath) {
         log.debug("🔍 Buscando en caché de patrones para: '{}'", requestPath);
 
-        for (String patternStr : patternPathCache.keySet()) {
-            try {
-                ModulesUrl module = patternPathCache.get(patternStr);
+        PathContainer pathContainer = PathContainer.parsePath(requestPath);
 
+        for (var entry : patternPathCache.entrySet()) {
+            String patternStr = entry.getKey();
+            ModulesUrl module = entry.getValue();
+
+            try {
                 if (module.getIsPattern() != null && module.getIsPattern()) {
                     // 🎯 Usar regex compilado para isPattern = true
                     Pattern compiledPattern = getCompiledRegex(patternStr);
                     if (compiledPattern != null && compiledPattern.matcher(requestPath).matches()) {
-                        log.info("✅ [Cache-Regex] COINCIDENCIA: '{}' -> '{}'", requestPath, patternStr);
+                        log.debug("✅ [Cache-Regex] COINCIDENCIA: '{}' -> '{}'", requestPath, patternStr);
                         return module;
                     }
                 } else {
-                    // 🎯 Usar PathPattern de Spring para isPattern = false
-                    PathPattern pattern = pathPatternParser.parse(patternStr);
-                    if (pattern.matches(PathContainer.parsePath(requestPath))) {
-                        log.info("✅ [Cache-Spring] COINCIDENCIA: '{}' -> '{}'", requestPath, patternStr);
+                    // 🎯 Usar PathPattern pre-compilado de Spring
+                    PathPattern pattern = getCompiledPathPattern(patternStr);
+                    if (pattern != null && pattern.matches(pathContainer)) {
+                        log.debug("✅ [Cache-Spring] COINCIDENCIA: '{}' -> '{}'", requestPath, patternStr);
                         return module;
                     }
                 }
@@ -181,6 +186,22 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
 
         log.debug("🔍 No se encontraron coincidencias en caché de patrones");
         return null;
+    }
+
+    /**
+     * 📝 Obtiene o compila un PathPattern de Spring con caché
+     */
+    private PathPattern getCompiledPathPattern(String pattern) {
+        return compiledPathPatternCache.computeIfAbsent(pattern, p -> {
+            try {
+                PathPattern compiled = pathPatternParser.parse(p);
+                log.debug("PathPattern compilado: '{}'", p);
+                return compiled;
+            } catch (Exception e) {
+                log.error("Error compilando PathPattern '{}': {}", p, e.getMessage());
+                return null;
+            }
+        });
     }
 
     /**
@@ -458,6 +479,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                     exactPathCache.clear();
                     patternPathCache.clear();
                     compiledRegexCache.clear();
+                    compiledPathPatternCache.clear();
 
                     for (ModulesUrl module : modules) {
                         if (module.getPath() != null && !module.getPath().isEmpty()) {
@@ -467,9 +489,11 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                                 // Pre-compilar regex para performance
                                 getCompiledRegex(module.getPath());
                                 log.debug("📋 Cacheado patrón REGEX: '{}'", module.getPath());
-                            } else if (module.getPath().contains("*")) {
+                            } else if (module.getPath().contains("*") || module.getPath().contains("{")) {
                                 // Es un patrón de Spring
                                 patternPathCache.put(module.getPath(), module);
+                                // Pre-compilar PathPattern para performance
+                                getCompiledPathPattern(module.getPath());
                                 log.debug("📋 Cacheado patrón SPRING: '{}'", module.getPath());
                             } else {
                                 // Es una ruta exacta
@@ -480,8 +504,8 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                     }
 
                     lastCacheRefresh.set(System.currentTimeMillis());
-                    log.info("✅ Caché refrescado: {} rutas exactas, {} patrones, {} regex compilados",
-                            exactPathCache.size(), patternPathCache.size(), compiledRegexCache.size());
+                    log.info("✅ Caché refrescado: {} rutas exactas, {} patrones, {} regex, {} pathPatterns",
+                            exactPathCache.size(), patternPathCache.size(), compiledRegexCache.size(), compiledPathPatternCache.size());
                 });
     }
 
