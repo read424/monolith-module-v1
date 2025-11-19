@@ -150,6 +150,9 @@ spring:
         instance-id: ${spring.application.name}-${random.value}
         prefer-ip-address: true
         fail-fast: false  # No fallar si Consul no está disponible en dev
+    loadbalancer:
+      ribbon:
+        enabled: false
     gateway:
       enabled: true
       discovery:

@@ -28,24 +28,14 @@ public class DynamicRouteConfig {
     public RouteLocator dynamicRouteLocator(RouteLocatorBuilder builder) {
         log.info("🚀 [0] DynamicRouteConfig - INICIANDO configuración de rutas");
         return builder.routes()
-                .route("dynamic-route-handler", r -> {
-                    log.info("🔵 [0] DynamicRouteConfig - Configurando ruta dinámica global");
-                    return r
+                .route("dynamic-route-handler", r -> r
                             .path("/**")
-                            .filters(f -> {
-                                log.info("🔵 [0] DynamicRouteConfig - Aplicando filtros Gateway");
-                                log.info("🔵 [0] DynamicRouteConfig - JwtHeaderFilter configurado: {}",
-                                        jwtHeaderFilter != null);
-                                return f
-                                        .filter(jwtHeaderFilter.apply(jwtHeaderFilterConfig())) // ✅ JWT con
-                                                                                                // configuración
-                                                                                                // correcta
-                                        .filter(dynamicModuleRouteFilter.apply(new DynamicModuleRouteFilter.Config())); // ✅
-                                                                                                                        // Routing
-                                                                                                                        // después
-                            })
-                            .uri("forward:/"); // URI placeholder, la verdadera URI se determinará en el filtro
-                }).build();
+                            .filters(f -> f
+                                .filter(jwtHeaderFilter.apply(jwtHeaderFilterConfig()))
+                                .filter(dynamicModuleRouteFilter.apply(new DynamicModuleRouteFilter.Config()))
+                            )
+                            .uri("forward:/")
+                ).build();
     }
 
     @PostConstruct

@@ -147,6 +147,9 @@ spring:
         instance-id: ${spring.application.name}-${random.value}
         prefer-ip-address: true
         fail-fast: false
+    loadbalancer:
+      ribbon:
+        enabled: false
     gateway:
       enabled: true
       discovery:
