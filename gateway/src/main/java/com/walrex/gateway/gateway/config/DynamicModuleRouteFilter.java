@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
+import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.core.io.buffer.*;
 import org.springframework.http.HttpStatus;
@@ -234,10 +235,15 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                                       GatewayFilterChain chain) {
         String serviceName = module.getUri();
 
-        // Distinguir entre servicio local (monolito) y servicios externos (Consul)
+        // Módulo interno (forward)
         if (serviceName == null || serviceName.isEmpty() || "monolito-modular".equalsIgnoreCase(serviceName)) {
             log.info("📍 Routing a monolito local (forward interno)");
             return processRoutingInternal(module, requestPath, request, exchange, chain);
+        }
+
+        // Módulo load-balanced (lb://)
+        if (serviceName.startsWith("lb://")) {
+            return processRoutingWithLoadBalancer(module, requestPath, exchange, chain);
         }
 
         // Servicio externo: Consultar Consul
@@ -614,6 +620,68 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
             DataBuffer buffer = exchange.getResponse().bufferFactory().wrap(errorBody.getBytes());
             return exchange.getResponse().writeWith(Mono.just(buffer));
         }
+    }
+
+    private Mono<Void> processRoutingWithLoadBalancer(
+        ModulesUrl module,
+        String requestPath,
+        ServerWebExchange exchange,
+        GatewayFilterChain chain) {
+
+        log.info("🚀 Routing con LoadBalancer para módulo: {}", module.getModuleName());
+
+        String lbUriStr = module.getUri();  // ejemplo: lb://quarkus-user-service
+        String newPath = processPath(requestPath, module);
+
+        URI lbUri;
+        try {
+            lbUri = new URI(lbUriStr);
+        } catch (Exception e) {
+            log.error("❌ URI LB inválida: {}", lbUriStr, e);
+            exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+            return exchange.getResponse().setComplete();
+        }
+
+        // Obtener ruta original del exchange
+        Route originalRoute = exchange.getAttribute(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR);
+        if (originalRoute == null) {
+            log.error("❌ No se encontró GATEWAY_ROUTE_ATTR");
+            exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+            return exchange.getResponse().setComplete();
+        }
+
+        // Crear nueva Route que use LoadBalancer
+        Route newRoute = Route.async()
+            .id(originalRoute.getId())
+            .uri(lbUri) // <--- URI lb://
+            .order(originalRoute.getOrder())
+            .asyncPredicate(originalRoute.getPredicate())
+            .filters(originalRoute.getFilters())
+            .metadata(originalRoute.getMetadata())
+            .build();
+
+        // Mutar request con nuevo path
+        ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+            .path(newPath)
+            .build();
+
+        ServerWebExchange mutatedExchange = exchange.mutate()
+            .request(mutatedRequest)
+            .build();
+
+        // Establecer atributos del LB
+        mutatedExchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, lbUri);
+        mutatedExchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_ROUTE_ATTR, newRoute);
+        mutatedExchange.getAttributes().put("DYNAMIC_ROUTE_PROCESSED", true);
+
+        log.info("🔄 [LB] {} → {} con path {}", requestPath, lbUriStr, newPath);
+
+        return chain.filter(mutatedExchange)
+            .doOnSuccess(v -> {
+                URI finalUri = mutatedExchange.getAttribute(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR);
+                log.info("✅ Routing LB completado. URI final: {}", finalUri);
+            })
+            .doOnError(e -> log.error("❌ Error en routing LB: {}", e.getMessage()));
     }
 
     public static class Config {
