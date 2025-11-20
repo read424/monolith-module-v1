@@ -34,7 +34,8 @@ import lombok.extern.slf4j.Slf4j;
         "com.walrex.role",
         "com.walrex.module_ecomprobantes",
         "com.walrex.module_driver",
-        "com.walrex.module_partidas"
+        "com.walrex.module_partidas",
+        "com.walrex.despacho"
 })
 @Slf4j
 public class ModuleCoreApplication {
