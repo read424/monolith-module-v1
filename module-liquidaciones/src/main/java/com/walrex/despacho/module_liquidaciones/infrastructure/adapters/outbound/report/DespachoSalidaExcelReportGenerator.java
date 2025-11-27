@@ -1,5 +1,6 @@
 package com.walrex.despacho.module_liquidaciones.infrastructure.adapters.outbound.report;
 
+import com.walrex.despacho.module_liquidaciones.application.ports.output.ExcelReportGeneratorPort;
 import com.walrex.despacho.module_liquidaciones.domain.model.ReporteDespachoSalida;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -16,7 +17,7 @@ import java.util.List;
 
 @Component
 @Slf4j
-public class DespachoSalidaExcelReportGenerator {
+public class DespachoSalidaExcelReportGenerator implements ExcelReportGeneratorPort {
 
     private static final String SHEET_NAME = "Reporte Despacho Salidas";
     private static final String REPORT_TITLE = "REPORTE DE DESPACHO DE SALIDAS";
@@ -115,6 +116,8 @@ public class DespachoSalidaExcelReportGenerator {
     private int createSummary(Sheet sheet, List<ReporteDespachoSalida> data,
                               CellStyle labelStyle, CellStyle valueStyle, Workbook workbook, int rowNum) {
 
+        CellStyle summaryDataValueStyle = createSummaryDataValueStyle(workbook);
+
         // Calcular totales
         int totalRollos = data.stream()
             .mapToInt(r -> r.cntRollos() != null ? r.cntRollos() : 0)
@@ -143,24 +146,26 @@ public class DespachoSalidaExcelReportGenerator {
         Cell sectionTitle = titleRow.createCell(0);
         sectionTitle.setCellValue("RESUMEN ESTADÍSTICO");
         sectionTitle.setCellStyle(sectionTitleStyle);
-        sheet.addMergedRegion(new CellRangeAddress(rowNum, rowNum, 0, 5));
+        sheet.addMergedRegion(new CellRangeAddress(rowNum, rowNum, 0, 9));
         rowNum++;
 
         // Fila 1: Total Rollos y Total KG
         Row row1 = sheet.createRow(rowNum);
-        createSummaryCell(row1, 0, "Total de Rollos:", labelStyle);
-        createSummaryCell(row1, 1, String.valueOf(totalRollos), valueStyle);
+        createSummaryCell(row1, 1, "Total de Rollos:", labelStyle);
+        createSummaryCell(row1, 2, String.valueOf(totalRollos), summaryDataValueStyle);
         createSummaryCell(row1, 3, "Total Kg Ingreso:", labelStyle);
-        createSummaryCell(row1, 4, String.format("%,.2f", totalKgIngreso), valueStyle);
+        sheet.addMergedRegion(new CellRangeAddress(rowNum, rowNum, 3, 4));
+        createSummaryCell(row1, 5, String.format("%,.2f", totalKgIngreso), summaryDataValueStyle);
 
         // Fila 2: Num Liquidaciones y Num Partidas
-        Row row2 = sheet.createRow(rowNum + 1);
-        createSummaryCell(row2, 0, "N° Liquidaciones:", labelStyle);
-        createSummaryCell(row2, 1, String.valueOf(numLiquidaciones), valueStyle);
+        Row row2 = sheet.createRow(++rowNum);
+        createSummaryCell(row2, 1, "N° Liquidaciones:", labelStyle);
+        createSummaryCell(row2, 2, String.valueOf(numLiquidaciones), summaryDataValueStyle);
         createSummaryCell(row2, 3, "N° Partidas Despachadas:", labelStyle);
-        createSummaryCell(row2, 4, String.valueOf(numPartidas), valueStyle);
+        sheet.addMergedRegion(new CellRangeAddress(rowNum, rowNum, 3, 4));
+        createSummaryCell(row2, 5, String.valueOf(numPartidas), summaryDataValueStyle);
 
-        return rowNum + 2;
+        return rowNum+1;
     }
 
     private void createSummaryCell(Row row, int colNum, String value, CellStyle style) {
@@ -334,6 +339,18 @@ public class DespachoSalidaExcelReportGenerator {
         font.setColor(IndexedColors.DARK_BLUE.getIndex());
         style.setFont(font);
         style.setAlignment(HorizontalAlignment.LEFT);
+        return style;
+    }
+
+    private CellStyle createSummaryDataValueStyle(Workbook workbook){
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setFontHeightInPoints((short) 10);
+        font.setColor(IndexedColors.DARK_BLUE.getIndex());
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.RIGHT);
+        DataFormat format = workbook.createDataFormat();
+        style.setDataFormat(format.getFormat("#,##0.00"));
         return style;
     }
 

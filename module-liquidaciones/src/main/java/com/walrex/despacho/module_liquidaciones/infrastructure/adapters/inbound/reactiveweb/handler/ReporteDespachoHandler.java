@@ -2,7 +2,6 @@ package com.walrex.despacho.module_liquidaciones.infrastructure.adapters.inbound
 
 import com.walrex.despacho.module_liquidaciones.application.ports.input.GenerarReporteDespachoSalidaUseCase;
 import com.walrex.despacho.module_liquidaciones.infrastructure.adapters.inbound.reactiveweb.request.ReporteDespachoSalidaRequest;
-import com.walrex.despacho.module_liquidaciones.infrastructure.adapters.outbound.report.DespachoSalidaExcelReportGenerator;
 import com.walrex.module_security_commons.domain.model.JwtUserInfo;
 import com.walrex.module_security_commons.infrastructure.adapters.JwtUserContextService;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +15,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -27,7 +25,6 @@ import java.time.format.DateTimeFormatter;
 public class ReporteDespachoHandler {
 
     private final GenerarReporteDespachoSalidaUseCase generarReporteDespachoSalidaUseCase;
-    private final DespachoSalidaExcelReportGenerator excelReportGenerator;
     private final JwtUserContextService jwtUserContextService;
 
     private static final String CONTENT_TYPE_EXCEL = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -44,20 +41,16 @@ public class ReporteDespachoHandler {
             .flatMap(req -> {
                 LocalDate startDate = req.getStartDate();
                 LocalDate endDate = req.getEndDate();
-                Integer conGuia = req.getConGuia();
+                Integer isDespachado = (req.getIsDespachado() == null) ? 1 : req.getIsDespachado();
                 Integer idCliente = req.getIdCliente();
 
                 String fileName = generateFileName(startDate, endDate);
 
-                LocalDate finalStartDate = startDate;
-                LocalDate finalEndDate = endDate;
-
-                return generarReporteDespachoSalidaUseCase.generarReporte(startDate, endDate, conGuia, idCliente)
-                    .collectList()
-                    .publishOn(Schedulers.boundedElastic())
-                    .flatMap(data -> {
-                        // Si no hay registros, devolver respuesta JSON
-                        if (data.isEmpty()) {
+                // Primero verificamos si hay datos
+                return generarReporteDespachoSalidaUseCase.generarReporte(startDate, endDate, isDespachado, idCliente)
+                    .hasElements()
+                    .flatMap(hasData -> {
+                        if (!hasData) {
                             log.info("No se encontraron registros para el reporte");
                             return ServerResponse.ok()
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -68,19 +61,20 @@ public class ReporteDespachoHandler {
                                 ));
                         }
 
-                        // Si hay registros, generar Excel
-                        log.info("Generando Excel con {} registros", data.size());
-                        byte[] excelBytes = excelReportGenerator.generateReport(data, finalStartDate, finalEndDate);
-                        DataBuffer dataBuffer = DATA_BUFFER_FACTORY.wrap(excelBytes);
+                        // Si hay datos, generamos el Excel completo usando el use case
+                        return generarReporteDespachoSalidaUseCase.generarReporteExcel(startDate, endDate, isDespachado, idCliente)
+                            .flatMap(excelBytes -> {
+                                DataBuffer dataBuffer = DATA_BUFFER_FACTORY.wrap(excelBytes);
 
-                        return ServerResponse.ok()
-                            .contentType(MediaType.parseMediaType(CONTENT_TYPE_EXCEL))
-                            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
-                            .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(excelBytes.length))
-                            .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
-                            .header(HttpHeaders.PRAGMA, "no-cache")
-                            .header(HttpHeaders.EXPIRES, "0")
-                            .bodyValue(dataBuffer);
+                                return ServerResponse.ok()
+                                    .contentType(MediaType.parseMediaType(CONTENT_TYPE_EXCEL))
+                                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                                    .header(HttpHeaders.CONTENT_LENGTH, String.valueOf(excelBytes.length))
+                                    .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                                    .header(HttpHeaders.PRAGMA, "no-cache")
+                                    .header(HttpHeaders.EXPIRES, "0")
+                                    .bodyValue(dataBuffer);
+                            });
                     });
             })
             .onErrorResume(IllegalArgumentException.class, e -> {

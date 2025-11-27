@@ -37,9 +37,9 @@ public class ReporteDespachoSalidaRepository {
         WHERE tl.status = 1 AND (tl.fec_liquidacion BETWEEN :fechaStart AND :fechaEnd)
         """;
 
-    private static final String FILTER_ENTREGADO = " AND tl.entregado = :entregado";
+    private static final String FILTER_ENTREGADO = " AND tl.entregado = :entregado ";
 
-    private static final String FILTER_ID_CLIENTE = " AND tl.id_cliente = :idCliente";
+    private static final String FILTER_ID_CLIENTE = " AND tl.id_cliente = :idCliente ";
 
     private static final String GROUP_ORDER = """
         GROUP BY tl.id_liquidacion, t.id_cliente, tdl.id_det_liquidacion, tp.id_partida
