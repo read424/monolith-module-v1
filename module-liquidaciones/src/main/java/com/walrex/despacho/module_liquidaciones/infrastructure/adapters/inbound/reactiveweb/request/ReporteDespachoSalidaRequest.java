@@ -17,6 +17,9 @@ public class ReporteDespachoSalidaRequest {
     @JsonProperty("con_guia")
     private Integer conGuia;
 
+    @JsonProperty("is_despachado")
+    private Integer isDespachado;
+
     @JsonProperty("startDate")
     private LocalDate startDate;
 
