@@ -1,5 +1,6 @@
 package com.walrex.despacho.module_liquidaciones.infrastructure.adapters.outbound.report;
 
+import com.walrex.despacho.module_liquidaciones.application.ports.output.ExcelReportGeneratorPort;
 import com.walrex.despacho.module_liquidaciones.domain.model.ReporteDespachoSalida;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.*;
@@ -16,7 +17,7 @@ import java.util.List;
 
 @Component
 @Slf4j
-public class DespachoSalidaExcelReportGenerator {
+public class DespachoSalidaExcelReportGenerator implements ExcelReportGeneratorPort {
 
     private static final String SHEET_NAME = "Reporte Despacho Salidas";
     private static final String REPORT_TITLE = "REPORTE DE DESPACHO DE SALIDAS";
