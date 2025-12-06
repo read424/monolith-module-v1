@@ -11,11 +11,12 @@ import io.r2dbc.spi.RowMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Repository para consultas de detalle de ingreso usando R2dbcTemplate
  * Ejecuta consultas SQL complejas con múltiples JOINs
- * 
+ *
  * @author Ronald E. Aybar D.
  * @version 0.0.1-SNAPSHOT
  */
@@ -26,9 +27,51 @@ public class DetalleIngresoRepository {
 
     private final DatabaseClient databaseClient;
 
+
+    public Mono<Boolean> updateStatusOrdenIngreso(Integer idOrdenIngreso, Integer status){
+        String sql= """
+            UPDATE almacenes.ordeningreso SET status=:newStatus WHERE id_ordeningreso=:id_ordeningreso
+            """;
+
+        return databaseClient.sql(sql)
+            .bind("newStatus", status)
+            .bind("id_ordeningreso", idOrdenIngreso)
+            .fetch()
+            .rowsUpdated()
+            .map(rowsAffected -> rowsAffected>0);
+    }
+
+    public Mono<Integer> getCntRollsByStatus(Integer idDetOrdenIngreso, Integer status){
+        String sql = """
+                SELECT COUNT(det_ing_pes.id_detordeningresopeso) AS cnt_rollos
+                FROM almacenes.detordeningresopeso AS det_ing_pes
+                WHERE det_ing_pes.id_detordeningreso=:idDetOrdenIngreso AND det_ing_pes.status=:status
+            """;
+
+        return databaseClient.sql(sql)
+            .bind("idDetOrdenIngreso", idDetOrdenIngreso)
+            .bind("status", status)
+            .map(row -> row.get("cnt_rollos", Integer.class))
+            .one()
+            .defaultIfEmpty(0);
+    }
+
+    public Mono<Boolean> udpateStatusDetalleIngreso(Integer idDetOrdenIngreso, Integer status){
+        String sql= """
+            UPDATE almacenes.detordeningreso SET status=:newStatus WHERE id_detordeningreso=:id_detordeningreso
+            """;
+
+        return databaseClient.sql(sql)
+            .bind("newStatus", status)
+            .bind("id_detordeningreso", idDetOrdenIngreso)
+            .fetch()
+            .rowsUpdated()
+            .map(rowsAffected -> rowsAffected>0);
+    }
+
     /**
      * Consulta el detalle de ingreso principal
-     * 
+     *
      * @param idAlmacen ID del almacén
      * @return Flux de proyecciones DetalleIngresoProjection
      */
@@ -57,7 +100,7 @@ public class DetalleIngresoRepository {
 
     /**
      * Consulta los rollos disponibles para una partida específica
-     * 
+     *
      * @param idPartida ID de la partida
      * @param idAlmacen ID del almacén
      * @return Flux de proyecciones ItemRolloProjection

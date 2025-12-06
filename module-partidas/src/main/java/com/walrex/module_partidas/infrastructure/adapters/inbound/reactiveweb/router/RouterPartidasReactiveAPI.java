@@ -27,16 +27,18 @@ public class RouterPartidasReactiveAPI {
     private final DetalleIngresoHandler detalleIngresoHandler;
     private final SaveSuccessOutTachoHandler saveSuccessOutTachoHandler;
     private final DeclineOutTachoHandler declineOutTachoHandler;
+    private final DeclararProcesosHandler declararProcesosHandler;
     private static final String PATH_PARTIDAS = "partidas";
 
     /**
      * Configura las rutas para la API de Partidas
-     * 
+     *
      * Endpoints disponibles:
      * - POST /partidas/out-tacho - Guardar éxito de salida de tacho
      * - POST /partidas/decline-out-tacho - Declinar salida de tacho
      * - GET /partidas/almacen-tacho - Consultar almacén tacho con filtros
      * - GET /partidas/detalle-ingreso - Consultar detalle de ingreso con rollos
+     * - POST /partidas/declarar-procesos-incompletos -
      *
      * @return RouterFunction configurado
      */
@@ -54,7 +56,11 @@ public class RouterPartidasReactiveAPI {
                                 declineOutTachoHandler::declineOutTacho)
                         .GET("/detalle-ingreso",
                                 RequestPredicates.accept(MediaType.APPLICATION_JSON),
-                                detalleIngresoHandler::consultarDetalleIngreso))
+                                detalleIngresoHandler::consultarDetalleIngreso)
+                        .POST("/declarar-procesos-incompletos",
+                            RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                            declararProcesosHandler::procesarDeclaracionesIncompletas)
+                )
                 .before(request -> {
                     log.info("🔄 Router {} recibió solicitud: {} {}",
                             PATH_PARTIDAS,

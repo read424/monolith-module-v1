@@ -75,6 +75,11 @@
 			<artifactId>mapstruct</artifactId>
 			<version>${org.mapstruct.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>com.walrex</groupId>
+            <artifactId>module-security-commons</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
 		<!-- PostgreSQL (R2DBC only) -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
