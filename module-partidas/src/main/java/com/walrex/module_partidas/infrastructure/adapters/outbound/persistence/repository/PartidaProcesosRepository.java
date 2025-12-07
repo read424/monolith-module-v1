@@ -47,7 +47,7 @@ public class PartidaProcesosRepository {
             LEFT OUTER JOIN comercial.tb_ruta_procesos_tipo_reprocesos trptr ON trptr.id_ruta  = t.id_ruta AND trptr.id_det_ruta = t.id_det_ruta AND tp.type_reprocess = trptr.type_reprocess
             LEFT OUTER JOIN produccion.partidas_procesos_maquinas ppm ON ppm.id_partida = tp.id_partida AND ppm.id_proceso = t.id_proceso AND ppm.anulado=0
             WHERE tp.id_partida = :idPartida AND CASE WHEN tp.type_reprocess IS NOT NULL THEN trptr.type_reprocess=tp.type_reprocess ELSE TRUE END
-            ORDER BY det_rut.id_det_ruta ASC
+            ORDER BY t.id_det_ruta ASC
             """;
 
         return databaseClient.sql(sql)
@@ -67,17 +67,30 @@ public class PartidaProcesosRepository {
     public Mono<Integer> saveProcesoIncompleto(ItemProcessProductionDTO proceso, Integer idPartida) {
         String sql = """
             INSERT INTO produccion.partidas_procesos_maquinas
-            (id_partida, id_det_ruta, id_proceso, id_tipo_maquina, id_maquina, anulado, id_)
+            (id_partida, id_det_ruta, id_proceso, id_tipo_maquina, id_maquina, anulado)
             VALUES (:idPartida, :idDetRuta, :idProceso, :idTipoMaquina, :idMaquina, 0)
             RETURNING id_partida_maquina
             """;
 
-        return databaseClient.sql(sql)
+        DatabaseClient.GenericExecuteSpec executeSpec = databaseClient.sql(sql)
             .bind("idPartida", idPartida)
             .bind("idDetRuta", proceso.getIdDetRuta())
-            .bind("idProceso", proceso.getIdProceso())
-            .bind("idTipoMaquina", proceso.getIdTipoMaquina())
-            .bind("idMaquina", proceso.getIdMaquina())
+            .bind("idProceso", proceso.getIdProceso());
+
+        // Manejar valores opcionales
+        if (proceso.getIdTipoMaquina() != null) {
+            executeSpec = executeSpec.bind("idTipoMaquina", proceso.getIdTipoMaquina());
+        } else {
+            executeSpec = executeSpec.bindNull("idTipoMaquina", Integer.class);
+        }
+
+        if (proceso.getIdMaquina() != null) {
+            executeSpec = executeSpec.bind("idMaquina", proceso.getIdMaquina());
+        } else {
+            executeSpec = executeSpec.bindNull("idMaquina", Integer.class);
+        }
+
+        return executeSpec
             .map(row -> row.get("id_partida_maquina", Integer.class))
             .one()
             .doOnSuccess(id -> log.info("Proceso incompleto guardado con ID: {}", id))

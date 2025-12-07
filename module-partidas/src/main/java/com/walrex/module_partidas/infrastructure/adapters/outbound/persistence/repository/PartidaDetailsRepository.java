@@ -58,7 +58,7 @@ public class PartidaDetailsRepository {
 
     public Flux<RollsInStoreProjection> getRollsInStored(Integer idPartida){
         String sql = """
-                SELECT det_ing_peso.id_detordeningresopeso, det_ing_peso.id_ordeningreso, det_ing_peso.id_detordeningreso
+                SELECT det_ing_peso.id_detordeningresopeso, det_ing_peso.id_ordeningreso, ord_ing.id_almacen, det_ing_peso.id_detordeningreso
                 , det_ing_peso.id_rollo_ingreso, det_ing_peso.cod_rollo, det_ing_peso.peso_rollo
                 FROM almacenes.detordeningreso AS det_ing
                 INNER JOIN almacenes.detordeningresopeso AS det_ing_pes ON det_ing_pes.id_detordeningreso = det_ing.id_detordeningreso AND det_ing_pes.status = 1
@@ -78,6 +78,7 @@ public class PartidaDetailsRepository {
             return RollsInStoreProjection.builder()
                 .idDetOrdenIngresoPeso(row.get("id_detordeningresopeso", Integer.class))
                 .idOrdenIngreso(row.get("id_ordeningreso", Integer.class))
+                .idAlmacen(row.get("id_almacen", Integer.class))
                 .idDetOrdenIngreso(row.get("id_detordeningreso", Integer.class))
                 .idRolloIngreso(row.get("id_rollo_ingreso", Integer.class))
                 .codigo(row.get("cod_rollo", String.class))

@@ -13,6 +13,8 @@ public class RollsInStoreProjection {
 
     private Integer idOrdenIngreso;
 
+    private Integer idAlmacen;
+
     private Integer idDetOrdenIngreso;
 
     private Integer idRolloIngreso;
