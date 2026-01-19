@@ -174,6 +174,18 @@ public class AlmacenesRepository {
                 .doOnError(error -> log.error("Error deshabilitando orden de ingreso: {}", error.getMessage()));
     }
 
+    public Mono<Integer> deshabilitarOrdenIngresoRechazado(Integer idOrdenIngreso){
+        String sql = """
+                UPDATE almacenes.ordeningreso SET status = 0, stay_store= '1'  WHERE id_ordeningreso = :idOrdenIngreso RETURNING status
+                """;
+        return databaseClient.sql(sql)
+            .bind("idOrdenIngreso", idOrdenIngreso)
+            .map((row, metadata) -> row.get("status", Integer.class))
+            .one()
+            .doOnSuccess(statusSaved -> log.info("Orden de ingreso deshabilitado con ID: {}, status actualizado: {}", idOrdenIngreso, statusSaved))
+            .doOnError(error -> log.error("Error deshabilitando orden de ingreso: {}", error.getMessage()));
+    }
+
     public Mono<Integer> deshabilitarDetalleIngreso(Integer idOrdenIngreso){
         String sql = """
                 UPDATE almacenes.detordeningreso SET status = 0 WHERE id_ordeningreso = :idOrdenIngreso RETURNING status
