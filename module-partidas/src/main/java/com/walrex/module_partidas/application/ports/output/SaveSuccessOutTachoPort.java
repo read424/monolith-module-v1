@@ -120,6 +120,15 @@ public interface SaveSuccessOutTachoPort {
     Mono<Integer> deshabilitarOrdenIngreso(Integer idOrdenIngreso);
 
     /**
+     * Deshabilita la orden de ingreso completa
+     *
+     * @param idOrdenIngreso ID de la orden de ingreso
+     * @return Mono con el status actualizado
+     */
+    Mono<Integer> deshabilitarOrdenIngresoByDecline(Integer idOrdenIngreso);
+
+
+    /**
      * Consulta la información completa de una orden de ingreso
      *
      * @param idOrdenIngreso ID de la orden de ingreso

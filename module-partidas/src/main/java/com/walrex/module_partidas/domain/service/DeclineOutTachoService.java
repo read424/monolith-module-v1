@@ -49,7 +49,7 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
             return Mono.error(new IllegalArgumentException("Debe seleccionar al menos un rollo"));
         }
 
-        log.info("Procesando {} rollos seleccionados para rechazo en partida ID: {}", 
+        log.info("Procesando {} rollos seleccionados para rechazo en partida ID: {}",
                 rollosSeleccionados.size(), declinePartidaTacho.getIdPartida());
 
         return procesarRollosRechazoConTransaccion(declinePartidaTacho, rollosSeleccionados)
@@ -57,9 +57,9 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
                     // Registrar motivo de rechazo
                     return registrarMotivoRechazo(declinePartidaTacho)
                             .thenReturn(ingresoAlmacen)
-                            .doOnSuccess(result -> log.info("Procesamiento de rechazo completo exitoso para partida ID: {}", 
+                            .doOnSuccess(result -> log.info("Procesamiento de rechazo completo exitoso para partida ID: {}",
                                     declinePartidaTacho.getIdPartida()))
-                            .doOnError(error -> log.error("Error registrando motivo de rechazo para partida ID: {} - Error: {}", 
+                            .doOnError(error -> log.error("Error registrando motivo de rechazo para partida ID: {} - Error: {}",
                                     declinePartidaTacho.getIdPartida(), error.getMessage()));
                 });
     }
@@ -69,15 +69,15 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
      */
     private Mono<Void> registrarMotivoRechazo(DeclinePartidaTacho declinePartidaTacho) {
         log.info("Registrando motivo de rechazo para partida ID: {}", declinePartidaTacho.getIdPartida());
-        
-        String motivoRechazo = declinePartidaTacho.getMotivoRechazo().getValue() + " - " + 
+
+        String motivoRechazo = declinePartidaTacho.getMotivoRechazo().getValue() + " - " +
                               declinePartidaTacho.getMotivoRechazo().getText();
         String personalSupervisor = declinePartidaTacho.getPersonal().getApenomEmpleado();
         String observacion = declinePartidaTacho.getObservacion();
-        
-        log.info("Registrando motivo de rechazo para partida {}: {} - Supervisor: {} - Observación: {}", 
+
+        log.info("Registrando motivo de rechazo para partida {}: {} - Supervisor: {} - Observación: {}",
                 declinePartidaTacho.getIdPartida(), motivoRechazo, personalSupervisor, observacion);
-        
+
         return Mono.<Void>empty()
                 .doOnSuccess(v -> log.info("Motivo de rechazo registrado exitosamente"))
                 .doOnError(error -> log.error("Error registrando motivo de rechazo: {}", error.getMessage()));
@@ -86,7 +86,7 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
 
     @Transactional
     private Mono<IngresoAlmacenDTO> procesarRollosRechazoConTransaccion(
-            DeclinePartidaTacho declinePartidaTacho, 
+            DeclinePartidaTacho declinePartidaTacho,
             List<ItemRolloProcess> rollosSeleccionados) {
         return procesarRollosRechazo(declinePartidaTacho, rollosSeleccionados);
     }
@@ -129,7 +129,7 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
                 ItemRollo::getIdIngresopeso,
                 rollo -> rollo
             ));
-        
+
         List<Integer> idsNoDisponibles = rollosSeleccionados.stream()
             .map(ItemRolloProcess::getIdIngresoPeso)
             .filter(idIngresoPeso -> !rollosDisponiblesMap.containsKey(idIngresoPeso))
@@ -165,9 +165,9 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
                                 // Crear orden de salida correspondiente al ingreso
                                 return crearOrdenSalida(declinePartidaTacho, idOrdenIngreso, ID_ALMACEN_RECHAZO)
                                         .flatMap(idOrdenSalida -> {
-                                            log.info("Orden de salida de rechazo creada con ID: {} para orden de ingreso: {}", 
+                                            log.info("Orden de salida de rechazo creada con ID: {} para orden de ingreso: {}",
                                                 idOrdenSalida, idOrdenIngreso);
-                                            
+
                                             // Procesar cada rollo seleccionado y construir IngresoAlmacen
                                             return procesarRollosIndividuales(declinePartidaTacho, rollosSeleccionados, idOrdenIngreso, idOrdenSalida)
                                                     .flatMap(rollosProcesados -> {
@@ -182,7 +182,7 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
                                                                         )
                                                                 ));
 
-                                                        log.info("Rollos procesados: {} - Mapeo ID orden ingreso -> cnt rollos: {}", 
+                                                        log.info("Rollos procesados: {} - Mapeo ID orden ingreso -> cnt rollos: {}",
                                                                 rollosProcesados.size(), idOrdenIngresoCntRollos);
 
                                                         // Convertir ItemRolloProcess a ItemRollo para la respuesta
@@ -194,7 +194,7 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
                                                         Double pesoTotal = rollosProcesados.stream()
                                                                 .mapToDouble(rollo -> Double.valueOf(rollo.getPesoRollo()))
                                                                 .sum();
-                                        
+
                                                         log.info("Peso total calculado: {} para {} rollos procesados", pesoTotal, rollosProcesados.size());
 
                                                         IngresoAlmacenDTO ingresoAlmacenDTO = IngresoAlmacenDTO.builder()
@@ -212,7 +212,7 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
                                                             .build();
 
                                                     // Recorrer idOrdenIngresoCntRollos para validar cantidades y deshabilitar según índice
-                                                    return validarYDeshabilitarOrdenesIngreso(idOrdenIngresoCntRollos, rollosSeleccionados.size(), rollosProcesados)
+                                                    return validarYDeshabilitarOrdenesIngreso(idOrdenIngresoCntRollos, rollosSeleccionados.size(), rollosProcesados, cntRollosAlmacen)
                                                             .doOnNext(esCompleto -> {
                                                                 log.info("Validación completada. Todos los rollos procesados: {}", esCompleto);
                                                             })
@@ -226,31 +226,31 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
     /**
      * Valida y deshabilita órdenes de ingreso según el mapeo de cantidades procesadas
      */
-    private Mono<Boolean> validarYDeshabilitarOrdenesIngreso(Map<Integer, Integer> idOrdenIngresoCntRollos, 
-            int totalRollosSeleccionados, List<ItemRolloProcessDTO> rollosProcesados) {
-        log.info("Iniciando validación de órdenes de ingreso de rechazo. Mapeo: {}, Total rollos seleccionados: {}", 
+    private Mono<Boolean> validarYDeshabilitarOrdenesIngreso(Map<Integer, Integer> idOrdenIngresoCntRollos,
+            int totalRollosSeleccionados, List<ItemRolloProcessDTO> rollosProcesados, Integer cntRollosAlmacen) {
+        log.info("Iniciando validación de órdenes de ingreso de rechazo. Mapeo: {}, Total rollos seleccionados: {}",
                 idOrdenIngresoCntRollos, totalRollosSeleccionados);
 
         return Flux.fromIterable(idOrdenIngresoCntRollos.entrySet())
             .flatMap(entry -> {
                 Integer idOrdenIngreso = entry.getKey();
                 Integer cntRollosProcesados = entry.getValue();
-                
-                log.info("Validando orden de ingreso de rechazo ID: {} con {} rollos procesados", 
+
+                log.info("Validando orden de ingreso de rechazo ID: {} con {} rollos procesados",
                         idOrdenIngreso, cntRollosProcesados);
 
                 return validarCantidadRollosProcesados(idOrdenIngreso, cntRollosProcesados)
                         .flatMap(deshabilitarSiEsNecesario -> {
                             if (deshabilitarSiEsNecesario) {
-                                log.info("Deshabilitando orden de ingreso de rechazo: {} - Cantidad procesada: {}", 
-                                        idOrdenIngreso, cntRollosProcesados);
-                                return saveSuccessOutTachoPort.deshabilitarOrdenIngreso(idOrdenIngreso)
+                                log.info("Deshabilitando orden de ingreso de rechazo: {} - Cantidad procesada: {} - Cantidad rollos: {}",
+                                        idOrdenIngreso, cntRollosProcesados, cntRollosAlmacen);
+                                return saveSuccessOutTachoPort.deshabilitarOrdenIngresoByDecline(idOrdenIngreso)
                                 .then(deshabilitarRollosDeOrden(idOrdenIngreso, rollosProcesados))
                                 .thenReturn(cntRollosProcesados);
                             } else {
-                                log.info("Orden de ingreso de rechazo {} no requiere deshabilitación - Cantidad procesada: {}", 
+                                log.info("Orden de ingreso de rechazo {} no requiere deshabilitación - Cantidad procesada: {}",
                                     idOrdenIngreso, cntRollosProcesados);
-                            
+
                                 // Aún así debemos deshabilitar los rollos individuales procesados
                                 return deshabilitarRollosDeOrden(idOrdenIngreso, rollosProcesados)
                                         .thenReturn(cntRollosProcesados);
@@ -263,7 +263,7 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
                         .mapToInt(Integer::intValue)
                         .sum();
                 boolean esCompleto = totalProcesado == totalRollosSeleccionados;
-                log.info("Cantidades procesadas: {}, Total rollos procesados: {}, Total seleccionados: {}, Es completo: {}", 
+                log.info("Cantidades procesadas: {}, Total rollos procesados: {}, Total seleccionados: {}, Es completo: {}",
                         cantidadesProcesadas, totalProcesado, totalRollosSeleccionados, esCompleto);
                 return esCompleto;
             })
@@ -287,7 +287,7 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
                 .mapToDouble(rollo -> Double.valueOf(rollo.getPesoRollo()))
                 .sum();
 
-        log.info("Peso total calculado para crearDetalleOrdenIngresoRechazo: {} para {} rollos seleccionados", 
+        log.info("Peso total calculado para crearDetalleOrdenIngresoRechazo: {} para {} rollos seleccionados",
             pesoTotal, rollosSeleccionados.size());
 
         // Crear el detalle de orden de ingreso de rechazo UNA SOLA VEZ
@@ -327,11 +327,11 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
             Integer idOrdenSalida,
             Integer idDetalleOrdenSalida) {
 
-        log.info("Iniciando procesamiento de {} rollos seleccionados para rechazo en partida ID: {}", 
+        log.info("Iniciando procesamiento de {} rollos seleccionados para rechazo en partida ID: {}",
                 rollosSeleccionados.size(), declinePartidaTacho.getIdPartida());
 
         return Flux.fromIterable(rollosSeleccionados)
-                    .flatMap(rollo -> procesarRolloIndividual(declinePartidaTacho, rollo, idOrdenIngreso, idDetOrdenIngreso, 
+                    .flatMap(rollo -> procesarRolloIndividual(declinePartidaTacho, rollo, idOrdenIngreso, idDetOrdenIngreso,
                             idOrdenSalida, idDetalleOrdenSalida))
                     .doOnComplete(() -> log.info(
                                 "Todos los rollos de rechazo procesados exitosamente para partida ID: {}",
@@ -357,7 +357,7 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
                 pesoRollo, idDetOrdenIngreso, idRolloIngreso)
                 .flatMap(idDetPeso -> {
                         log.debug("Detalle de peso de rechazo creado con ID: {} para rollo: {}", idDetPeso, rollo);
-                        
+
                         // Crear detalle de peso de orden de salida
                         return ordenSalidaPersistencePort.crearDetOrdenSalidaPeso(
                                 idDetalleOrdenSalida,
@@ -397,15 +397,15 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
         return saveSuccessOutTachoPort.getCantidadRollosOrdenIngreso(idOrdenIngreso)
                 .map(cantidadEnBD -> {
                     boolean todosProcesados = cantidadEnBD.equals(cantidadRollosProcesados);
-                    
+
                     if (todosProcesados) {
-                        log.info("Todos los rollos de rechazo procesados para orden: {}. Cantidad: {}", 
+                        log.info("Todos los rollos de rechazo procesados para orden: {}. Cantidad: {}",
                             idOrdenIngreso, cantidadEnBD);
                     } else {
-                        log.info("Aún quedan rollos por procesar en rechazo. Cantidad en BD: {}, Procesados: {}", 
+                        log.info("Aún quedan rollos por procesar en rechazo. Cantidad en BD: {}, Procesados: {}",
                             cantidadEnBD, cantidadRollosProcesados);
                     }
-                    
+
                     return todosProcesados;
                 })
                 .onErrorMap(throwable -> {
@@ -417,17 +417,17 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
     /**
      * Crea una orden de salida correspondiente al ingreso de rechazo
      */
-    private Mono<Integer> crearOrdenSalida(DeclinePartidaTacho declinePartidaTacho, 
+    private Mono<Integer> crearOrdenSalida(DeclinePartidaTacho declinePartidaTacho,
             Integer idOrdenIngreso, Integer idAlmacenDestino) {
-        
+
         Integer idAlmacenOrigen = declinePartidaTacho.getIdAlmacen();
         Integer idUsuario = declinePartidaTacho.getIdUsuario();
         Integer idDocumentoRef = declinePartidaTacho.getIdPartida();
         OffsetDateTime fecRegistro = OffsetDateTime.now();
-        
-        log.info("Creando orden de salida de rechazo: almacén origen={}, almacén destino={}, usuario={}", 
+
+        log.info("Creando orden de salida de rechazo: almacén origen={}, almacén destino={}, usuario={}",
             idAlmacenOrigen, idAlmacenDestino, idUsuario);
-        
+
         return ordenSalidaPersistencePort.crearOrdenSalida(
                 idAlmacenOrigen,
                 idAlmacenDestino,
@@ -456,14 +456,14 @@ public class DeclineOutTachoService implements DeclineOutTachoUseCase {
         List<ItemRolloProcessDTO> rollosDeEstaOrden = rollosProcesados.stream()
                 .filter(rollo -> idOrdenIngreso.equals(rollo.getIdIngresoAlmacen()))
                 .collect(Collectors.toList());
-        
+
         log.info("Deshabilitando {} rollos individuales de rechazo de la orden: {}", rollosDeEstaOrden.size(), idOrdenIngreso);
-        
+
         return Flux.fromIterable(rollosDeEstaOrden)
                 .flatMap(rollo -> {
                     Integer idDetOrdenIngresoPeso = rollo.getIdDetOrdenIngPesoAlmacen();
                     if (idDetOrdenIngresoPeso != null) {
-                        log.debug("Deshabilitando rollo individual de rechazo: {} (idDetOrdenIngresoPeso: {})", 
+                        log.debug("Deshabilitando rollo individual de rechazo: {} (idDetOrdenIngresoPeso: {})",
                                 rollo.getCodRollo(), idDetOrdenIngresoPeso);
                         return saveSuccessOutTachoPort.actualizarStatusDetallePeso(idDetOrdenIngresoPeso);
                     }

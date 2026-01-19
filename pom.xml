@@ -43,6 +43,7 @@
 		<module>module-driver</module>
         <module>module-comercial</module>
         <module>module-liquidaciones</module>
+        <module>module-revision-tela</module>
 	</modules>
 	<properties>
 		<java.version>21</java.version>

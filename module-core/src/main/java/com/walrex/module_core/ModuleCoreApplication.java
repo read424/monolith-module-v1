@@ -21,7 +21,8 @@ import lombok.extern.slf4j.Slf4j;
         "com.walrex.module_ecomprobantes.infrastructure.adapters.outbound.persistence.repository",
         "com.walrex.module_driver.infrastructure.adapters.outbound.persistence.repository",
         "com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.repository",
-        "com.walrex.module_comercial.infrastructure.adapters.outbound.persistence.repository"
+        "com.walrex.module_comercial.infrastructure.adapters.outbound.persistence.repository",
+        "com.walrex.module_revision_tela.infrastructure.adapters.outbound.persistence.repository"
 })
 @ComponentScan(basePackages = {
         "com.walrex",
@@ -35,7 +36,8 @@ import lombok.extern.slf4j.Slf4j;
         "com.walrex.module_ecomprobantes",
         "com.walrex.module_driver",
         "com.walrex.module_partidas",
-        "com.walrex.despacho"
+        "com.walrex.despacho",
+        "com.walrex.module_revision_tela"
 })
 @Slf4j
 public class ModuleCoreApplication {

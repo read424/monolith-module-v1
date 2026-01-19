@@ -205,6 +205,11 @@
             <artifactId>module-liquidaciones</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
+        <dependency>
+            <groupId>com.walrex.module_revision_tela</groupId>
+            <artifactId>module-revision-tela</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+        </dependency>
 		<!-- Kafka -->
 		<dependency>
 			<groupId>org.springframework.kafka</groupId>

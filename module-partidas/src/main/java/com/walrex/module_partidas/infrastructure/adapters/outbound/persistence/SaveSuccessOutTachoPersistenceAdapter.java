@@ -168,6 +168,11 @@ public class SaveSuccessOutTachoPersistenceAdapter implements SaveSuccessOutTach
     }
 
     @Override
+    public Mono<Integer> deshabilitarOrdenIngresoByDecline(Integer idOrdenIngreso){
+        return almacenesRepository.deshabilitarOrdenIngresoRechazado(idOrdenIngreso);
+    }
+
+    @Override
     public Mono<OrdenIngresoCompletaProjection> consultarOrdenIngresoCompleta(Integer idOrdenIngreso) {
         log.debug("Consultando orden de ingreso completa: {}", idOrdenIngreso);
 
