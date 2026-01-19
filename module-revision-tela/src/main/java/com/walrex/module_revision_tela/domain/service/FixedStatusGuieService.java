@@ -107,9 +107,9 @@ public class FixedStatusGuieService implements FixedStatusGuieUseCase {
         if (statusMap.size() == 1) {
             Integer statusCalculado = statusMap.keySet().iterator().next();
 
-            // Si son iguales, no hacer nada (continue)
-            if (statusCalculado.equals(statusOrden)) {
-                log.debug("Guía {} - Status {} ya está correcto", idOrdeningreso, statusOrden);
+            // Si son iguales Y ambos son 3, no hacer nada (continue)
+            if (statusCalculado.equals(statusOrden) && statusCalculado.equals(3)) {
+                log.debug("Guía {} - Status {} ya está correcto (ambos son 3)", idOrdeningreso, statusOrden);
                 return Mono.empty();
             }
 
