@@ -1,6 +1,6 @@
 package com.walrex.module_revision_tela.infrastructure.adapters.outbound.persistence.entity;
 
-import java.time.OffsetDateTime;
+import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Column;
@@ -19,7 +19,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table("almacenes.ingreso_corregir_status")
+@Table("revision_crudo.ingreso_corregir_status")
 public class IngresoCorregirStatusEntity {
 
     @Id
@@ -37,7 +37,7 @@ public class IngresoCorregirStatusEntity {
 
     @Column("fec_registro")
     @Builder.Default
-    private OffsetDateTime fecRegistro = OffsetDateTime.now();
+    private LocalDateTime fecRegistro = LocalDateTime.now();
 
     @Column("procesado")
     @Builder.Default
