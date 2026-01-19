@@ -512,7 +512,7 @@ public class DevolucionRollosPersistenceAdapter implements DevolucionRollosPort,
         /**
          * Mapea una fila del ResultSet a OrdenSalidaDevolucionDTO
          */
-        private OrdenSalidaDevolucionDTO mapRowToOrdenSalidaDevolucionDTO(java.util.Map<String, Object> row) {
+        private OrdenSalidaDevolucionDTO mapRowToOrdenSalidaDevolucionDTO(Map<String, Object> row) {
                 return OrdenSalidaDevolucionDTO.builder()
                                 .idOrdenSalida(getValueAsLong(row, "id_ordensalida"))
                                 .codigoSalida(getValueAsString(row, "cod_salida"))
