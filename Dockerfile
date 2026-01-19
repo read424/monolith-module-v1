@@ -28,7 +28,6 @@ COPY ./module-websocket/pom.xml ./module-websocket/pom.xml
 COPY ./module-driver/pom.xml ./module-driver/pom.xml
 COPY ./module-comercial/pom.xml ./module-comercial/pom.xml
 COPY ./module-liquidaciones/pom.xml ./module-liquidaciones/pom.xml
-COPY ./module-revision-tela/pom.xml ./module-revision-tela/pom.xml
 
 # Descargar dependencias (aprovechando caché de Docker)
 RUN mvn dependency:go-offline -B
@@ -49,7 +48,6 @@ COPY ./module-websocket/src ./module-websocket/src
 COPY ./module-driver/src ./module-driver/src
 COPY ./module-comercial/src ./module-comercial/src
 COPY ./module-liquidaciones/src ./module-liquidaciones/src
-COPY ./module-revision-tela/src ./module-revision-tela/src
 COPY ./src ./src
 
 # Compilar el proyecto completo (avro-schemas ya está disponible en .m2)
