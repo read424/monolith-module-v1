@@ -23,6 +23,9 @@ public class RouterAlmacenReactiveAPI {
         private final RollosDevolucionHandler rollosDevolucionHandler;
         private final OrdenSalidaDevolucionHandler ordenSalidaDevolucionHandler;
         private final GuiaRemisionHandler generarGuiaRemisionHandler;
+        private final PesajeHandler pesajeHandler;
+        private final GuidePendingHandler guidePendingHandler;
+        private final GuideAdditionHandler guideAdditionHandler;
         private static final String PATH_ALMACEN = "almacen";
 
         @Bean
@@ -53,7 +56,16 @@ public class RouterAlmacenReactiveAPI {
                                                                 ordenSalidaDevolucionHandler::consultarOrdenSalidaDevolucion)
                                                 .POST("/generar-guia",
                                                                 RequestPredicates.accept(MediaType.APPLICATION_JSON),
-                                                                generarGuiaRemisionHandler::generarGuiaRemision))
+                                                                generarGuiaRemisionHandler::generarGuiaRemision)
+                                                .POST("/pesaje",
+                                                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                                                pesajeHandler::registrarPesaje)
+                                                .GET("/guide-pending",
+                                                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                                                guidePendingHandler::getPendingGuides)
+                                                .POST("/add-guide",
+                                                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                                                guideAdditionHandler::addGuide))
                                 .before(request -> {
                                         log.info("🔄 Router {} recibió solicitud: {} {}", PATH_ALMACEN,
                                                         request.method(), request.path());
