@@ -19,6 +19,10 @@ public class RabbitMQConfig {
     public static final String EXCHANGE_NAME = "devoluciones.exchange";
     public static final String ROUTING_KEY = "devolucion.guia.creada";
 
+    public static final String PESAJE_EXCHANGE_NAME = "pesaje.exchange";
+    public static final String PESAJE_QUEUE_NAME = "pesaje.peso.registrado";
+    public static final String PESAJE_ROUTING_KEY = "pesaje.peso.registrado";
+
     @Bean("gatewayGuiaDevolucionQueue")
     public Queue gatewayGuiaDevolucionQueue() {
         return new Queue(QUEUE_NAME, true);
@@ -34,6 +38,25 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(gatewayGuiaDevolucionQueue)
             .to(gatewayGuiaDevolucionExchange)
             .with(ROUTING_KEY);
+    }
+
+    @Bean("gatewayPesajeQueue")
+    public Queue gatewayPesajeQueue() {
+        return new Queue(PESAJE_QUEUE_NAME, true);
+    }
+
+    @Bean("gatewayPesajeExchange")
+    public TopicExchange gatewayPesajeExchange() {
+        return new TopicExchange(PESAJE_EXCHANGE_NAME, true, false);
+    }
+
+    @Bean("gatewayPesajeBinding")
+    public Binding gatewayPesajeBinding(
+            @Qualifier("gatewayPesajeQueue") Queue gatewayPesajeQueue,
+            @Qualifier("gatewayPesajeExchange") TopicExchange gatewayPesajeExchange) {
+        return BindingBuilder.bind(gatewayPesajeQueue)
+            .to(gatewayPesajeExchange)
+            .with(PESAJE_ROUTING_KEY);
     }
 
     /**
