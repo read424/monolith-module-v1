@@ -24,11 +24,15 @@ public class ArticuloHandler {
         String query = request.queryParam("query").orElse("");
         int page = Integer.parseInt(request.queryParam("page").orElse("0"));
         int size = Integer.parseInt(request.queryParam("size").orElse("10"));
+        Integer idTipoProducto = request.queryParam("id_tipo_producto")
+                .map(Integer::parseInt)
+                .orElse(null);
 
         RequestSearchDTO dto_request = RequestSearchDTO.builder()
                 .query(query)
                 .page(page)
                 .size(size)
+                .idTipoProducto(idTipoProducto)
                 .build();
 
         // Convertimos el DTO a objeto de dominio
