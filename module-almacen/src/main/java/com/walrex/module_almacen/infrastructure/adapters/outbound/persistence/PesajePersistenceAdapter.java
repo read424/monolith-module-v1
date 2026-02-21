@@ -7,9 +7,9 @@ import org.springframework.stereotype.Component;
 import com.walrex.module_almacen.application.ports.output.PesajeOutputPort;
 import com.walrex.module_almacen.domain.model.PesajeDetalle;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetalleRolloEntity;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.PesajePersistenceMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.DetalleRolloRepository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.SessionPesajeActivaRepository;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.SessionPesajeCustomRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,18 +22,17 @@ public class PesajePersistenceAdapter implements PesajeOutputPort {
 
     private final SessionPesajeActivaRepository sessionRepository;
     private final DetalleRolloRepository rolloRepository;
-    private final PesajePersistenceMapper mapper;
+    private final SessionPesajeCustomRepository customRepository;
 
     @Override
     public Mono<PesajeDetalle> findActiveSessionWithDetail() {
-        return sessionRepository.findActiveSessionWithDetail()
-                .map(mapper::toDomain);
+        return customRepository.findActiveSessionWithDetail();
     }
 
     @Override
     public Mono<PesajeDetalle> saveWeight(PesajeDetalle pesaje, Integer idDetOrdenIngreso) {
         DetalleRolloEntity entity = DetalleRolloEntity.builder()
-                .ordenIngreso(pesaje.getId_ordeningreso())
+                .ordenIngreso(pesaje.getIdOrdenIngreso())
                 .codRollo(pesaje.getCod_rollo())
                 .pesoRollo(BigDecimal.valueOf(pesaje.getPeso_rollo()))
                 .idDetOrdenIngreso(idDetOrdenIngreso)
@@ -41,6 +40,9 @@ public class PesajePersistenceAdapter implements PesajeOutputPort {
                 .create_at(OffsetDateTime.now())
                 .update_at(OffsetDateTime.now())
                 .build();
+
+        log.info("Persistiendo rollo → cod_rollo: {}, peso: {} kg, id_detordeningreso: {}, id_ordeningreso: {}",
+                entity.getCodRollo(), entity.getPesoRollo(), entity.getIdDetOrdenIngreso(), entity.getOrdenIngreso());
 
         return rolloRepository.save(entity)
                 .map(saved -> {
