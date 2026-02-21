@@ -176,17 +176,16 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
     }
 
     private boolean isPublicPath(String path, List<String> publicPaths) {
-        log.info("🔍 Verificando ruta pública - Path: '{}', PublicPaths: {}", path, publicPaths);
+        log.error("🔍 [GATEWAY-JWT] Verificando ruta pública - Path: '{}'", path);
+        log.error("🔍 [GATEWAY-JWT] Lista de rutas públicas: {}", publicPaths);
 
-        boolean isPublic = publicPaths.stream().anyMatch(publicPath -> {
-            boolean matches = path.startsWith("/" + publicPath + "/") ||
-                    path.equals("/" + publicPath) ||
-                    path.startsWith("/" + publicPath);
-            // ✅ Log de cada verificación
-            log.debug("   Verificando '{}' contra '{}': {}", path, publicPath, matches);
-            return matches;
-        });
-        log.info("🎯 Resultado final para '{}': {}", path, isPublic ? "PÚBLICA" : "REQUIERE TOKEN");
+        boolean isPublic = publicPaths.stream().anyMatch(path::contains);
+
+        if (isPublic) {
+            log.error("🟢 [GATEWAY-JWT] RUTA PÚBLICA DETECTADA: {}", path);
+        } else {
+            log.error("🔴 [GATEWAY-JWT] RUTA PRIVADA (REQUIERE TOKEN): {}", path);
+        }
         return isPublic;
     }
 
@@ -218,7 +217,12 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
                 "health",
                 "actuator",
                 "metrics",
-                "prometheus");
+                "prometheus",
+                "products/search",
+                "almacen/guide-pending",
+                "almacen/pesaje",
+                "almacen/session-articulo-pesaje",
+                "almacen/guide-no-rolls");
         private boolean enabled = true;
 
         public List<String> getPublicPaths() {
