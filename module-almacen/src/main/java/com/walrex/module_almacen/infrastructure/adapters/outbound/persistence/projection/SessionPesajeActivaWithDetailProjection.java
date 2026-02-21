@@ -2,9 +2,10 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.p
 
 public interface SessionPesajeActivaWithDetailProjection {
     Integer getId();
-    Integer getId_detordeningreso();
-    Integer getCnt_rollos();
-    Integer getCnt_registro();
-    Integer getId_ordeningreso();
+    Integer getIdDetOrdenIngreso();
+    Integer getIdOrdenIngreso();
+    Integer getCntRollos();
+    Double getTotalKilos();
+    Integer getCntRegistro();
     String getLote();
 }
