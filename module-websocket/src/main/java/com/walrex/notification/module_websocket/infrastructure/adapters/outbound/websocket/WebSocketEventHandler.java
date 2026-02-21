@@ -97,6 +97,50 @@ public class WebSocketEventHandler {
     }
 
     /**
+     * El frontend emite este evento para suscribirse a los pesajes de un artículo.
+     * Payload esperado: { "id_detordeningreso": 789 }
+     * El cliente queda en el room "pesaje-789" y recibirá eventos "peso_registrado".
+     */
+    @OnEvent("join_pesaje")
+    public void onJoinPesaje(SocketIOClient client, Map<String, Object> data) {
+        String sessionId = client.getSessionId().toString();
+        Object idRaw = data != null ? data.get("id_detordeningreso") : null;
+
+        if (idRaw == null) {
+            log.warn("⚠️ join_pesaje recibido sin id_detordeningreso del cliente {}", sessionId);
+            client.sendEvent("join_pesaje_error",
+                    Map.of("error", "id_detordeningreso es requerido"));
+            return;
+        }
+
+        String room = "pesaje-" + idRaw;
+        client.joinRoom(room);
+
+        log.info("✅ Cliente {} se unió al room '{}'", sessionId, room);
+        client.sendEvent("join_pesaje_ok", Map.of("room", room));
+    }
+
+    /**
+     * El frontend emite este evento para dejar de escuchar pesajes de un artículo.
+     * Payload esperado: { "id_detordeningreso": 789 }
+     */
+    @OnEvent("leave_pesaje")
+    public void onLeavePesaje(SocketIOClient client, Map<String, Object> data) {
+        String sessionId = client.getSessionId().toString();
+        Object idRaw = data != null ? data.get("id_detordeningreso") : null;
+
+        if (idRaw == null) {
+            log.warn("⚠️ leave_pesaje recibido sin id_detordeningreso del cliente {}", sessionId);
+            return;
+        }
+
+        String room = "pesaje-" + idRaw;
+        client.leaveRoom(room);
+
+        log.info("🚪 Cliente {} salió del room '{}'", sessionId, room);
+    }
+
+    /**
      * Maneja errores de WebSocket
      */
     @OnEvent("error")
