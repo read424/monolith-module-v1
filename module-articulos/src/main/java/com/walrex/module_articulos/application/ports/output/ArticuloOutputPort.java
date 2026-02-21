@@ -7,5 +7,6 @@ import reactor.core.publisher.Mono;
 public interface ArticuloOutputPort {
     Mono<Articulo> searchByCodeArticulo(String codigo);
     Flux<Articulo> findByNombreLikeIgnoreCaseOrderByNombre(String query, int page, int size);
+    Flux<Articulo> findByNombreLikeIgnoreCaseAndFamily(String query, int size, int offset, Integer idTipoProducto);
     Mono<Articulo> save(Articulo articulo);
 }

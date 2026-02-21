@@ -68,11 +68,18 @@ public class ArticuloService implements GetArticulosUseCase, SearchArticuloUseCa
         log.info("Término de búsqueda final: {}", finalSearchTerm);
 
         // Delegar al output port para realizar la búsqueda
-        return articuloOutputPort.findByNombreLikeIgnoreCaseOrderByNombre(
+        Flux<Articulo> result = criteria.getIdTipoProducto() != null
+                ? articuloOutputPort.findByNombreLikeIgnoreCaseAndFamily(
+                        finalSearchTerm,
+                        criteria.getSize(),
+                        criteria.getPage(),
+                        criteria.getIdTipoProducto())
+                : articuloOutputPort.findByNombreLikeIgnoreCaseOrderByNombre(
                         finalSearchTerm,
                         criteria.getPage(),
-                        criteria.getSize()
-                )
+                        criteria.getSize());
+
+        return result
                 .doOnComplete(() -> log.info("Búsqueda de artículos completada"))
                 .doOnError(error -> log.error("Error al buscar artículos", error));
     }

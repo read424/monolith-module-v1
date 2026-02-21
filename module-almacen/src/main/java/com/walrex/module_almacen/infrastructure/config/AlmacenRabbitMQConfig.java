@@ -16,6 +16,10 @@ public class AlmacenRabbitMQConfig {
     public static final String EXCHANGE_NAME = "devoluciones.exchange";
     public static final String ROUTING_KEY = "devolucion.guia.creada";
 
+    public static final String PESAJE_EXCHANGE_NAME = "pesaje.exchange";
+    public static final String PESAJE_QUEUE_NAME = "pesaje.peso.registrado";
+    public static final String PESAJE_ROUTING_KEY = "pesaje.peso.registrado";
+
     @Bean("almacenGuiaDevolucionQueue")
     public Queue almacenGuiaDevolucionQueue() {
         return new Queue(QUEUE_NAME, true);
@@ -31,6 +35,25 @@ public class AlmacenRabbitMQConfig {
         return BindingBuilder.bind(almacenGuiaDevolucionQueue)
                 .to(almacenDevolucionesExchange)
                 .with(ROUTING_KEY);
+    }
+
+    @Bean("almacenPesajeQueue")
+    public Queue almacenPesajeQueue() {
+        return new Queue(PESAJE_QUEUE_NAME, true);
+    }
+
+    @Bean("almacenPesajeExchange")
+    public TopicExchange almacenPesajeExchange() {
+        return new TopicExchange(PESAJE_EXCHANGE_NAME, true, false);
+    }
+
+    @Bean("almacenPesajeBinding")
+    public Binding almacenPesajeBinding(
+            @Qualifier("almacenPesajeQueue") Queue almacenPesajeQueue,
+            @Qualifier("almacenPesajeExchange") TopicExchange almacenPesajeExchange) {
+        return BindingBuilder.bind(almacenPesajeQueue)
+                .to(almacenPesajeExchange)
+                .with(PESAJE_ROUTING_KEY);
     }
 
     /**

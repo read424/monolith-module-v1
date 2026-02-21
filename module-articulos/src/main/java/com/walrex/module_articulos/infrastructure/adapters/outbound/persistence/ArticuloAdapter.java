@@ -3,6 +3,7 @@ package com.walrex.module_articulos.infrastructure.adapters.outbound.persistence
 import com.walrex.module_articulos.application.ports.output.ArticuloOutputPort;
 import com.walrex.module_articulos.domain.model.Articulo;
 import com.walrex.module_articulos.infrastructure.adapters.outbound.persistence.mapper.DomainMapper;
+import com.walrex.module_articulos.infrastructure.adapters.outbound.persistence.repository.ArticuloCustomRepository;
 import com.walrex.module_articulos.infrastructure.adapters.outbound.persistence.repository.ArticuloRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +19,7 @@ import java.util.NoSuchElementException;
 @Slf4j
 public class ArticuloAdapter implements ArticuloOutputPort {
     private final ArticuloRepository articuloRepository;
+    private final ArticuloCustomRepository articuloCustomRepository;
     private final DomainMapper domainMapper;
 
     @Override
@@ -44,7 +46,15 @@ public class ArticuloAdapter implements ArticuloOutputPort {
 
     @Override
     public Flux<Articulo> findByNombreLikeIgnoreCaseOrderByNombre(String query, int page, int size) {
-        return articuloRepository.findByNombreLikeIgnoreCase(query, page,size)
+        return articuloRepository.findByNombreLikeIgnoreCase(query, page, size)
+                .map(domainMapper::entityToDomain)
+                .doOnComplete(() -> log.info("Consulta de base de datos completada"))
+                .doOnError(error -> log.error("Error en consulta de base de datos", error));
+    }
+
+    @Override
+    public Flux<Articulo> findByNombreLikeIgnoreCaseAndFamily(String query, int size, int offset, Integer idTipoProducto) {
+        return articuloCustomRepository.findByNombreLikeIgnoreCaseAndFamily(query, size, offset, idTipoProducto)
                 .map(domainMapper::entityToDomain)
                 .doOnComplete(() -> log.info("Consulta de base de datos completada"))
                 .doOnError(error -> log.error("Error en consulta de base de datos", error));

@@ -2,10 +2,12 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.r
 
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.OrdenIngresoEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.DocMovimientoIngresoKardex;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.GuidePendingProjection;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.LoteMovimientoIngreso;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDate;
@@ -33,4 +35,5 @@ public interface OrdenIngresoRepository extends ReactiveCrudRepository<OrdenIngr
             "LEFT OUTER JOIN almacenes.tbmotivos AS mot ON mot.id_motivo=ord_ing.id_motivo "+
             "WHERE det_inv.id_loge=:idLote")
     Mono<LoteMovimientoIngreso> getInfoIngresoByIdLote(Integer idLote);
+
 }
