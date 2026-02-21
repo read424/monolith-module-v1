@@ -9,4 +9,5 @@ public class RequestSearchDTO {
     private String query;
     private int page;
     private int size;
+    private Integer idTipoProducto;
 }
