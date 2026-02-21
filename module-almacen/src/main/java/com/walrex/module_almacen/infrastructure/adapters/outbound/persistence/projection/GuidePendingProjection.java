@@ -1,19 +1,28 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.time.LocalDate;
 
-public interface GuidePendingProjection {
-    Integer getId_ordeningreso();
-    LocalDate getFec_registro();
-    String getNu_serie();
-    String getNu_comprobante();
-    String getRazon_social();
-    Integer getId_detordeningreso();
-    String getLote();
-    Integer getId_articulo();
-    String getCod_articulo();
-    String getDesc_articulo();
-    Integer getTotal_rollos();
-    Integer getNum_rollo();
-    Integer getRolls_saved();
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class GuidePendingProjection {
+    private Integer id_ordeningreso;
+    private LocalDate fec_registro;
+    private String nu_serie;
+    private String nu_comprobante;
+    private String razon_social;
+    private Integer id_detordeningreso;
+    private String lote;
+    private Integer id_articulo;
+    private String cod_articulo;
+    private String desc_articulo;
+    private Integer total_rollos;
+    private Integer num_rollo;
+    private Integer rolls_saved;
 }
