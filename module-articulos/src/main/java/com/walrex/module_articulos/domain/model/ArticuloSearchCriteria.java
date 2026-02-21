@@ -9,4 +9,5 @@ public class ArticuloSearchCriteria {
     private String search;
     private int page;
     private int size;
+    private Integer idTipoProducto;
 }
