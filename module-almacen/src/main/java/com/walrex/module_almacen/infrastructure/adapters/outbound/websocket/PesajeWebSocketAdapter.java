@@ -2,42 +2,46 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.websocket;
 
 import com.walrex.module_almacen.application.ports.output.PesajeNotificationPort;
 import com.walrex.module_almacen.domain.model.PesajeDetalle;
-import com.walrex.module_almacen.infrastructure.adapters.outbound.websocket.dto.WebSocketPesajeNotification;
-import lombok.RequiredArgsConstructor;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.rabbitmq.dto.PesajeNotificacionEventDTO;
+import com.walrex.module_almacen.infrastructure.config.AlmacenRabbitMQConfig;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 @Slf4j
 @Component
-@RequiredArgsConstructor
 public class PesajeWebSocketAdapter implements PesajeNotificationPort {
 
-    private final WebClient webClient;
+    private final RabbitTemplate rabbitTemplate;
 
-    @Value("${websocket.api.url:http://127.0.0.1:3355/api/ws}")
-    private String websocketApiUrl;
+    public PesajeWebSocketAdapter(@Qualifier("almacenRabbitTemplate") RabbitTemplate rabbitTemplate) {
+        this.rabbitTemplate = rabbitTemplate;
+    }
 
     @Override
     public Mono<Void> notifyWeightRegistered(PesajeDetalle pesaje) {
-        WebSocketPesajeNotification notification = WebSocketPesajeNotification.builder()
-                .tipo("PESO_REGISTRADO")
-                .data(pesaje)
+        PesajeNotificacionEventDTO event = PesajeNotificacionEventDTO.builder()
+                .id_detordeningreso(pesaje.getId_detordeningreso())
+                .cod_rollo(pesaje.getCod_rollo())
+                .peso_rollo(pesaje.getPeso_rollo())
+                .cnt_registrados(pesaje.getCnt_registrados())
+                .completado(pesaje.getCompletado())
                 .build();
 
-        log.info("Enviando notificación WebSocket de pesaje para rollo: {}", pesaje.getCod_rollo());
+        log.info("Publicando evento de pesaje a RabbitMQ para rollo: {}", pesaje.getCod_rollo());
 
-        return webClient.post()
-                .uri(websocketApiUrl + "/send-message")
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(notification)
-                .retrieve()
-                .bodyToMono(Void.class)
-                .doOnSuccess(v -> log.info("Notificación WebSocket enviada exitosamente"))
-                .doOnError(e -> log.error("Error al enviar notificación WebSocket: {}", e.getMessage()))
-                .onErrorResume(e -> Mono.empty()); // No bloquear el flujo si falla el WebSocket
+        return Mono.fromCallable(() -> {
+            rabbitTemplate.convertAndSend(
+                    AlmacenRabbitMQConfig.PESAJE_EXCHANGE_NAME,
+                    AlmacenRabbitMQConfig.PESAJE_ROUTING_KEY,
+                    event);
+            return null;
+        })
+        .doOnSuccess(v -> log.info("Evento pesaje publicado correctamente para rollo: {}", pesaje.getCod_rollo()))
+        .doOnError(e -> log.error("Error al publicar evento pesaje en RabbitMQ: {}", e.getMessage()))
+        .onErrorResume(e -> Mono.empty()) // No bloquear el flujo principal si falla RabbitMQ
+        .then();
     }
 }
