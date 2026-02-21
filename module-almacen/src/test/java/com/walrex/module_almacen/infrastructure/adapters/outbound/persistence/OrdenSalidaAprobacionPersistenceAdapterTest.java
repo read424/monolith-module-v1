@@ -997,7 +997,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         Integer idOrdenSalida = 1;
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(1L)
+                .id(1L)
                 .cod_salida("SAL-001")
                 .status(1) // ✅ Habilitado
                 .entregado(0) // ✅ No entregada
@@ -1011,7 +1011,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         // When
         StepVerifier.create(adapter.consultarYValidarOrdenSalida(idOrdenSalida))
                 .assertNext(resultado -> {
-                    assertThat(resultado.getId_ordensalida()).isEqualTo(1L);
+                    assertThat(resultado.getId()).isEqualTo(1L);
                     assertThat(resultado.getCod_salida()).isEqualTo("SAL-001");
                     assertThat(resultado.getStatus()).isEqualTo(1);
                     assertThat(resultado.getEntregado()).isEqualTo(0);
@@ -1049,7 +1049,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         Integer idOrdenSalida = 1;
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(1L)
+                .id(1L)
                 .status(0)
                 .entregado(0)// ✅ Status = 1 (entregada)
                 .build();
@@ -1075,7 +1075,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         Integer idOrdenSalida = 2;
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(2L)
+                .id(2L)
                 .status(1) // Status OK
                 .entregado(1) // ✅ Entregado = 1
                 .build();
@@ -1101,7 +1101,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         Integer idOrdenSalida = 3;
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(3L)
+                .id(3L)
                 .cod_salida("SAL-003")
                 .status(null) // ✅ Status null (se considera válido)
                 .entregado(null) // ✅ Entregado null (se considera válido)
@@ -1115,7 +1115,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         // When
         StepVerifier.create(adapter.consultarYValidarOrdenSalida(idOrdenSalida))
                 .assertNext(resultado -> {
-                    assertThat(resultado.getId_ordensalida()).isEqualTo(3L);
+                    assertThat(resultado.getId()).isEqualTo(3L);
                     assertThat(resultado.getCod_salida()).isEqualTo("SAL-003");
                     assertThat(resultado.getStatus()).isNull();
                     assertThat(resultado.getEntregado()).isNull();
@@ -1150,7 +1150,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         Integer idOrdenSalida = 123456; // ✅ ID Integer
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(123456L) // ✅ Se convierte a Long
+                .id(123456L) // ✅ Se convierte a Long
                 .status(1)
                 .entregado(0)
                 .build();
@@ -1162,7 +1162,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         // When
         StepVerifier.create(adapter.consultarYValidarOrdenSalida(idOrdenSalida))
                 .assertNext(resultado -> {
-                    assertThat(resultado.getId_ordensalida()).isEqualTo(123456L);
+                    assertThat(resultado.getId()).isEqualTo(123456L);
                 })
                 .verifyComplete();
 
@@ -1176,7 +1176,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         Integer idOrdenSalida = 5;
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(5L)
+                .id(5L)
                 .status(1) // ✅ Status válido
                 .entregado(0) // ✅ Entregado válido
                 .build();
@@ -1217,7 +1217,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
 
         // Entidades para mocks
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(1L)
+                .id(1L)
                 .status(1)
                 .entregado(0)
                 .build();
@@ -1340,7 +1340,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .build();
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(1L)
+                .id(1L)
                 .status(1) // ✅ Válida (no es 0)
                 .entregado(0) // ✅ No entregada
                 .build();
@@ -1387,7 +1387,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .build();
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(1L)
+                .id(1L)
                 .status(1) // ✅ Válida
                 .entregado(0)
                 .build();
@@ -1440,7 +1440,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .build();
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(1L)
+                .id(1L)
                 .status(1) // ✅ Válida
                 .entregado(0)
                 .build();
@@ -1506,7 +1506,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .build();
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(1L)
+                .id(1L)
                 .status(1) // ✅ Válida
                 .entregado(0)
                 .build();
@@ -1567,7 +1567,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         Integer idOrdenSalida = 1;
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(1L)
+                .id(1L)
                 .cod_salida("SAL-001")
                 .id_store_source(5)
                 .status(1) // ✅ Válida
@@ -1618,7 +1618,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         Integer idOrdenSalida = 2;
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(2L)
+                .id(2L)
                 .status(0) // ✅ Inhabilitada
                 .entregado(0)
                 .build();
@@ -1644,7 +1644,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         Integer idOrdenSalida = 3;
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(3L)
+                .id(3L)
                 .status(1) // ✅ Status válido
                 .entregado(1) // ✅ Ya entregada
                 .build();
@@ -1670,7 +1670,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         Integer idOrdenSalida = 10;
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(123L)
+                .id(123L)
                 .cod_salida("SAL-2025-456")
                 .id_store_source(15)
                 .status(null) // ✅ Status null (válido)
@@ -1699,7 +1699,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         Integer idOrdenSalida = 5;
 
         OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id_ordensalida(5L)
+                .id(5L)
                 .cod_salida(null) // ✅ Código null
                 .id_store_source(null) // ✅ Almacén null
                 .status(null) // ✅ Status null (válido)
