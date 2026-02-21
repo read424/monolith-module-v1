@@ -11,10 +11,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class PesajeDetalle {
     private Integer id_detordeningresopeso;
-    private Integer id_ordeningreso;
+    private Integer idOrdenIngreso;
     private Double peso_rollo;
     private String cod_rollo;
     private Integer cnt_registrados;
+    private Integer cnt_rollos;
+    private String lote;
     private Boolean completado;
 
     // Helper fields for service logic (not exposed in domain typically, but useful here)
