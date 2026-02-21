@@ -39,7 +39,7 @@ El sistema está dividido en múltiples módulos que representan áreas funciona
 Para ejecutar la aplicación localmente utilizando el perfil de desarrollo y conectarse al entorno correspondiente, utilice el siguiente comando:
 
 ```bash
-mvn clean install spring-boot:run -pl=module-core -Dspring-boot.run.profiles=dev -Dmaven.test.skip=true
+mvn clean install spring-boot:run -Dspring-boot.run.profiles=dev -Dmaven.test.skip=true
 ```
 
 ## Características Recientes
