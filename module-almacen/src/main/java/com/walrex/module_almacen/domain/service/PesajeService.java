@@ -57,16 +57,25 @@ public class PesajeService implements PesajeUseCase, ObtenerSessionArticuloPesaj
     public Mono<SessionArticuloPesajeResponse> obtenerSession(Integer idDetOrdenIngreso) {
         log.info("Consultando sesión de pesaje para id_detordeningreso: {}", idDetOrdenIngreso);
 
-        return sessionOutputPort.findStatusByIdDetOrdenIngreso(idDetOrdenIngreso)
-                .flatMap(status -> {
-                    if ("0".equals(status)) {
-                        log.info("Artículo id_detordeningreso={} ya completó su información", idDetOrdenIngreso);
-                        return Mono.<SessionArticuloPesajeResponse>error(
-                                new ArticuloCompletadoException("El artículo ya completó su información de pesaje"));
+        return pesajeRepository.findActiveSessionWithDetail()
+                .flatMap(activeSession -> {
+                    if (!idDetOrdenIngreso.equals(activeSession.getId_detordeningreso())) {
+                        log.info("Detectada sesión activa para un id_detordeningreso distinto: {}. Desactivando sesión: {}",
+                                activeSession.getId_detordeningreso(), activeSession.getId_session_hidden());
+                        return sessionOutputPort.updateSessionStatusToCompleted(activeSession.getId_session_hidden());
                     }
-                    return executeSessionFlow(idDetOrdenIngreso);
+                    return Mono.empty();
                 })
-                .switchIfEmpty(Mono.defer(() -> executeSessionFlow(idDetOrdenIngreso)));
+                .then(sessionOutputPort.findStatusByIdDetOrdenIngreso(idDetOrdenIngreso)
+                        .flatMap(status -> {
+                            if ("0".equals(status)) {
+                                log.info("Artículo id_detordeningreso={} ya completó su información", idDetOrdenIngreso);
+                                return Mono.<SessionArticuloPesajeResponse>error(
+                                        new ArticuloCompletadoException("El artículo ya completó su información de pesaje"));
+                            }
+                            return executeSessionFlow(idDetOrdenIngreso);
+                        })
+                        .switchIfEmpty(Mono.defer(() -> executeSessionFlow(idDetOrdenIngreso))));
     }
 
     private Mono<SessionArticuloPesajeResponse> executeSessionFlow(Integer idDetOrdenIngreso) {
