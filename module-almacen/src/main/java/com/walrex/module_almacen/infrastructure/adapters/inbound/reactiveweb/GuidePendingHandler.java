@@ -21,16 +21,24 @@ public class GuidePendingHandler {
 
     public Mono<ServerResponse> getPendingGuides(ServerRequest request) {
         String fecRegistroStr = request.queryParam("fec_registro").orElse(LocalDate.now().toString());
-        
+
         try {
             LocalDate date = LocalDate.parse(fecRegistroStr);
+            log.info("GuidePendingHandler request fec_registro={}", date);
             return guidePendingUseCase.getPendingGuides(date)
                     .collectList()
+                    .doOnNext(list -> log.info(
+                            "GuidePendingHandler response guides={} peso_ref values={}",
+                            list.size(),
+                            list.stream()
+                                    .flatMap(response -> response.getDetails().stream())
+                                    .map(detail -> detail.getId_detordeningreso() + ":" + detail.getPeso_ref())
+                                    .toList()))
                     .flatMap(list -> ServerResponse.ok()
                             .contentType(MediaType.APPLICATION_JSON)
                             .bodyValue(list))
                     .onErrorResume(e -> {
-                        log.error("Error al obtener guías pendientes: {}", e.getMessage());
+                        log.error("Error al obtener guías pendientes: {}", e.getMessage(), e);
                         return ServerResponse.badRequest()
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .bodyValue(e.getMessage());

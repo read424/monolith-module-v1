@@ -1,9 +1,12 @@
 package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb;
 
+import com.walrex.module_almacen.application.ports.input.DeleteGuideRollUseCase;
 import com.walrex.module_almacen.application.ports.input.ObtenerSessionArticuloPesajeUseCase;
 import com.walrex.module_almacen.application.ports.input.PesajeUseCase;
 import com.walrex.module_almacen.domain.model.dto.PesajeRequest;
 import com.walrex.module_almacen.domain.model.exceptions.ArticuloCompletadoException;
+import com.walrex.module_almacen.domain.model.exceptions.RolloAsignadoPartidaException;
+import com.walrex.module_almacen.domain.model.exceptions.RolloPesajeNotFoundException;
 import com.walrex.module_almacen.domain.model.exceptions.SessionPesajeInvalidaException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,6 +26,7 @@ public class PesajeHandler {
 
     private final PesajeUseCase pesajeUseCase;
     private final ObtenerSessionArticuloPesajeUseCase obtenerSessionUseCase;
+    private final DeleteGuideRollUseCase deleteGuideRollUseCase;
 
     public Mono<ServerResponse> registrarPesaje(ServerRequest request) {
         return request.bodyToMono(PesajeRequest.class)
@@ -74,5 +78,29 @@ public class PesajeHandler {
                 .orElseGet(() -> ServerResponse.badRequest()
                         .contentType(MediaType.APPLICATION_JSON)
                         .bodyValue(Map.of("error", "El parámetro id_detordeningreso es requerido")));
+    }
+
+    public Mono<ServerResponse> deleteGuideRoll(ServerRequest request) {
+        try {
+            Integer idDetordenIngresoRollo = Integer.parseInt(request.pathVariable("idDetordenIngresoRollo"));
+            return deleteGuideRollUseCase.deleteGuideRoll(idDetordenIngresoRollo)
+                    .then(ServerResponse.noContent().build())
+                    .onErrorResume(RolloPesajeNotFoundException.class, e -> ServerResponse.status(HttpStatus.NOT_FOUND)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(Map.of("error", e.getMessage())))
+                    .onErrorResume(RolloAsignadoPartidaException.class, e -> ServerResponse.status(HttpStatus.CONFLICT)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .bodyValue(Map.of("error", e.getMessage())))
+                    .onErrorResume(e -> {
+                        log.error("Error al eliminar rollo de guía: {}", e.getMessage(), e);
+                        return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(Map.of("error", "Error interno al eliminar el rollo"));
+                    });
+        } catch (NumberFormatException e) {
+            return ServerResponse.badRequest()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(Map.of("error", "El parámetro idDetordenIngresoRollo debe ser un número entero"));
+        }
     }
 }
