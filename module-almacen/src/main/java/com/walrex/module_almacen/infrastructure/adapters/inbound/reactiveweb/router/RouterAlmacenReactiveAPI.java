@@ -1,15 +1,16 @@
 package com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.router;
 
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.server.*;
-
 import com.walrex.module_almacen.infrastructure.adapters.inbound.reactiveweb.*;
-
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.server.RequestPredicates;
+import org.springframework.web.reactive.function.server.RouterFunction;
+import org.springframework.web.reactive.function.server.RouterFunctions;
+import org.springframework.web.reactive.function.server.ServerResponse;
 
 @Configuration
 @RequiredArgsConstructor
@@ -64,12 +65,17 @@ public class RouterAlmacenReactiveAPI {
                                                 .GET("/session-articulo-pesaje",
                                                                 RequestPredicates.accept(MediaType.APPLICATION_JSON),
                                                                 pesajeHandler::getSessionArticuloPesaje)
+                                                .DELETE("/guia/roll/{idDetordenIngresoRollo}",
+                                                                pesajeHandler::deleteGuideRoll)
                                                 .GET("/guide-pending",
                                                                 RequestPredicates.accept(MediaType.APPLICATION_JSON),
                                                                 guidePendingHandler::getPendingGuides)
                                                 .POST("/add-guide",
                                                                 RequestPredicates.accept(MediaType.APPLICATION_JSON),
                                                                 guideAdditionHandler::addGuide)
+                                                .PUT("/guia/articulo/{idDetalleOrden}",
+                                                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                                                guideAdditionHandler::updateGuideArticle)
                                                 .POST("/guide-no-rolls",
                                                                 RequestPredicates.accept(MediaType.APPLICATION_JSON),
                                                                 registerGuideNoRollsHandler::registerGuide))
