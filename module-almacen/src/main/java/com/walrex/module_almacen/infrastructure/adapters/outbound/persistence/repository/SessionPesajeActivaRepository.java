@@ -1,9 +1,9 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository;
 
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.SessionPesajeActivaEntity;
-
 import org.springframework.data.r2dbc.repository.Modifying;
 import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
@@ -24,5 +24,9 @@ public interface SessionPesajeActivaRepository extends ReactiveCrudRepository<Se
 
     @Modifying
     @Query("UPDATE almacenes.session_pesaje_activa SET status = '0' WHERE id = :id")
-    Mono<Integer> updateStatusToCompletedById(Integer id);
+    Mono<Integer> updateStatusToCompletedById(@Param("id") Integer id);
+
+    @Modifying
+    @Query("UPDATE almacenes.session_pesaje_activa SET status = '1' WHERE id = :id")
+    Mono<Integer> updateStatusToActiveById(@Param("id") Integer id);
 }

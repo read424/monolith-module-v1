@@ -7,4 +7,6 @@ import java.time.LocalDate;
 
 public interface GuidePendingUseCase {
     Flux<GuidePendingResponse> getPendingGuides(LocalDate date);
+
+    Flux<GuidePendingResponse> getPendingGuides(LocalDate date, Boolean isSupervisor);
 }

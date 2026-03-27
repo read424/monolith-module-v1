@@ -1,5 +1,6 @@
 package com.walrex.module_almacen.domain.service;
 
+import com.walrex.module_almacen.application.ports.input.DeleteGuideRollUseCase;
 import com.walrex.module_almacen.application.ports.input.ObtenerSessionArticuloPesajeUseCase;
 import com.walrex.module_almacen.application.ports.input.PesajeUseCase;
 import com.walrex.module_almacen.application.ports.output.PesajeNotificationPort;
@@ -7,9 +8,12 @@ import com.walrex.module_almacen.application.ports.output.PesajeOutputPort;
 import com.walrex.module_almacen.application.ports.output.SessionArticuloPesajeOutputPort;
 import com.walrex.module_almacen.domain.model.ArticuloPesajeSession;
 import com.walrex.module_almacen.domain.model.PesajeDetalle;
+import com.walrex.module_almacen.domain.model.SessionPesajeActiva;
 import com.walrex.module_almacen.domain.model.dto.PesajeRequest;
 import com.walrex.module_almacen.domain.model.dto.SessionArticuloPesajeResponse;
 import com.walrex.module_almacen.domain.model.exceptions.ArticuloCompletadoException;
+import com.walrex.module_almacen.domain.model.exceptions.RolloAsignadoPartidaException;
+import com.walrex.module_almacen.domain.model.exceptions.RolloPesajeNotFoundException;
 import com.walrex.module_almacen.domain.model.exceptions.SessionPesajeInvalidaException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,11 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class PesajeService implements PesajeUseCase, ObtenerSessionArticuloPesajeUseCase {
+public class PesajeService implements PesajeUseCase, ObtenerSessionArticuloPesajeUseCase, DeleteGuideRollUseCase {
 
     private final PesajeOutputPort pesajeRepository;
     private final PesajeNotificationPort notificationPort;
@@ -38,6 +41,10 @@ public class PesajeService implements PesajeUseCase, ObtenerSessionArticuloPesaj
                     assignCodRollo(detalle);
                     detalle.setPeso_rollo(request.getPeso());
                     return pesajeRepository.saveWeight(detalle, detalle.getId_detordeningreso())
+                            .flatMap(savedDetalle -> pesajeRepository.incrementPesoAlmacen(
+                                            savedDetalle.getId_detordeningreso(),
+                                            savedDetalle.getPeso_rollo())
+                                    .thenReturn(savedDetalle))
                             .flatMap(savedDetalle ->
                                 pesajeRepository.updateSessionState(savedDetalle.getId_session_hidden())
                                     .map(newStatus -> {
@@ -67,15 +74,51 @@ public class PesajeService implements PesajeUseCase, ObtenerSessionArticuloPesaj
                     return Mono.empty();
                 })
                 .then(sessionOutputPort.findStatusByIdDetOrdenIngreso(idDetOrdenIngreso)
-                        .flatMap(status -> {
-                            if ("0".equals(status)) {
-                                log.info("Artículo id_detordeningreso={} ya completó su información", idDetOrdenIngreso);
-                                return Mono.<SessionArticuloPesajeResponse>error(
-                                        new ArticuloCompletadoException("El artículo ya completó su información de pesaje"));
-                            }
-                            return executeSessionFlow(idDetOrdenIngreso);
-                        })
+                        .flatMap(session -> resolveExistingSession(idDetOrdenIngreso, session))
                         .switchIfEmpty(Mono.defer(() -> executeSessionFlow(idDetOrdenIngreso))));
+    }
+
+    @Override
+    @Transactional
+    public Mono<Void> deleteGuideRoll(Integer idDetordenIngresoRollo) {
+        log.info("Eliminando rollo de guía con id_detordeningresopeso={}", idDetordenIngresoRollo);
+
+        return pesajeRepository.existsRolloById(idDetordenIngresoRollo)
+                .flatMap(exists -> {
+                    if (!exists) {
+                        return Mono.error(new RolloPesajeNotFoundException(
+                                "No se encontró el rollo con id_detordeningresopeso=" + idDetordenIngresoRollo));
+                    }
+
+                    return pesajeRepository.findAssignedPartidaCode(idDetordenIngresoRollo)
+                            .flatMap(codPartida -> Mono.<Void>error(new RolloAsignadoPartidaException(
+                                    "El rollo está asignado a la partida " + codPartida)))
+                            .switchIfEmpty(Mono.defer(() -> pesajeRepository.deleteRolloById(idDetordenIngresoRollo)));
+                });
+    }
+
+    private Mono<SessionArticuloPesajeResponse> resolveExistingSession(
+            Integer idDetOrdenIngreso, SessionPesajeActiva session) {
+        if (!"0".equals(session.getStatus())) {
+            return executeSessionFlow(idDetOrdenIngreso);
+        }
+
+        if (hasPendingRollsToRegister(session)) {
+            log.info("Reactivando sesión cerrada id={} para id_detordeningreso={} porque faltan rollos por registrar ({}/{})",
+                    session.getId(), idDetOrdenIngreso, session.getCntRegistro(), session.getCntRollos());
+            return sessionOutputPort.updateSessionStatusToActive(session.getId())
+                    .then(executeSessionFlow(idDetOrdenIngreso));
+        }
+
+        log.info("Artículo id_detordeningreso={} ya completó su información", idDetOrdenIngreso);
+        return Mono.error(
+                new ArticuloCompletadoException("El artículo ya completó su información de pesaje"));
+    }
+
+    private boolean hasPendingRollsToRegister(SessionPesajeActiva session) {
+        int cntRollos = session.getCntRollos() != null ? session.getCntRollos() : 0;
+        int cntRegistro = session.getCntRegistro() != null ? session.getCntRegistro() : 0;
+        return cntRollos > cntRegistro;
     }
 
     private Mono<SessionArticuloPesajeResponse> executeSessionFlow(Integer idDetOrdenIngreso) {
@@ -124,11 +167,6 @@ public class PesajeService implements PesajeUseCase, ObtenerSessionArticuloPesaj
                 .build();
     }
 
-    /**
-     * Construye el código de rollo definitivo concatenando el lote base con el
-     * correlativo actual de la sesión: {lote}-{cnt_registrados + 1}
-     * Ejemplo: "LT001-ARTXX" + "-" + 2  →  "LT001-ARTXX-2"
-     */
     private void assignCodRollo(PesajeDetalle detalle) {
         if (detalle.getLote() == null) {
             throw new SessionPesajeInvalidaException(

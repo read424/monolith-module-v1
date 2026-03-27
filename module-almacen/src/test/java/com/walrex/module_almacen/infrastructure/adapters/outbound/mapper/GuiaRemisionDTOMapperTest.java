@@ -38,7 +38,6 @@ class GuiaRemisionDTOMapperTest {
         // Given
         GuiaRemisionGeneradaDTO guiaDTO = GuiaRemisionGeneradaDTO.builder()
                 .idOrdenSalida(123L)
-                .codigoSalida("SAL-2024-001")
                 .fechaEntrega(LocalDate.of(2024, 1, 15))
                 .idEmpresaTransp(1)
                 .idModalidad(1)

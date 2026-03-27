@@ -2,8 +2,10 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 
 import com.walrex.module_almacen.application.ports.output.SessionArticuloPesajeOutputPort;
 import com.walrex.module_almacen.domain.model.ArticuloPesajeSession;
+import com.walrex.module_almacen.domain.model.SessionPesajeActiva;
 import com.walrex.module_almacen.domain.model.dto.RolloPesadoDTO;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.SessionPesajeActivaEntity;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.SessionPesajeActivaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.SessionPesajeActivaRepository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.SessionPesajeCustomRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,11 +21,12 @@ public class SessionArticuloPesajePersistenceAdapter implements SessionArticuloP
 
     private final SessionPesajeActivaRepository repository;
     private final SessionPesajeCustomRepository customRepository;
+    private final SessionPesajeActivaMapper sessionPesajeActivaMapper;
 
     @Override
-    public Mono<String> findStatusByIdDetOrdenIngreso(Integer idDetOrdenIngreso) {
+    public Mono<SessionPesajeActiva> findStatusByIdDetOrdenIngreso(Integer idDetOrdenIngreso) {
         return repository.findByIdDetOrdenIngreso(idDetOrdenIngreso)
-                .map(SessionPesajeActivaEntity::getStatus);
+                .map(sessionPesajeActivaMapper::toDomain);
     }
 
     @Override
@@ -49,9 +52,12 @@ public class SessionArticuloPesajePersistenceAdapter implements SessionArticuloP
     }
 
     @Override
+    public Mono<Void> updateSessionStatusToActive(Integer sessionId) {
+        return repository.updateStatusToActiveById(sessionId).then();
+    }
+
+    @Override
     public Flux<RolloPesadoDTO> findRollosByIdDetOrdenIngreso(Integer idDetOrdenIngreso) {
         return customRepository.findRollosByIdDetOrdenIngreso(idDetOrdenIngreso);
     }
-
-
 }

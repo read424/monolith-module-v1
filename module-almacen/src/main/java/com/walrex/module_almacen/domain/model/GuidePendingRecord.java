@@ -1,4 +1,4 @@
-package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection;
+package com.walrex.module_almacen.domain.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,7 +12,7 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class GuidePendingProjection {
+public class GuidePendingRecord {
     private Integer id_ordeningreso;
     private LocalDate fec_registro;
     private String nu_serie;

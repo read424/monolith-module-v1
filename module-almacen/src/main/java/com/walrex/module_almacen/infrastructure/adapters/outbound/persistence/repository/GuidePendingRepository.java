@@ -7,6 +7,7 @@ import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Repository
@@ -33,6 +34,7 @@ public class GuidePendingRepository {
                 artic.cod_articulo, 
                 artic.desc_articulo,
                 det_ing.nu_rollos AS total_rollos,
+                det_ing.peso_ref AS peso_ref,
                 COALESCE(MAX(split_part(det_ing_peso.cod_rollo, '-', 3)::integer), 0) AS num_rollo,
                 COUNT(det_ing_peso.id_detordeningresopeso) AS rolls_saved
             FROM almacenes.ordeningreso AS ord_ing
@@ -43,7 +45,7 @@ public class GuidePendingRepository {
             WHERE ord_ing.id_almacen = 2 
               AND ord_ing.fec_ingreso = :date
             GROUP BY 
-                ord_ing.id_ordeningreso, client.id_cliente, det_ing.id_detordeningreso, artic.id_articulo
+                ord_ing.id_ordeningreso, client.id_cliente, det_ing.id_detordeningreso, artic.id_articulo, det_ing.peso_ref
             HAVING COUNT(det_ing_peso.id_detordeningresopeso) < det_ing.nu_rollos
             ORDER BY ord_ing.fec_registro DESC
             """;
@@ -64,7 +66,16 @@ public class GuidePendingRepository {
                         .total_rollos(row.get("total_rollos", Integer.class))
                         .num_rollo(row.get("num_rollo", Integer.class))
                         .rolls_saved(row.get("rolls_saved", Integer.class))
+                        .peso_ref(row.get("peso_ref", BigDecimal.class))
                         .build())
-                .all();
+                .all()
+                .doOnSubscribe(subscription -> log.info("GuidePendingRepository.findPendingGuides date={}", date))
+                .doOnNext(projection -> log.info(
+                        "GuidePendingRepository mapped row ordenIngreso={}, detalle={}, articulo={}, peso_ref={}",
+                        projection.getId_ordeningreso(),
+                        projection.getId_detordeningreso(),
+                        projection.getId_articulo(),
+                        projection.getPeso_ref()))
+                .doOnComplete(() -> log.info("GuidePendingRepository completed date={}", date));
     }
 }
