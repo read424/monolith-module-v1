@@ -44,6 +44,7 @@
 		<springwolf.version>1.5.0</springwolf.version>
 		<jackson-datatype.version>2.19.0</jackson-datatype.version>
 		<avro-schemas.monolith.version>0.1.0-SNAPSHOT</avro-schemas.monolith.version>
+        <mapstruct.version>1.5.5.Final</mapstruct.version>
 	</properties>
 	<repositories>
 		<repository>
