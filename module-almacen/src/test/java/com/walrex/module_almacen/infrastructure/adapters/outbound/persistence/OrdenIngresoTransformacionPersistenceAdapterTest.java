@@ -132,7 +132,7 @@ public class OrdenIngresoTransformacionPersistenceAdapterTest {
                 .build();
 
         ordenIngresoEntity = new OrdenIngresoEntity();
-        ordenIngresoEntity.setId_ordeningreso(1L);
+        ordenIngresoEntity.setId(1L);
         ordenIngresoEntity.setCod_ingreso("ALTI-I00004");
 
         detalleEntity = new DetailsIngresoEntity();

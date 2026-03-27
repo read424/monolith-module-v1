@@ -79,7 +79,7 @@ public class BaseOrdenIngresoPersistenceAdapterTest {
 
     private OrdenIngresoEntity crearOrdenIngresoEntity(){
         return OrdenIngresoEntity.builder()
-                .id_ordeningreso(1L)
+                .id(1L)
                 .id_cliente(86)
                 .id_motivo(4)
                 .id_comprobante(1)
