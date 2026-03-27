@@ -5,6 +5,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Data
@@ -25,4 +26,5 @@ public class GuidePendingProjection {
     private Integer total_rollos;
     private Integer num_rollo;
     private Integer rolls_saved;
+    private BigDecimal peso_ref;
 }

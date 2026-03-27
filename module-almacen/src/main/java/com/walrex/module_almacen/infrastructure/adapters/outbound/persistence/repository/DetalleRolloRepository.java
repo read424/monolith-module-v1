@@ -1,12 +1,12 @@
 package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository;
 
-import org.springframework.data.r2dbc.repository.Query;
-import org.springframework.data.repository.reactive.ReactiveCrudRepository;
-import org.springframework.stereotype.Repository;
-
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetalleRolloEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.RolloDisponibleDevolucionProjection;
-
+import org.springframework.data.r2dbc.repository.Modifying;
+import org.springframework.data.r2dbc.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.data.repository.reactive.ReactiveCrudRepository;
+import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -61,4 +61,34 @@ public interface DetalleRolloRepository extends ReactiveCrudRepository<DetalleRo
 
     @Query("UPDATE almacenes.detordeningresopeso SET status = 2 WHERE id_detordeningresopeso = :idDetOrdenIngresoPeso AND status = 1")
     Mono<DetalleRolloEntity> assignedStatusPorDespachar(Integer idDetOrdenIngresoPeso);
+
+    @Query("""
+            SELECT part.cod_partida ||
+                   CASE
+                       WHEN part.id_partida_parent IS NULL THEN ''
+                       ELSE '-R' || part.num_reproceso::varchar
+                   END AS cod_partida
+            FROM produccion.tb_detail_partida AS det_part
+            LEFT OUTER JOIN produccion.tb_partidas AS part ON part.id_partida = det_part.id_partida
+            WHERE det_part.id_detordeningresopeso = :idDetOrdenIngresoPeso
+              AND det_part.status = 1
+            LIMIT 1
+            """)
+    Mono<String> findAssignedPartidaCode(@Param("idDetOrdenIngresoPeso") Integer idDetOrdenIngresoPeso);
+
+    @Modifying
+    @Query("DELETE FROM almacenes.detordeningresopeso WHERE id_detordeningresopeso = :idDetOrdenIngresoPeso")
+    Mono<Integer> deleteByIdDetOrdenIngresoPeso(@Param("idDetOrdenIngresoPeso") Integer idDetOrdenIngresoPeso);
+
+    @Query("""
+            SELECT EXISTS(
+                SELECT 1
+                FROM almacenes.detordeningresopeso AS det_peso
+                INNER JOIN produccion.tb_detail_partida AS det_part
+                    ON det_part.id_detordeningresopeso = det_peso.id_detordeningresopeso
+                   AND det_part.status = 1
+                WHERE det_peso.id_detordeningreso = :idDetalleOrden
+            )
+            """)
+    Mono<Boolean> existsAssignedPartidaByIdDetalleOrden(@Param("idDetalleOrden") Integer idDetalleOrden);
 }
