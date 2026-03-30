@@ -41,6 +41,7 @@
 		<logback.version>1.5.8</logback.version>
 		<logstash.version>8.0</logstash.version>
 		<janino.version>3.1.12</janino.version>
+        <org.mapstruct.version>1.5.3.Final</org.mapstruct.version>
 		<r2dbc-postgresql.version>1.0.7.RELEASE</r2dbc-postgresql.version>
 	</properties>
 	<dependencies>
@@ -110,6 +111,18 @@
 			<artifactId>r2dbc-postgresql</artifactId>
 			<version>${r2dbc-postgresql.version}</version>
 		</dependency>
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <optional>true</optional>
+        </dependency>
+        <!-- MapStruct -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>${org.mapstruct.version}</version>
+        </dependency>
 		<!-- Logback y SLF4J -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
@@ -189,6 +202,23 @@
 					</excludes>
 				</configuration>
 			</plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${org.mapstruct.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
 		</plugins>
 	</build>
 </project>
