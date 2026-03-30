@@ -144,6 +144,11 @@
 			<artifactId>janino</artifactId>
 			<version>${janino.version}</version>
 		</dependency>
+		<!-- Micrometer -->
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-core</artifactId>
+		</dependency>
 		<!-- Utility -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
