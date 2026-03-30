@@ -61,6 +61,7 @@
 		<logback.version>1.5.8</logback.version>
 		<jackson.version>2.18.2</jackson.version>
 		<jjwt.version>0.11.5</jjwt.version>
+        <ecwid.consul.version>1.4.11</ecwid.consul.version>
 		<avro-schemas.monolith.version>0.1.0-SNAPSHOT</avro-schemas.monolith.version>
 	</properties>
 	<repositories>
