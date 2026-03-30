@@ -13,17 +13,33 @@ import org.springframework.web.util.pattern.PathPatternParser;
 import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.entity.ModulesUrl;
 import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.repository.ModulesUrlRepository;
 
-import lombok.RequiredArgsConstructor;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 @Component
-@RequiredArgsConstructor
 @Slf4j
 public class RouteResolver {
 
     private final ModulesUrlRepository modulesUrlRepository;
+    private final MeterRegistry meterRegistry;
     private final PathPatternParser pathPatternParser = new PathPatternParser();
+
+    private final Counter cacheHitExact;
+    private final Counter cacheHitPattern;
+    private final Counter cacheMiss;
+    private final Timer dbLookupTimer;
+
+    public RouteResolver(ModulesUrlRepository modulesUrlRepository, MeterRegistry meterRegistry) {
+        this.modulesUrlRepository = modulesUrlRepository;
+        this.meterRegistry = meterRegistry;
+        this.cacheHitExact    = Counter.builder("gateway.route.cache.hit").tag("type", "exact").register(meterRegistry);
+        this.cacheHitPattern  = Counter.builder("gateway.route.cache.hit").tag("type", "pattern").register(meterRegistry);
+        this.cacheMiss        = Counter.builder("gateway.route.cache.miss").register(meterRegistry);
+        this.dbLookupTimer    = Timer.builder("gateway.route.db.lookup").register(meterRegistry);
+    }
 
     private final ConcurrentHashMap<String, ModulesUrl> exactPathCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, ModulesUrl> patternPathCache = new ConcurrentHashMap<>();
@@ -40,16 +56,20 @@ public class RouteResolver {
 
         ModulesUrl exact = exactPathCache.get(requestPath);
         if (exact != null) {
-            log.info("Módulo encontrado en caché (exacta): {}", requestPath);
+            log.debug("Módulo encontrado en caché (exacta): {}", requestPath);
+            cacheHitExact.increment();
             return Mono.just(exact);
         }
 
         ModulesUrl pattern = findPatternMatchInCache(requestPath);
         if (pattern != null) {
-            log.info("Módulo encontrado en caché (patrón): {}", requestPath);
+            log.debug("Módulo encontrado en caché (patrón): {}", requestPath);
+            cacheHitPattern.increment();
             return Mono.just(pattern);
         }
 
+        cacheMiss.increment();
+        Timer.Sample sample = Timer.start(meterRegistry);
         return modulesUrlRepository.findAll()
             .filter(module -> {
                 if (isExactMatch(requestPath, module)) {
@@ -68,6 +88,7 @@ public class RouteResolver {
             })
             .next()
             .doOnNext(module -> {
+                sample.stop(dbLookupTimer);
                 if (Boolean.TRUE.equals(module.getIsPattern())) {
                     patternPathCache.put(module.getPath(), module);
                 } else if (module.getPath().contains("*")) {
@@ -75,7 +96,8 @@ public class RouteResolver {
                 } else {
                     exactPathCache.put(requestPath, module);
                 }
-            });
+            })
+            .doOnSuccess(m -> { if (m == null) sample.stop(dbLookupTimer); });
     }
 
     public Mono<ModulesUrl> findModuleByPattern(String requestPath) {
@@ -142,7 +164,8 @@ public class RouteResolver {
     }
 
     private boolean isSpringPatternMatch(String requestPath, ModulesUrl module) {
-        if (module.getIsPattern() != null && !module.getIsPattern()) return false;
+        // isPattern=true significa regex explícito → lo maneja isRegexMatch
+        if (Boolean.TRUE.equals(module.getIsPattern())) return false;
         if (module.getPath() == null || module.getPath().isEmpty() || !module.getPath().contains("*")) return false;
         try {
             PathPattern pattern = pathPatternParser.parse(module.getPath());
@@ -154,7 +177,8 @@ public class RouteResolver {
     }
 
     private boolean isRegexMatch(String requestPath, ModulesUrl module) {
-        if (module.getIsPattern() != null && !module.getIsPattern()) return false;
+        // Solo aplica a rutas marcadas explícitamente como regex (isPattern=true)
+        if (!Boolean.TRUE.equals(module.getIsPattern())) return false;
         if (module.getPath() == null || module.getPath().isEmpty()) return false;
         try {
             Pattern compiled = getCompiledRegex(module.getPath());
