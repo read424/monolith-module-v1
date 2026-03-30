@@ -287,6 +287,11 @@ flyway:
   modules:
     enabled: true
     verbose: true
+
+consul:
+  base-url: http://${CONSUL_HOST:localhost}:${CONSUL_PORT:8500}
+  token: ${GATEWAY_TOKEN}
+  datacenter: ${CONSUL_DATACENTER:dc1}
 reactor:
   tools:
     agent:
