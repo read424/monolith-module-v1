@@ -5,6 +5,9 @@ import java.net.URISyntaxException;
 
 import com.walrex.gateway.gateway.application.ports.output.ServiceRegistryPort;
 import com.walrex.gateway.gateway.domain.model.ServiceInstanceRecord;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
@@ -26,25 +29,36 @@ import reactor.core.publisher.Mono;
 @Slf4j
 public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<DynamicModuleRouteFilter.Config> {
 
-    private static final int MAX_FORWARD_COUNT = 2;
-    private static final String FORWARD_COUNT_KEY = "FORWARD_COUNT";
+    private static final int MAX_ROUTING_ATTEMPTS = 3;
+    private static final int MAX_HOP_COUNT = 3;
+    private static final String ROUTING_ATTEMPT_KEY = "ROUTING_ATTEMPT_COUNT";
 
     private final RouteResolver routeResolver;
     private final PathTransformer pathTransformer;
     private final ProxyRequestBuilder proxyRequestBuilder;
     private final ServiceRegistryPort serviceRegistryPort;
 
+    private final Counter routingInternal;
+    private final Counter routingExternal;
+    private final Counter routingConsul;
+    private final Timer routingTimer;
+
     public DynamicModuleRouteFilter(
         RouteResolver routeResolver,
         PathTransformer pathTransformer,
         ProxyRequestBuilder proxyRequestBuilder,
-        ServiceRegistryPort serviceRegistryPort
+        ServiceRegistryPort serviceRegistryPort,
+        MeterRegistry meterRegistry
     ) {
         super(Config.class);
         this.routeResolver = routeResolver;
         this.pathTransformer = pathTransformer;
         this.proxyRequestBuilder = proxyRequestBuilder;
         this.serviceRegistryPort = serviceRegistryPort;
+        this.routingInternal = Counter.builder("gateway.routing").tag("type", "internal").register(meterRegistry);
+        this.routingExternal = Counter.builder("gateway.routing").tag("type", "external").register(meterRegistry);
+        this.routingConsul   = Counter.builder("gateway.routing").tag("type", "consul").register(meterRegistry);
+        this.routingTimer    = Timer.builder("gateway.routing.duration").register(meterRegistry);
     }
 
     @Override
@@ -52,6 +66,19 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
         return (exchange, chain) -> {
             String path = exchange.getRequest().getPath().value();
             log.debug("DynamicModuleRouteFilter - Path: '{}'", path);
+
+            // Detectar bucle cross-process via header
+            String hopHeader = exchange.getRequest().getHeaders().getFirst("X-Gateway-Hop-Count");
+            if (hopHeader != null) {
+                try {
+                    int hops = Integer.parseInt(hopHeader);
+                    if (hops >= MAX_HOP_COUNT) {
+                        log.error("Demasiados saltos cross-process ({}) para '{}'", hops, path);
+                        exchange.getResponse().setStatusCode(HttpStatus.LOOP_DETECTED);
+                        return exchange.getResponse().setComplete();
+                    }
+                } catch (NumberFormatException ignored) {}
+            }
 
             Boolean isForwarded = exchange.getAttribute("GATEWAY_FORWARDED_REQUEST");
             if (Boolean.TRUE.equals(isForwarded)) {
@@ -75,13 +102,13 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                 return chain.filter(exchange);
             }
 
-            Integer forwardCount = exchange.getAttribute(FORWARD_COUNT_KEY);
-            if (forwardCount == null) forwardCount = 0;
+            Integer attemptCount = exchange.getAttribute(ROUTING_ATTEMPT_KEY);
+            if (attemptCount == null) attemptCount = 0;
 
             exchange.getAttributes().put("DYNAMIC_MODULE_ROUTE_PROCESSED", true);
 
-            if (forwardCount >= MAX_FORWARD_COUNT) {
-                log.error("LÍMITE DE FORWARDS EXCEDIDO ({}/{})", forwardCount, MAX_FORWARD_COUNT);
+            if (attemptCount >= MAX_ROUTING_ATTEMPTS) {
+                log.error("LÍMITE DE INTENTOS DE ROUTING EXCEDIDO ({}/{})", attemptCount, MAX_ROUTING_ATTEMPTS);
                 exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
                 return exchange.getResponse().setComplete();
             }
@@ -94,8 +121,16 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
             final String resolvedPath = requestPath;
             final ServerHttpRequest request = exchange.getRequest();
 
+            Timer.Sample sample = Timer.start();
             return routeResolver.resolve(resolvedPath)
-                .flatMap(module -> processRouting(module, resolvedPath, request, exchange, chain))
+                .flatMap(module -> {
+                    // Incrementar contador para CUALQUIER tipo de routing
+                    int current = exchange.getAttributeOrDefault(ROUTING_ATTEMPT_KEY, 0);
+                    exchange.getAttributes().put(ROUTING_ATTEMPT_KEY, current + 1);
+                    return processRouting(module, resolvedPath, request, exchange, chain);
+                })
+                .doOnSuccess(v -> sample.stop(routingTimer))
+                .doOnError(e -> sample.stop(routingTimer))
                 .switchIfEmpty(Mono.defer(() -> {
                     log.warn("No se encontró configuración para la ruta: {}", resolvedPath);
                     exchange.getResponse().setStatusCode(HttpStatus.NOT_FOUND);
@@ -110,15 +145,18 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
 
         if (target == null || target.isEmpty() || "monolito-modular".equalsIgnoreCase(target)) {
             log.info("Routing interno (forward): {}", requestPath);
+            routingInternal.increment();
             return processRoutingInternal(module, requestPath, request, exchange, chain);
         }
 
         if (target.startsWith("http://") || target.startsWith("https://")) {
             log.info("Routing externo directo: {}", target);
+            routingExternal.increment();
             return proxyRequestBuilder.buildExternalProxy(module, requestPath, target, exchange, chain);
         }
 
         log.info("Resolviendo servicio en Consul: {}", target);
+        routingConsul.increment();
         return serviceRegistryPort.chooseHealthyInstance(target)
             .map(ServiceInstanceRecord::baseUrl)
             .flatMap(serviceUri -> {
@@ -137,12 +175,11 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
 
     private Mono<Void> processRoutingInternal(ModulesUrl module, String requestPath, ServerHttpRequest request,
                                               ServerWebExchange exchange, GatewayFilterChain chain) {
-        Integer currentCount = exchange.getAttribute(FORWARD_COUNT_KEY);
-        final int forwardCount = (currentCount == null ? 0 : currentCount) + 1;
-        exchange.getAttributes().put(FORWARD_COUNT_KEY, forwardCount);
+        Integer currentCount = exchange.getAttribute(ROUTING_ATTEMPT_KEY);
+        final int forwardCount = currentCount == null ? 1 : currentCount;
 
         String newPath = pathTransformer.stripPrefix(requestPath, module);
-        log.info("Forward #{}/{}: '{}' -> '{}'", forwardCount, MAX_FORWARD_COUNT, requestPath, newPath);
+        log.info("Forward #{}/{}: '{}' -> '{}'", forwardCount, MAX_ROUTING_ATTEMPTS, requestPath, newPath);
 
         if (requestPath.equals(newPath)) {
             log.error("BUCLE DETECTADO: nueva ruta igual a la original '{}'", newPath);
@@ -199,7 +236,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                 }
                 return chain.filter(mutatedExchange);
             })
-            .doOnSuccess(v -> log.info("Forward #{} completado: '{}' -> '{}'", forwardCount, requestPath, finalNewPath))
+            .doOnSuccess(v -> log.debug("Forward #{} completado: '{}' -> '{}'", forwardCount, requestPath, finalNewPath))
             .doOnError(e -> log.error("Error en forward #{}: '{}' -> '{}': {}", forwardCount, requestPath, finalNewPath, e.getMessage()));
     }
 
