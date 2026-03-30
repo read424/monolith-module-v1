@@ -7,6 +7,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.support.ServerWebExchangeUtils;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 
@@ -36,12 +37,24 @@ public class ProxyRequestBuilder {
 
         log.info("Proxy externo: '{}' → '{}'", requestPath, fullUrl);
 
+        // Incrementar X-Gateway-Hop-Count para detectar bucles cross-process
+        String hopHeader = exchange.getRequest().getHeaders().getFirst("X-Gateway-Hop-Count");
+        int currentHop = 0;
+        if (hopHeader != null) {
+            try { currentHop = Integer.parseInt(hopHeader); } catch (NumberFormatException ignored) {}
+        }
+        ServerHttpRequest outboundRequest = exchange.getRequest().mutate()
+            .header("X-Gateway-Hop-Count", String.valueOf(currentHop + 1))
+            .build();
+        ServerWebExchange mutatedExchange = exchange.mutate().request(outboundRequest).build();
+        exchange.getAttributes().forEach((k, v) -> mutatedExchange.getAttributes().put(k, v));
+
         try {
             URI externalUri = new URI(fullUrl);
-            exchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, externalUri);
+            mutatedExchange.getAttributes().put(ServerWebExchangeUtils.GATEWAY_REQUEST_URL_ATTR, externalUri);
 
             final String finalUrl = fullUrl;
-            return chain.filter(exchange)
+            return chain.filter(mutatedExchange)
                 .doOnSuccess(v -> log.info("Proxy externo completado: {}", finalUrl))
                 .doOnError(e -> log.error("Error en proxy externo '{}': {}", finalUrl, e.getMessage()));
 
