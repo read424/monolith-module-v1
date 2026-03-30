@@ -142,6 +142,7 @@ spring:
       discovery:
         enabled: true
         register: false
+        acl-token: ${GATEWAY_TOKEN}
         health-check-path: /actuator/health
         health-check-internal: 15s
         instance-id: ${spring.application.name}-${random.value}
