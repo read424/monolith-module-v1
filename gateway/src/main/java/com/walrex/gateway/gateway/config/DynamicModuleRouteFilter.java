@@ -143,7 +143,7 @@ public class DynamicModuleRouteFilter extends AbstractGatewayFilterFactory<Dynam
                                         ServerWebExchange exchange, GatewayFilterChain chain) {
         String target = module.getUri();
 
-        if (target == null || target.isEmpty() || "monolito-modular".equalsIgnoreCase(target)) {
+        if (target == null || target.isEmpty()) {
             log.info("Routing interno (forward): {}", requestPath);
             routingInternal.increment();
             return processRoutingInternal(module, requestPath, request, exchange, chain);
