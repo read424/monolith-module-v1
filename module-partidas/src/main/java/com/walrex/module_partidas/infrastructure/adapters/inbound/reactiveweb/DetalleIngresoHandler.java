@@ -108,6 +108,7 @@ public class DetalleIngresoHandler {
                         return ServerResponse.ok()
                                 .bodyValue(resultado);
                     })
+                    .switchIfEmpty(ServerResponse.notFound().build())
                     .onErrorResume(error -> {
                         long responseTime = System.currentTimeMillis() - startTime;
                         failedRequests.incrementAndGet();
