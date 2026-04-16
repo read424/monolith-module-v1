@@ -14,6 +14,8 @@ import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.pr
 public interface GuiaRemisionDTOMapper {
 
     @Mapping(target = "idCliente", expression = "java(1)")
+    @Mapping(target = "tipoComprobante", expression = "java(guiaDTO.getIdComprobante() != null ? guiaDTO.getIdComprobante() : 1)")
+    @Mapping(target = "tipoSerie", expression = "java(1)")
     @Mapping(target = "idMotivo", expression = "java(1)")
     @Mapping(source = "guiaDTO.fechaEntrega", target = "fechaEmision", qualifiedByName = "localDateToString")
     @Mapping(source = "items", target = "detailItems")
@@ -32,6 +34,8 @@ public interface GuiaRemisionDTOMapper {
 
     List<ItemGuiaRemisionRemitenteMessage> toItemGuiaRemisionRemitenteMessageList(List<GuiaRemisionItemProjection> itemsProjection);
 
+    @Mapping(target = "tipoComprobante", expression = "java(guiaDTO.getIdComprobante() != null ? guiaDTO.getIdComprobante() : 1)")
+    @Mapping(target = "tipoSerie", expression = "java(1)")
     @Mapping(source = "idCliente", target = "idCliente")
     @Mapping(source = "idMotivo", target = "idMotivo")
     @Mapping(source = "guiaDTO.fechaEntrega", target = "fechaEmision", qualifiedByName = "localDateToString")
