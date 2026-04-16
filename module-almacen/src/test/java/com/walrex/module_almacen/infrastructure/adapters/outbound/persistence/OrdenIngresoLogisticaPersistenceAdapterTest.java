@@ -2,11 +2,14 @@ package com.walrex.module_almacen.infrastructure.adapters.outbound.persistence;
 
 import com.walrex.module_almacen.domain.model.*;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetailsIngresoEntity;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetalleInventaryEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.KardexEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.ArticuloIngresoLogisticaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenIngresoEntityMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.ArticuloAlmacenRepository;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.DetailOrdenCompraAlmacenRepository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.DetailsIngresoRepository;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.DetalleInventoryRespository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.KardexRepository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.OrdenIngresoRepository;
 import io.r2dbc.spi.R2dbcException;
@@ -41,6 +44,12 @@ public class OrdenIngresoLogisticaPersistenceAdapterTest {
     private KardexRepository kardexRepository;
 
     @Mock
+    private DetalleInventoryRespository detalleInventoryRespository;
+
+    @Mock
+    private DetailOrdenCompraAlmacenRepository detailOrdenCompraAlmacenRepository;
+
+    @Mock
     private OrdenIngresoEntityMapper mapper;
 
     @Mock
@@ -63,6 +72,8 @@ public class OrdenIngresoLogisticaPersistenceAdapterTest {
                 .articuloRepository(articuloRepository)
                 .detalleRepository(detalleRepository)
                 .kardexRepository(kardexRepository)
+                .detalleInventoryRespository(detalleInventoryRespository)
+                .detailOrdenCompraAlmacenRepository(detailOrdenCompraAlmacenRepository)
                 .mapper(mapper)
                 .articuloIngresoLogisticaMapper(articuloIngresoLogisticaMapper)
                 .build();
@@ -121,6 +132,8 @@ public class OrdenIngresoLogisticaPersistenceAdapterTest {
     @Test
     void procesarDetalleGuardado_DeberiaGuardarKardex_CuandoDatosValidos() {
         // Arrange
+        when(detalleInventoryRespository.getInventarioByDetailIngreso(detalleEntity.getId().intValue()))
+                .thenReturn(Mono.just(DetalleInventaryEntity.builder().idLote(77L).build()));
         when(kardexRepository.save(any(KardexEntity.class))).thenReturn(Mono.just(kardexEntity));
 
         // Act
@@ -142,6 +155,8 @@ public class OrdenIngresoLogisticaPersistenceAdapterTest {
     @Test
     void procesarDetalleGuardado_DeberiaRetornarError_CuandoFallaGuardadoKardex() {
         // Arrange
+        when(detalleInventoryRespository.getInventarioByDetailIngreso(detalleEntity.getId().intValue()))
+                .thenReturn(Mono.just(DetalleInventaryEntity.builder().idLote(77L).build()));
         R2dbcException dbException = mock(R2dbcException.class);
         when(dbException.getMessage()).thenReturn("Error de base de datos");
         when(kardexRepository.save(any(KardexEntity.class))).thenReturn(Mono.error(dbException));
@@ -165,6 +180,8 @@ public class OrdenIngresoLogisticaPersistenceAdapterTest {
     @Test
     void procesarDetalleGuardado_DeberiaRetornarErrorGeneral_CuandoOcurreExcepcionNoEsperada() {
         // Arrange
+        when(detalleInventoryRespository.getInventarioByDetailIngreso(detalleEntity.getId().intValue()))
+                .thenReturn(Mono.just(DetalleInventaryEntity.builder().idLote(77L).build()));
         RuntimeException unexpectedException = new RuntimeException("Error inesperado");
         when(kardexRepository.save(any(KardexEntity.class))).thenReturn(Mono.error(unexpectedException));
 
@@ -195,12 +212,12 @@ public class OrdenIngresoLogisticaPersistenceAdapterTest {
                 resultado.getSaldoLote(),
                 "La cantidad convertida debería ser igual a la cantidad original");
 
-        assertEquals(BigDecimal.valueOf(340.000000).setScale(6, RoundingMode.HALF_UP),
-                resultado.getSaldo_actual(),
-                "El saldo actual debería ser la suma del stock y la cantidad sin conversión");
+        assertEquals(0, BigDecimal.valueOf(100.000000).setScale(6, RoundingMode.HALF_UP)
+                        .compareTo(resultado.getSaldo_actual().setScale(6, RoundingMode.HALF_UP)),
+                "El saldo actual debería reflejar el stock actual configurado en el artículo");
 
         // Verificar otros campos
-        assertEquals("(TEST-001) - COMPRAS", resultado.getDetalle());
+        assertEquals("COMPRAS - (TEST-001)", resultado.getDetalle());
         assertEquals(BigDecimal.valueOf(240.00 * 2.15), resultado.getValorTotal());
         assertEquals(1, resultado.getTipo_movimiento());
     }
