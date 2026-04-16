@@ -326,6 +326,7 @@
 				<version>3.5.2</version>
 				<configuration>
 					<skipTests>false</skipTests>
+					<argLine>@{argLine} -javaagent:${settings.localRepository}/org/mockito/mockito-core/5.17.0/mockito-core-5.17.0.jar</argLine>
 					<!-- Opcional: incluir solo ciertas pruebas -->
 					<includes>
 						<include>**/*Test.java</include>
