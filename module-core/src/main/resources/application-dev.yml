@@ -150,6 +150,8 @@ spring:
         instance-id: ${spring.application.name}-${random.value}
         prefer-ip-address: true
         fail-fast: false  # No fallar si Consul no está disponible en dev
+        catalogServicesWatch:
+          enabled: false
     loadbalancer:
       ribbon:
         enabled: false
@@ -360,3 +362,8 @@ logging:
     org.springframework.data.r2dbc: DEBUG
     org.springframework.r2dbc: DEBUG
     io.r2dbc: DEBUG
+
+consul:
+  base-url: http://${CONSUL_HOST:localhost}:${CONSUL_PORT:8500}
+  token: ${GATEWAY_TOKEN:dev-token}
+  datacenter: ${CONSUL_DATACENTER:dc1}
