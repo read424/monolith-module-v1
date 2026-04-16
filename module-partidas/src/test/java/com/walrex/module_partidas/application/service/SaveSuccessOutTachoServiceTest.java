@@ -1,271 +1,241 @@
 package com.walrex.module_partidas.application.service;
 
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import java.math.BigDecimal;
-import java.util.*;
+import java.util.List;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.walrex.module_partidas.application.ports.output.OrdenSalidaPersistencePort;
 import com.walrex.module_partidas.application.ports.output.SaveSuccessOutTachoPort;
-import com.walrex.module_partidas.domain.model.*;
-import com.walrex.module_partidas.domain.model.dto.SaveSuccessOutTachoRequest;
+import com.walrex.module_partidas.application.ports.output.WebSocketNotificationPort;
+import com.walrex.module_partidas.domain.model.ItemRollo;
+import com.walrex.module_partidas.domain.model.ItemRolloProcess;
+import com.walrex.module_partidas.domain.model.ProcesoPartida;
+import com.walrex.module_partidas.domain.model.SuccessPartidaTacho;
 import com.walrex.module_partidas.domain.service.SaveSuccessOutTachoService;
+import com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.projection.OrdenIngresoCompletaProjection;
 
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-/**
- * Test unitario para SaveSuccessOutTachoService
- * Sigue TDD y utiliza StepVerifier para testing reactivo
- *
- * @author Ronald E. Aybar D.
- * @version 0.0.1-SNAPSHOT
- */
 @ExtendWith(MockitoExtension.class)
 class SaveSuccessOutTachoServiceTest {
 
-        @Mock
-        private SaveSuccessOutTachoPort saveSuccessOutTachoPort;
+    @Mock
+    private SaveSuccessOutTachoPort saveSuccessOutTachoPort;
 
-        @InjectMocks
-        private SaveSuccessOutTachoService service;
+    @Mock
+    private OrdenSalidaPersistencePort ordenSalidaPersistencePort;
 
-        private SaveSuccessOutTachoRequest request;
-        private SuccessPartidaTacho request_nuevo;
-        private List<ItemRollo> rollosDisponibles;
-        private List<ProcesoPartida> procesos;
+    @Mock
+    private WebSocketNotificationPort webSocketNotificationPort;
 
-        @BeforeEach
-        void setUp() {
-                // Crear request válido
-                SaveSuccessOutTachoRequest.DetalleRollo detalle = SaveSuccessOutTachoRequest.DetalleRollo.builder()
-                                .codRollo("1787-1-1")
-                                .pesoRollo("21.48")
-                                .pesoAcabado(BigDecimal.ZERO)
-                                .idIngresopeso("3134524")
-                                .idDetPartida("518038")
-                                .idIngresoAlmacen("307764")
-                                .idRolloIngreso("3135766")
-                                .despachado(false)
-                                .idAlmacen("5")
-                                .idOrdeningreso("307651")
-                                .selected(true)
-                                .delete(0)
-                                .build();
+    @InjectMocks
+    private SaveSuccessOutTachoService service;
 
-                request = SaveSuccessOutTachoRequest.builder()
-                                .idPartida(55702)
-                                .idAlmacen(36)
-                                .idCliente(45544)
-                                .rollos(Arrays.asList(detalle))
-                                .build();
+    private SuccessPartidaTacho request;
+    private ItemRolloProcess rolloSeleccionado;
+    private List<ItemRollo> rollosDisponibles;
+    private List<ProcesoPartida> procesos;
 
-                request_nuevo = SuccessPartidaTacho.builder()
-                                .idPartida(55702)
-                                .idAlmacen(36)
-                                .idCliente(45544)
-                                .build();
+    @BeforeEach
+    void setUp() {
+        rolloSeleccionado = ItemRolloProcess.builder()
+                .codRollo("1787-1-1")
+                .pesoRollo(21.48)
+                .idOrdenIngreso(307651)
+                .idIngresoPeso(3134524)
+                .idIngresoAlmacen(307764)
+                .idRolloIngreso(3135766)
+                .idDetPartida(518038)
+                .idAlmacen(36)
+                .selected(true)
+                .status(1)
+                .delete(0)
+                .build();
 
-                // Crear rollos disponibles
-                ItemRollo rolloDisponible = ItemRollo.builder()
-                                .codRollo("1787-1-1")
-                                .despacho(Boolean.FALSE)
-                                .idAlmacen(5)
-                                .idDetPartida(518038)
-                                .idIngresoAlmacen(307764)
-                                .idIngresopeso(3134524)
-                                .idOrdeningreso(307651)
-                                .idRolloIngreso(3135766)
-                                .isParentRollo(1)
-                                .noAlmacen("Almacén Principal")
-                                .numChildRoll(0)
-                                .pesoAcabado(0.0)
-                                .pesoRollo(21.48)
-                                .pesoSaldo(21.48)
-                                .pesoSalida(21.48)
-                                .status(1)
-                                .build();
+        request = SuccessPartidaTacho.builder()
+                .idPartida(55702)
+                .idAlmacen(36)
+                .idCliente(45544)
+                .idArticulo(789)
+                .lote("L-001")
+                .idUnidad(1)
+                .idSupervisor(99)
+                .rollos(List.of(rolloSeleccionado))
+                .build();
 
-                rollosDisponibles = Arrays.asList(rolloDisponible);
+        rollosDisponibles = List.of(
+                ItemRollo.builder()
+                        .codRollo("1787-1-1")
+                        .idIngresopeso(3134524)
+                        .idIngresoAlmacen(307764)
+                        .idDetPartida(518038)
+                        .idRolloIngreso(3135766)
+                        .pesoRollo(21.48)
+                        .build(),
+                ItemRollo.builder()
+                        .codRollo("1787-1-2")
+                        .idIngresopeso(3134525)
+                        .idIngresoAlmacen(307764)
+                        .idDetPartida(518039)
+                        .idRolloIngreso(3135767)
+                        .pesoRollo(18.00)
+                        .build());
 
-                // Crear procesos
-                ProcesoPartida proceso = ProcesoPartida.builder()
-                                .idCliente(45544)
-                                .idPartida(55702)
-                                .idPartidaMaquina(123)
-                                .idRuta(456)
-                                .idArticulo(789)
-                                .idProceso(101)
-                                .idDetRuta(202)
-                                .noProceso("PROCESO_001")
-                                .idAlmacen(37) // Próximo almacén
-                                .idMaquina(303)
-                                .idTipoMaquina(404)
-                                .iniciado(false)
-                                .finalizado(false)
-                                .isPendiente(true)
-                                .status(0)
-                                .isMainProceso(true)
-                                .descMaq("Máquina Proceso")
-                                .build();
+        procesos = List.of(ProcesoPartida.builder()
+                .idPartida(55702)
+                .idAlmacen(37)
+                .noProceso("PROCESO_001")
+                .isPendiente(true)
+                .build());
+    }
 
-                procesos = Arrays.asList(proceso);
-        }
+    @Test
+    @DisplayName("procesa exitosamente la salida de tacho")
+    void procesaExitosamenteSalidaTacho() {
+        when(saveSuccessOutTachoPort.consultarRollosDisponibles(55702, 36))
+                .thenReturn(Mono.just(rollosDisponibles));
+        when(saveSuccessOutTachoPort.consultarProcesosPartida(55702))
+                .thenReturn(Mono.just(procesos));
+        when(saveSuccessOutTachoPort.crearOrdenIngreso(45544, 36, 37))
+                .thenReturn(Mono.just(1001));
+        when(saveSuccessOutTachoPort.consultarOrdenIngresoCompleta(1001))
+                .thenReturn(Mono.just(new OrdenIngresoCompletaProjection(1001, 45544, "ALGT-I46331", 37)));
+        when(ordenSalidaPersistencePort.crearOrdenSalida(eq(36), eq(37), any(), eq(99), eq(55702)))
+                .thenReturn(Mono.just(2001));
+        when(saveSuccessOutTachoPort.crearDetalleOrdenIngreso(eq(1001), eq(789), eq(1),
+                eq(BigDecimal.valueOf(21.48)), eq("L-001"), eq(1), eq(55702)))
+                .thenReturn(Mono.just(3001));
+        when(ordenSalidaPersistencePort.crearDetalleOrdenSalida(2001, 789, 1, 1, 55702,
+                BigDecimal.valueOf(21.48), 3001))
+                .thenReturn(Mono.just(4001));
+        when(saveSuccessOutTachoPort.crearDetallePesoOrdenIngreso(eq(1001), eq("1787-1-1"),
+                any(BigDecimal.class), eq(3001), eq(3134524)))
+                .thenReturn(Mono.just(5001));
+        when(ordenSalidaPersistencePort.crearDetOrdenSalidaPeso(eq(4001), eq(2001), eq("1787-1-1"),
+                any(BigDecimal.class), eq(518038), eq(3134524)))
+                .thenReturn(Mono.empty());
+        when(saveSuccessOutTachoPort.getCantidadRollosOrdenIngreso(307764))
+                .thenReturn(Mono.just(2));
+        when(saveSuccessOutTachoPort.actualizarStatusDetallePeso(3135766))
+                .thenReturn(Mono.empty());
+        when(webSocketNotificationPort.enviarNotificacionAlmacen(any()))
+                .thenReturn(Mono.empty());
 
-        @Test
-        @DisplayName("Debería procesar exitosamente la salida de tacho")
-        void deberiaProcesarExitosamenteSalidaTacho() {
-                // Given
-                when(saveSuccessOutTachoPort.consultarRollosDisponibles(55702, 36))
-                                .thenReturn(Mono.just(rollosDisponibles));
-                when(saveSuccessOutTachoPort.consultarProcesosPartida(55702))
-                                .thenReturn(Mono.just(procesos));
-                when(saveSuccessOutTachoPort.crearOrdenIngreso(45544, 5,37))
-                                .thenReturn(Mono.just(1001));
-                when(saveSuccessOutTachoPort.crearDetalleOrdenIngreso(1001, 1, 1, BigDecimal.ZERO, "1", Integer.valueOf(1),
-                                55702))
-                                .thenReturn(Mono.just(2001));
-                when(saveSuccessOutTachoPort.crearDetallePesoOrdenIngreso(1001, "1787-1-1", new BigDecimal("21.48"),
-                                2001,
-                                3135766))
-                                .thenReturn(Mono.just(3001));
-                when(saveSuccessOutTachoPort.actualizarStatusDetallePeso(3134524))
-                                .thenReturn(Mono.empty());
+        StepVerifier.create(service.saveSuccessOutTacho(request))
+                .assertNext(response -> {
+                    org.junit.jupiter.api.Assertions.assertEquals(1001, response.getIdOrdeningreso());
+                    org.junit.jupiter.api.Assertions.assertEquals(1, response.getCntRollos());
+                    org.junit.jupiter.api.Assertions.assertEquals(37, response.getIdAlmacen());
+                })
+                .verifyComplete();
 
-                // When & Then
-                StepVerifier.create(service.saveSuccessOutTacho(request_nuevo))
-                                .verifyComplete();
+        verify(saveSuccessOutTachoPort).consultarRollosDisponibles(55702, 36);
+        verify(saveSuccessOutTachoPort).consultarProcesosPartida(55702);
+        verify(webSocketNotificationPort).enviarNotificacionAlmacen(any());
+    }
 
-                verify(saveSuccessOutTachoPort).consultarRollosDisponibles(55702, 36);
-                verify(saveSuccessOutTachoPort).consultarProcesosPartida(55702);
-                verify(saveSuccessOutTachoPort).crearOrdenIngreso(45544, 5,37);
-                verify(saveSuccessOutTachoPort).crearDetalleOrdenIngreso(1001, 1, 1, BigDecimal.ZERO, "1", Integer.valueOf(1),
-                                55702);
-                verify(saveSuccessOutTachoPort).crearDetallePesoOrdenIngreso(1001, "1787-1-1", new BigDecimal("21.48"),
-                                2001,
-                                3135766);
-                verify(saveSuccessOutTachoPort).actualizarStatusDetallePeso(3134524);
-        }
+    @Test
+    @DisplayName("retorna error cuando idPartida es null")
+    void retornaErrorCuandoIdPartidaEsNull() {
+        request.setIdPartida(null);
 
-        @Test
-        @DisplayName("Debería retornar error cuando ID de partida es null")
-        void deberiaRetornarErrorCuandoIdPartidaEsNull() {
-                // Given
-                request.setIdPartida(null);
+        StepVerifier.create(service.saveSuccessOutTacho(request))
+                .expectError(IllegalArgumentException.class)
+                .verify();
 
-                // When & Then
-                StepVerifier.create(service.saveSuccessOutTacho(request_nuevo))
-                                .expectError(IllegalArgumentException.class)
-                                .verify();
+        verifyNoInteractions(saveSuccessOutTachoPort, ordenSalidaPersistencePort, webSocketNotificationPort);
+    }
 
-                verifyNoInteractions(saveSuccessOutTachoPort);
-        }
+    @Test
+    @DisplayName("retorna error cuando idAlmacen es null")
+    void retornaErrorCuandoIdAlmacenEsNull() {
+        request.setIdAlmacen(null);
 
-        @Test
-        @DisplayName("Debería retornar error cuando ID de almacén es null")
-        void deberiaRetornarErrorCuandoIdAlmacenEsNull() {
-                // Given
-                request.setIdAlmacen(null);
+        StepVerifier.create(service.saveSuccessOutTacho(request))
+                .expectError(IllegalArgumentException.class)
+                .verify();
 
-                // When & Then
-                StepVerifier.create(service.saveSuccessOutTacho(request_nuevo))
-                                .expectError(IllegalArgumentException.class)
-                                .verify();
+        verifyNoInteractions(saveSuccessOutTachoPort, ordenSalidaPersistencePort, webSocketNotificationPort);
+    }
 
-                verifyNoInteractions(saveSuccessOutTachoPort);
-        }
+    @Test
+    @DisplayName("retorna error cuando lista de rollos está vacía")
+    void retornaErrorCuandoListaDeRollosEstaVacia() {
+        request.setRollos(List.of());
 
-        @Test
-        @DisplayName("Debería retornar error cuando lista de detalles está vacía")
-        void deberiaRetornarErrorCuandoListaDetallesEstaVacia() {
-                // Given
-                //request.setDetalles(Collections.emptyList());
+        StepVerifier.create(service.saveSuccessOutTacho(request))
+                .expectError(IllegalArgumentException.class)
+                .verify();
 
-                // When & Then
-                StepVerifier.create(service.saveSuccessOutTacho(request_nuevo))
-                                .expectError(IllegalArgumentException.class)
-                                .verify();
+        verifyNoInteractions(saveSuccessOutTachoPort, ordenSalidaPersistencePort, webSocketNotificationPort);
+    }
 
-                verifyNoInteractions(saveSuccessOutTachoPort);
-        }
+    @Test
+    @DisplayName("retorna error cuando no hay rollos seleccionados")
+    void retornaErrorCuandoNoHayRollosSeleccionados() {
+        request.setRollos(List.of(ItemRolloProcess.builder()
+                .codRollo("1787-1-1")
+                .pesoRollo(21.48)
+                .idOrdenIngreso(307651)
+                .idIngresoPeso(3134524)
+                .idIngresoAlmacen(307764)
+                .idRolloIngreso(3135766)
+                .idDetPartida(518038)
+                .idAlmacen(36)
+                .selected(false)
+                .status(1)
+                .delete(0)
+                .build()));
 
-        @Test
-        @DisplayName("Debería retornar error cuando no hay rollos seleccionados")
-        void deberiaRetornarErrorCuandoNoHayRollosSeleccionados() {
-                // Given
-                //request.getDetalles().get(0).setSelected(false);
+        StepVerifier.create(service.saveSuccessOutTacho(request))
+                .expectError(IllegalArgumentException.class)
+                .verify();
 
-                // When & Then
-                StepVerifier.create(service.saveSuccessOutTacho(request_nuevo))
-                                .expectError(IllegalArgumentException.class)
-                                .verify();
+        verifyNoInteractions(saveSuccessOutTachoPort, ordenSalidaPersistencePort, webSocketNotificationPort);
+    }
 
-                verifyNoInteractions(saveSuccessOutTachoPort);
-        }
+    @Test
+    @DisplayName("retorna error cuando no hay rollos disponibles")
+    void retornaErrorCuandoNoHayRollosDisponibles() {
+        when(saveSuccessOutTachoPort.consultarRollosDisponibles(55702, 36))
+                .thenReturn(Mono.just(List.of()));
 
-        @Test
-        @DisplayName("Debería retornar error cuando no hay rollos disponibles")
-        void deberiaRetornarErrorCuandoNoHayRollosDisponibles() {
-                // Given
-                when(saveSuccessOutTachoPort.consultarRollosDisponibles(55702, 36))
-                                .thenReturn(Mono.just(Collections.emptyList()));
+        StepVerifier.create(service.saveSuccessOutTacho(request))
+                .expectError(IllegalArgumentException.class)
+                .verify();
 
-                // When & Then
-                StepVerifier.create(service.saveSuccessOutTacho(request_nuevo))
-                                .expectError(IllegalArgumentException.class)
-                                .verify();
+        verify(saveSuccessOutTachoPort).consultarRollosDisponibles(55702, 36);
+        verifyNoMoreInteractions(saveSuccessOutTachoPort);
+    }
 
-                verify(saveSuccessOutTachoPort).consultarRollosDisponibles(55702, 36);
-                verifyNoMoreInteractions(saveSuccessOutTachoPort);
-        }
+    @Test
+    @DisplayName("retorna error cuando no hay procesos pendientes")
+    void retornaErrorCuandoNoHayProcesosPendientes() {
+        when(saveSuccessOutTachoPort.consultarRollosDisponibles(55702, 36))
+                .thenReturn(Mono.just(rollosDisponibles));
+        when(saveSuccessOutTachoPort.consultarProcesosPartida(55702))
+                .thenReturn(Mono.just(List.of(ProcesoPartida.builder()
+                        .idPartida(55702)
+                        .isPendiente(false)
+                        .build())));
 
-        @Test
-        @DisplayName("Debería retornar error cuando rollo seleccionado no está disponible")
-        void deberiaRetornarErrorCuandoRolloSeleccionadoNoEstaDisponible() {
-                // Given
-                when(saveSuccessOutTachoPort.consultarRollosDisponibles(55702, 36))
-                                .thenReturn(Mono.just(rollosDisponibles));
+        StepVerifier.create(service.saveSuccessOutTacho(request))
+                .expectError(IllegalArgumentException.class)
+                .verify();
 
-                // Cambiar código de rollo para que no coincida
-                //request.getDetalles().get(0).setCodRollo("ROLLO-INEXISTENTE");
-
-                // When & Then
-                StepVerifier.create(service.saveSuccessOutTacho(request_nuevo))
-                                .expectError(IllegalArgumentException.class)
-                                .verify();
-
-                verify(saveSuccessOutTachoPort).consultarRollosDisponibles(55702, 36);
-                verifyNoMoreInteractions(saveSuccessOutTachoPort);
-        }
-
-        @Test
-        @DisplayName("Debería retornar error cuando no hay procesos pendientes")
-        void deberiaRetornarErrorCuandoNoHayProcesosPendientes() {
-                // Given
-                when(saveSuccessOutTachoPort.consultarRollosDisponibles(55702, 36))
-                                .thenReturn(Mono.just(rollosDisponibles));
-
-                // Crear proceso no pendiente
-                ProcesoPartida procesoNoPendiente = ProcesoPartida.builder()
-                                .idPartida(55702)
-                                .isPendiente(false)
-                                .build();
-
-                when(saveSuccessOutTachoPort.consultarProcesosPartida(55702))
-                                .thenReturn(Mono.just(Arrays.asList(procesoNoPendiente)));
-
-                // When & Then
-                StepVerifier.create(service.saveSuccessOutTacho(request_nuevo))
-                                .expectError(IllegalArgumentException.class)
-                                .verify();
-
-                verify(saveSuccessOutTachoPort).consultarRollosDisponibles(55702, 36);
-                verify(saveSuccessOutTachoPort).consultarProcesosPartida(55702);
-                verifyNoMoreInteractions(saveSuccessOutTachoPort);
-        }
+        verify(saveSuccessOutTachoPort).consultarRollosDisponibles(55702, 36);
+        verify(saveSuccessOutTachoPort).consultarProcesosPartida(55702);
+        verifyNoMoreInteractions(saveSuccessOutTachoPort);
+    }
 }
