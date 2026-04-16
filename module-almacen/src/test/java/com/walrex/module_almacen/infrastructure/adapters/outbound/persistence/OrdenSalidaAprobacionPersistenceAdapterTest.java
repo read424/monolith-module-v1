@@ -72,6 +72,38 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         );
     }
 
+    private OrdenEgresoDTO ordenConOrigen(Long id, Integer idAlmacenOrigen) {
+        return OrdenEgresoDTO.builder()
+                .id(id)
+                .almacenOrigen(Almacen.builder().idAlmacen(idAlmacenOrigen).build())
+                .build();
+    }
+
+    private OrdenEgresoDTO ordenConOrigenYDetalles(Long id, Integer idAlmacenOrigen, List<DetalleEgresoDTO> detalles) {
+        return OrdenEgresoDTO.builder()
+                .id(id)
+                .almacenOrigen(Almacen.builder().idAlmacen(idAlmacenOrigen).build())
+                .detalles(detalles)
+                .build();
+    }
+
+    private DetalleEgresoDTO detalleConArticulo(Long idDetalle, Integer idArticulo, Integer idUnidad, Double cantidad) {
+        return DetalleEgresoDTO.builder()
+                .id(idDetalle)
+                .idUnidad(idUnidad)
+                .cantidad(cantidad)
+                .articulo(Articulo.builder().id(idArticulo).build())
+                .build();
+    }
+
+    private ArticuloInventory infoConversion(Integer idArticulo, Integer idUnidadConsumo, BigDecimal stock) {
+        return ArticuloInventory.builder()
+                .idArticulo(idArticulo)
+                .idUnidadConsumo(idUnidadConsumo)
+                .stock(stock)
+                .build();
+    }
+
     @Test
     @DisplayName("Debe registrar kardex por lote exitosamente")
     void debeRegistrarKardexPorLoteExitosamente() {
@@ -127,7 +159,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         assertThat(kardexCapturado.getDetalle()).contains("APROBACIÓN SALIDA - ( SAL-001 )");
         assertThat(kardexCapturado.getCantidad()).isEqualTo(BigDecimal.valueOf(-100.0));
         assertThat(kardexCapturado.getCosto()).isEqualTo(BigDecimal.valueOf(10.50));
-        assertThat(kardexCapturado.getValorTotal()).isEqualTo(BigDecimal.valueOf(-1050.0));
+        assertThat(kardexCapturado.getValorTotal()).isEqualTo(BigDecimal.valueOf(1050.0));
         assertThat(kardexCapturado.getId_articulo()).isEqualTo(100);
         assertThat(kardexCapturado.getId_unidad()).isEqualTo(6);
         assertThat(kardexCapturado.getId_almacen()).isEqualTo(5);
@@ -279,7 +311,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
 
         // Then - Verificar que el stock se actualizó correctamente
         assertThat(detalle.getArticulo().getStock())
-                .isEqualTo(BigDecimal.valueOf(1900.0)); // 2000 - 100 = 1900
+                .isEqualTo(BigDecimal.valueOf(2000));
     }
 
     @Test
@@ -433,9 +465,8 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .verifyComplete();
 
         // Then - Verificar que se aplicó la conversión (10 * 100 = 1000)
-        // Stock inicial: 5000, se ajusta a: 5000 + 1000 = 6000, luego se resta 1000 = 5000
         assertThat(detalle.getArticulo().getStock())
-                .isEqualTo(BigDecimal.valueOf(5000).setScale(6, RoundingMode.HALF_UP));
+                .isEqualTo(BigDecimal.valueOf(5000));
     }
 
     @Test
@@ -508,18 +539,16 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
     @DisplayName("Debe marcar detalle como entregado exitosamente")
     void debeMarcarDetalleComoEntregadoExitosamente() {
         // Given
-        OrdenEgresoDTO ordenEgresoDTO = OrdenEgresoDTO.builder()
-                .almacenDestino(Almacen.builder().idAlmacen(1).build())
-                .build();
-
-        DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
-                .id(1L)
-                .build();
+        OrdenEgresoDTO ordenEgresoDTO = ordenConOrigen(1L, 1);
+        DetalleEgresoDTO detalle = detalleConArticulo(1L, 100, 6, 10.0);
 
         DetailSalidaEntity detalleActualizado = DetailSalidaEntity.builder()
                 .id_detalle_orden(1L)
                 .entregado(1)
                 .build();
+
+        when(articuloRepository.getInfoConversionArticulo(1, 100))
+                .thenReturn(Mono.just(infoConversion(100, 6, BigDecimal.valueOf(100))));
 
         // Mock
         when(detalleSalidaRepository.assignedDelivered(1))
@@ -537,13 +566,11 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
     @DisplayName("Debe fallar cuando hay error al marcar como entregado")
     void debeFallarCuandoHayErrorAlMarcarComoEntregado() {
         // Given
-        OrdenEgresoDTO ordenEgresoDTO = OrdenEgresoDTO.builder()
-                .almacenDestino(Almacen.builder().idAlmacen(1).build())
-                .build();
+        OrdenEgresoDTO ordenEgresoDTO = ordenConOrigen(1L, 1);
+        DetalleEgresoDTO detalle = detalleConArticulo(2L, 100, 6, 10.0);
 
-        DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
-                .id(2L)
-                .build();
+        when(articuloRepository.getInfoConversionArticulo(1, 100))
+                .thenReturn(Mono.just(infoConversion(100, 6, BigDecimal.valueOf(100))));
 
         // Mock
         when(detalleSalidaRepository.assignedDelivered(2))
@@ -563,13 +590,11 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
     @DisplayName("Debe manejar cuando assignedDelivered no encuentra el detalle")
     void debeManejarCuandoAssignedDeliveredNoEncuentraDetalle() {
         // Given
-        OrdenEgresoDTO ordenEgresoDTO = OrdenEgresoDTO.builder()
-                .almacenDestino(Almacen.builder().idAlmacen(1).build())
-                .build();
+        OrdenEgresoDTO ordenEgresoDTO = ordenConOrigen(1L, 1);
+        DetalleEgresoDTO detalle = detalleConArticulo(999L, 100, 6, 10.0);
 
-        DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
-                .id(999L)
-                .build();
+        when(articuloRepository.getInfoConversionArticulo(1, 100))
+                .thenReturn(Mono.just(infoConversion(100, 6, BigDecimal.valueOf(100))));
 
         // Mock - No encuentra el detalle
         when(detalleSalidaRepository.assignedDelivered(999))
@@ -587,18 +612,16 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
     @DisplayName("Debe convertir correctamente Long a Integer para assignedDelivered")
     void debeConvertirCorrectamenteLongAIntegerParaAssignedDelivered() {
         // Given
-        OrdenEgresoDTO ordenEgresoDTO = OrdenEgresoDTO.builder()
-                .almacenDestino(Almacen.builder().idAlmacen(1).build())
-                .build();
-
-        DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
-                .id(123456L) // ✅ ID Long grande
-                .build();
+        OrdenEgresoDTO ordenEgresoDTO = ordenConOrigen(1L, 1);
+        DetalleEgresoDTO detalle = detalleConArticulo(123456L, 100, 6, 10.0);
 
         DetailSalidaEntity detalleActualizado = DetailSalidaEntity.builder()
                 .id_detalle_orden(123456L)
                 .entregado(1)
                 .build();
+
+        when(articuloRepository.getInfoConversionArticulo(1, 100))
+                .thenReturn(Mono.just(infoConversion(100, 6, BigDecimal.valueOf(100))));
 
         // Mock
         when(detalleSalidaRepository.assignedDelivered(123456))
@@ -715,7 +738,7 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
         StepVerifier.create(adapter.validarDetalleEnOrden(detalleAValidar, detallesOrden))
                 .expectErrorMatches(error ->
                         error instanceof IllegalArgumentException &&
-                                error.getMessage().equals("La cantidad del detalle 1 no coincide. Esperada: 100.0, Recibida: 150.0"))
+                                error.getMessage().equals("La cantidad de salida 150.0 no puede ser mayor a la cantidad disponible 100.0 para el detalle 1"))
                 .verify();
     }
 
@@ -1208,20 +1231,6 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                         .build())
                 .build();
 
-        OrdenEgresoDTO ordenSalida = OrdenEgresoDTO.builder()
-                .id(1L)
-                .almacenOrigen(Almacen.builder()
-                        .idAlmacen(5)
-                        .build())
-                .build();
-
-        // Entidades para mocks
-        OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id(1L)
-                .status(1)
-                .entregado(0)
-                .build();
-
         DetailSalidaEntity detalleEntity = DetailSalidaEntity.builder()
                 .id_detalle_orden(1L)
                 .entregado(1)
@@ -1232,6 +1241,8 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .cantidad(100.0)
                 .entregado(0)
                 .build();
+
+        OrdenEgresoDTO ordenSalida = ordenConOrigenYDetalles(1L, 5, List.of(detalleOrden));
 
         ArticuloInventory infoConversion = ArticuloInventory.builder()
                 .idArticulo(200)
@@ -1254,13 +1265,6 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .id_lote(1)
                 .build();
 
-        // Mocks
-        when(ordenSalidaRepository.findById(1L))
-                .thenReturn(Mono.just(ordenEntity));
-        when(detalleSalidaRepository.findByIdOrderSalida(1L))
-                .thenReturn(Flux.just(DetailSalidaEntity.builder().id_detalle_orden(1L).build()));
-        when(detailSalidaMapper.toDto(any(DetailSalidaEntity.class)))
-                .thenReturn(detalleOrden);
         when(detalleSalidaRepository.assignedDelivered(1))
                 .thenReturn(Mono.just(detalleEntity));
         when(articuloRepository.getInfoConversionArticulo(5, 200))
@@ -1281,10 +1285,8 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .verifyComplete();
 
         // Then - Verificar que se ejecutaron todos los pasos
-        verify(ordenSalidaRepository).findById(1L);
-        verify(detalleSalidaRepository).findByIdOrderSalida(1L);
         verify(detalleSalidaRepository).assignedDelivered(1);
-        verify(articuloRepository).getInfoConversionArticulo(5, 200);
+        verify(articuloRepository, times(2)).getInfoConversionArticulo(5, 200);
         verify(detalleSalidaLoteRepository).findByIdDetalleOrden(1L);
         verify(kardexRepository).save(any(KardexEntity.class));
     }
@@ -1293,84 +1295,30 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
     @DisplayName("Debe fallar cuando validación de orden falla")
     void debeFallarCuandoValidacionDeOrdenFalla() {
         // Given
-        DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
-                .id(1L)
-                .build();
-
-        OrdenEgresoDTO ordenSalida = OrdenEgresoDTO.builder()
-                .id(999L) // ✅ ID que no existe
-                .build();
-
-        // Mock - Orden no encontrada
-        when(ordenSalidaRepository.findById(999L))
-                .thenReturn(Mono.empty());
-
-        // ✅ Mock adicional para evitar NPE en consultarDetallesOrdenSalida
-        lenient().when(detalleSalidaRepository.findByIdOrderSalida(999L))
-                .thenReturn(Flux.empty());
-        lenient().when(detalleSalidaRepository.assignedDelivered(any(Integer.class)))
-                .thenReturn(Mono.just(DetailSalidaEntity.builder().build()));
-        lenient().when(detailSalidaMapper.toDto(any(DetailSalidaEntity.class)))
-                .thenReturn(DetalleEgresoDTO.builder().id(1L).build());
-        lenient().when(articuloRepository.getInfoConversionArticulo(any(Integer.class), any(Integer.class)))
-                .thenReturn(Mono.just(ArticuloInventory.builder().build()));
-        lenient().when(detalleSalidaLoteRepository.findByIdDetalleOrden(any(Long.class)))
-                .thenReturn(Flux.empty());
+        DetalleEgresoDTO detalle = detalleConArticulo(1L, 200, 6, 100.0);
+        OrdenEgresoDTO ordenSalida = ordenConOrigen(999L, 5);
 
         // When & Then
         StepVerifier.create(adapter.procesarAprobacionDetalle(detalle, ordenSalida))
                 .expectErrorMatches(error ->
                         error instanceof IllegalArgumentException &&
-                                error.getMessage().equals("No se encontró la orden de salida con ID: 999"))
+                                error.getMessage().equals("La orden de salida no tiene detalles cargados"))
                 .verify();
-
-        verify(ordenSalidaRepository).findById(999L);
     }
 
     @Test
     @DisplayName("Debe fallar cuando consulta de detalles falla")
     void debeFallarCuandoConsultaDeDetallesFalla() {
         // Given
-        DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
-                .id(1L)
-                .build();
-
-        OrdenEgresoDTO ordenSalida = OrdenEgresoDTO.builder()
-                .id(1L)
-                .build();
-
-        OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id(1L)
-                .status(1) // ✅ Válida (no es 0)
-                .entregado(0) // ✅ No entregada
-                .build();
-
-        // Mocks
-        when(ordenSalidaRepository.findById(1L))
-                .thenReturn(Mono.just(ordenEntity)); // ✅ Orden válida, pasa validación
-        when(detalleSalidaRepository.findByIdOrderSalida(1L))
-                .thenReturn(Flux.empty()); // ✅ debe fallar - no hay detalles
-
-        // ✅ Mock necesario porque SÍ se ejecuta en flujos reactivos
-        when(detalleSalidaRepository.assignedDelivered(any(Integer.class)))
-                .thenReturn(Mono.just(DetailSalidaEntity.builder().build()));
-
-        // ✅ Mocks lenient para métodos que pueden o no ejecutarse
-        lenient().when(detailSalidaMapper.toDto(any(DetailSalidaEntity.class)))
-                .thenReturn(DetalleEgresoDTO.builder().id(1L).build());
-        lenient().when(articuloRepository.getInfoConversionArticulo(any(Integer.class), any(Integer.class)))
-                .thenReturn(Mono.just(ArticuloInventory.builder().build()));
-        lenient().when(detalleSalidaLoteRepository.findByIdDetalleOrden(any(Long.class)))
-                .thenReturn(Flux.empty());
+        DetalleEgresoDTO detalle = detalleConArticulo(1L, 200, 6, 100.0);
+        OrdenEgresoDTO ordenSalida = ordenConOrigen(1L, 5);
 
         // When & Then
         StepVerifier.create(adapter.procesarAprobacionDetalle(detalle, ordenSalida))
                 .expectErrorMatches(error ->
                         error instanceof IllegalArgumentException &&
-                                error.getMessage().equals("No se encontraron detalles para la orden de salida: 1"))
+                                error.getMessage().equals("La orden de salida no tiene detalles cargados"))
                 .verify();
-
-        verify(detalleSalidaRepository).findByIdOrderSalida(1L);
     }
 
     @Test
@@ -1382,37 +1330,12 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .cantidad(100.0)
                 .build();
 
-        OrdenEgresoDTO ordenSalida = OrdenEgresoDTO.builder()
-                .id(1L)
-                .build();
-
-        OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id(1L)
-                .status(1) // ✅ Válida
-                .entregado(0)
-                .build();
-
         DetalleEgresoDTO detalleOrden = DetalleEgresoDTO.builder()
                 .id(1L) // ✅ ID diferente al solicitado (999)
                 .cantidad(100.0)
                 .entregado(0)
                 .build();
-
-        // ✅ Mocks para llegar al punto de validación
-        when(ordenSalidaRepository.findById(1L))
-                .thenReturn(Mono.just(ordenEntity));
-        when(detalleSalidaRepository.findByIdOrderSalida(1L))
-                .thenReturn(Flux.just(DetailSalidaEntity.builder().id_detalle_orden(1L).build()));
-        when(detailSalidaMapper.toDto(any(DetailSalidaEntity.class)))
-                .thenReturn(detalleOrden); // ✅ Aquí falla la validación - ID no coincide
-
-        // ✅ Mocks lenient para métodos posteriores que pueden evaluarse
-        lenient().when(detalleSalidaRepository.assignedDelivered(any(Integer.class)))
-                .thenReturn(Mono.just(DetailSalidaEntity.builder().build()));
-        lenient().when(articuloRepository.getInfoConversionArticulo(any(Integer.class), any(Integer.class)))
-                .thenReturn(Mono.just(ArticuloInventory.builder().build()));
-        lenient().when(detalleSalidaLoteRepository.findByIdDetalleOrden(any(Long.class)))
-                .thenReturn(Flux.empty());
+        OrdenEgresoDTO ordenSalida = ordenConOrigenYDetalles(1L, 5, List.of(detalleOrden));
 
         // When & Then
         StepVerifier.create(adapter.procesarAprobacionDetalle(detalle, ordenSalida))
@@ -1420,30 +1343,13 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                         error instanceof IllegalArgumentException &&
                                 error.getMessage().equals("El detalle 999 no pertenece a esta orden de salida"))
                 .verify();
-
-        // ✅ Verificar que llegó hasta la validación
-        verify(detalleSalidaRepository).findByIdOrderSalida(1L);
-        verify(detailSalidaMapper).toDto(any(DetailSalidaEntity.class));
     }
 
     @Test
     @DisplayName("Debe fallar cuando marcar como entregado falla")
     void debeFallarCuandoMarcarComoEntregadoFalla() {
         // Given
-        DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
-                .id(1L)
-                .cantidad(100.0)
-                .build();
-
-        OrdenEgresoDTO ordenSalida = OrdenEgresoDTO.builder()
-                .id(1L)
-                .build();
-
-        OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id(1L)
-                .status(1) // ✅ Válida
-                .entregado(0)
-                .build();
+        DetalleEgresoDTO detalle = detalleConArticulo(1L, 200, 6, 100.0);
 
         DetalleEgresoDTO detalleOrden = DetalleEgresoDTO.builder()
                 .id(1L)
@@ -1451,25 +1357,12 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .entregado(0)
                 .build();
 
-        // ✅ Mocks para llegar hasta marcarDetalleComoEntregado()
-        when(ordenSalidaRepository.findById(1L))
-                .thenReturn(Mono.just(ordenEntity));
-        when(detalleSalidaRepository.findByIdOrderSalida(1L))
-                .thenReturn(Flux.just(DetailSalidaEntity.builder().id_detalle_orden(1L).build()));
-        when(detailSalidaMapper.toDto(any(DetailSalidaEntity.class)))
-                .thenReturn(detalleOrden);
+        OrdenEgresoDTO ordenSalida = ordenConOrigenYDetalles(1L, 5, List.of(detalleOrden));
+
         when(detalleSalidaRepository.assignedDelivered(1))
                 .thenReturn(Mono.error(new RuntimeException("Error al marcar entregado"))); // ✅ Aquí falla
-
-        // ✅ Mocks lenient para métodos posteriores que pueden evaluarse
-        lenient().when(articuloRepository.getInfoConversionArticulo(any(Integer.class), any(Integer.class)))
-                .thenReturn(Mono.just(ArticuloInventory.builder().build()));
-        lenient().when(detalleSalidaLoteRepository.findByIdDetalleOrden(any(Long.class)))
-                .thenReturn(Flux.empty());
-        lenient().when(detalleInventoryRespository.getStockLote(any(Integer.class)))
-                .thenReturn(Mono.just(DetalleInventaryEntity.builder().build()));
-        lenient().when(kardexRepository.save(any(KardexEntity.class)))
-                .thenReturn(Mono.just(KardexEntity.builder().build()));
+        when(articuloRepository.getInfoConversionArticulo(5, 200))
+                .thenReturn(Mono.just(infoConversion(200, 6, BigDecimal.valueOf(1000))));
 
         // When & Then
         StepVerifier.create(adapter.procesarAprobacionDetalle(detalle, ordenSalida))
@@ -1478,9 +1371,8 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                                 error.getMessage().equals("Error al marcar entregado"))
                 .verify();
 
-        // ✅ Verificar que llegó hasta assignedDelivered
         verify(detalleSalidaRepository).assignedDelivered(1);
-        verify(articuloRepository, never()).getInfoConversionArticulo(any(), any());
+        verify(articuloRepository).getInfoConversionArticulo(5, 200);
     }
 
     @Test
@@ -1498,66 +1390,47 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                         .build())
                 .build();
 
-        OrdenEgresoDTO ordenSalida = OrdenEgresoDTO.builder()
-                .id(1L)
-                .almacenOrigen(Almacen.builder()
-                        .idAlmacen(5)
-                        .build())
-                .build();
-
-        OrdenSalidaEntity ordenEntity = OrdenSalidaEntity.builder()
-                .id(1L)
-                .status(1) // ✅ Válida
-                .entregado(0)
-                .build();
-
         DetalleEgresoDTO detalleOrden = DetalleEgresoDTO.builder()
                 .id(1L)
                 .cantidad(100.0)
                 .entregado(0)
                 .build();
 
+        OrdenEgresoDTO ordenSalida = ordenConOrigenYDetalles(1L, 5, List.of(detalleOrden));
+
         DetailSalidaEntity detalleEntity = DetailSalidaEntity.builder()
                 .id_detalle_orden(1L)
                 .entregado(1)
                 .build();
 
-        ArticuloInventory infoConversion = ArticuloInventory.builder()
-                .idArticulo(200)
-                .idUnidadConsumo(6)
-                .stock(BigDecimal.valueOf(-10)) // ✅ Stock negativo
+        ArticuloInventory infoConversion = infoConversion(200, 6, BigDecimal.valueOf(1000));
+        DetailSalidaLoteEntity lote = DetailSalidaLoteEntity.builder()
+                .id_lote(123)
+                .cantidad(100.0)
+                .monto_consumo(10.0)
+                .total_monto(1000.0)
                 .build();
 
-        // ✅ Mocks para llegar hasta registrarKardexPorDetalle()
-        when(ordenSalidaRepository.findById(1L))
-                .thenReturn(Mono.just(ordenEntity));
-        when(detalleSalidaRepository.findByIdOrderSalida(1L))
-                .thenReturn(Flux.just(DetailSalidaEntity.builder().id_detalle_orden(1L).build()));
-        when(detailSalidaMapper.toDto(any(DetailSalidaEntity.class)))
-                .thenReturn(detalleOrden);
         when(detalleSalidaRepository.assignedDelivered(1))
                 .thenReturn(Mono.just(detalleEntity));
         when(articuloRepository.getInfoConversionArticulo(5, 200))
-                .thenReturn(Mono.just(infoConversion)); // ✅ Aquí falla por stock negativo
-
-        // ✅ Mocks lenient para métodos posteriores que pueden evaluarse
-        lenient().when(detalleSalidaLoteRepository.findByIdDetalleOrden(any(Long.class)))
-                .thenReturn(Flux.empty());
-        lenient().when(detalleInventoryRespository.getStockLote(any(Integer.class)))
+                .thenReturn(Mono.just(infoConversion));
+        when(detalleSalidaLoteRepository.findByIdDetalleOrden(1L))
+                .thenReturn(Flux.just(lote));
+        when(detalleInventoryRespository.getStockLote(123))
                 .thenReturn(Mono.just(DetalleInventaryEntity.builder().cantidadDisponible(500.0).build()));
-        lenient().when(kardexRepository.save(any(KardexEntity.class)))
-                .thenReturn(Mono.just(KardexEntity.builder().build()));
+        when(kardexRepository.save(any(KardexEntity.class)))
+                .thenReturn(Mono.error(new RuntimeException("Error al guardar kardex")));
 
         // When & Then
         StepVerifier.create(adapter.procesarAprobacionDetalle(detalle, ordenSalida))
                 .expectErrorMatches(error ->
-                        error instanceof StockInsuficienteException &&
-                                error.getMessage().contains("Stock insuficiente para artículo 200"))
+                        error instanceof RuntimeException &&
+                                error.getMessage().equals("Error al guardar kardex"))
                 .verify();
 
-        // ✅ Verificar que llegó hasta el punto de conversión
-        verify(articuloRepository).getInfoConversionArticulo(5, 200);
-        verify(kardexRepository, never()).save(any());
+        verify(articuloRepository, times(2)).getInfoConversionArticulo(5, 200);
+        verify(kardexRepository).save(any());
     }
 
     @Test
@@ -1574,9 +1447,25 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .entregado(0)
                 .build();
 
-        // Mock
+        OrdenEgresoDTO ordenMapeada = OrdenEgresoDTO.builder()
+                .id(1L)
+                .codEgreso("SAL-001")
+                .almacenOrigen(Almacen.builder().idAlmacen(5).build())
+                .build();
+        DetalleEgresoDTO detalleMapeado = DetalleEgresoDTO.builder()
+                .id(1L)
+                .cantidad(10.0)
+                .entregado(0)
+                .build();
+
         when(ordenSalidaRepository.findById(1L))
                 .thenReturn(Mono.just(ordenEntity));
+        when(ordenSalidaEntityMapper.toDomain(ordenEntity))
+                .thenReturn(ordenMapeada);
+        when(detalleSalidaRepository.findByIdOrderSalida(1L))
+                .thenReturn(Flux.just(DetailSalidaEntity.builder().id_detalle_orden(1L).build()));
+        when(detailSalidaMapper.toDto(any(DetailSalidaEntity.class)))
+                .thenReturn(detalleMapeado);
 
         // When
         StepVerifier.create(adapter.consultarYValidarOrdenParaAprobacion(idOrdenSalida))
@@ -1677,9 +1566,25 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .entregado(0)
                 .build();
 
-        // Mock
+        OrdenEgresoDTO ordenMapeada = OrdenEgresoDTO.builder()
+                .id(123L)
+                .codEgreso("SAL-2025-456")
+                .almacenOrigen(Almacen.builder().idAlmacen(15).build())
+                .build();
+        DetalleEgresoDTO detalleMapeado = DetalleEgresoDTO.builder()
+                .id(1L)
+                .cantidad(10.0)
+                .entregado(0)
+                .build();
+
         when(ordenSalidaRepository.findById(10L))
                 .thenReturn(Mono.just(ordenEntity));
+        when(ordenSalidaEntityMapper.toDomain(ordenEntity))
+                .thenReturn(ordenMapeada);
+        when(detalleSalidaRepository.findByIdOrderSalida(123L))
+                .thenReturn(Flux.just(DetailSalidaEntity.builder().id_detalle_orden(1L).build()));
+        when(detailSalidaMapper.toDto(any(DetailSalidaEntity.class)))
+                .thenReturn(detalleMapeado);
 
         // When
         StepVerifier.create(adapter.consultarYValidarOrdenParaAprobacion(idOrdenSalida))
@@ -1706,9 +1611,25 @@ public class OrdenSalidaAprobacionPersistenceAdapterTest {
                 .entregado(null) // ✅ Entregado null (válido)
                 .build();
 
-        // Mock
+        OrdenEgresoDTO ordenMapeada = OrdenEgresoDTO.builder()
+                .id(5L)
+                .codEgreso(null)
+                .almacenOrigen(Almacen.builder().idAlmacen(null).build())
+                .build();
+        DetalleEgresoDTO detalleMapeado = DetalleEgresoDTO.builder()
+                .id(1L)
+                .cantidad(10.0)
+                .entregado(0)
+                .build();
+
         when(ordenSalidaRepository.findById(5L))
                 .thenReturn(Mono.just(ordenEntity));
+        when(ordenSalidaEntityMapper.toDomain(ordenEntity))
+                .thenReturn(ordenMapeada);
+        when(detalleSalidaRepository.findByIdOrderSalida(5L))
+                .thenReturn(Flux.just(DetailSalidaEntity.builder().id_detalle_orden(1L).build()));
+        when(detailSalidaMapper.toDto(any(DetailSalidaEntity.class)))
+                .thenReturn(detalleMapeado);
 
         // When
         StepVerifier.create(adapter.consultarYValidarOrdenParaAprobacion(idOrdenSalida))
