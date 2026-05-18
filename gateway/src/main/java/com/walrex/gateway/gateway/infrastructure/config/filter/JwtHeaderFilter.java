@@ -3,6 +3,8 @@ package com.walrex.gateway.gateway.infrastructure.config.filter;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.util.AntPathMatcher;
+
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -175,11 +177,18 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
         return null;
     }
 
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
+
+    private static final List<String> PUBLIC_PATTERNS = List.of(
+            "/api/v2/partidas/*/rollos"
+    );
+
     private boolean isPublicPath(String path, List<String> publicPaths) {
         log.error("🔍 [GATEWAY-JWT] Verificando ruta pública - Path: '{}'", path);
         log.error("🔍 [GATEWAY-JWT] Lista de rutas públicas: {}", publicPaths);
 
-        boolean isPublic = publicPaths.stream().anyMatch(path::contains);
+        boolean isPublic = publicPaths.stream().anyMatch(path::contains)
+                || PUBLIC_PATTERNS.stream().anyMatch(pattern -> PATH_MATCHER.match(pattern, path));
 
         if (isPublic) {
             log.error("🟢 [GATEWAY-JWT] RUTA PÚBLICA DETECTADA: {}", path);
@@ -222,7 +231,13 @@ public class JwtHeaderFilter extends AbstractGatewayFilterFactory<JwtHeaderFilte
                 "almacen/guide-pending",
                 "almacen/pesaje",
                 "almacen/session-articulo-pesaje",
-                "almacen/guide-no-rolls");
+                "almacen/guide-no-rolls",
+                "partidas/declarar-calidad",
+                "partidas/saved-declaracion-calidad",
+                "partidas/list",
+                "machines",
+                "user/list"
+            );
         private boolean enabled = true;
 
         public List<String> getPublicPaths() {
