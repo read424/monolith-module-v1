@@ -12,12 +12,16 @@ import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
 
+import org.springframework.util.AntPathMatcher;
+
 import java.util.Arrays;
 import java.util.List;
 
 @Component
 @Slf4j
 public class JwtFilter implements WebFilter {
+
+    private static final AntPathMatcher PATH_MATCHER = new AntPathMatcher();
 
     private static final List<String> EXCLUDED_PATHS = Arrays.asList(
         "auth",
@@ -27,7 +31,16 @@ public class JwtFilter implements WebFilter {
         "almacen/pesaje",
         "almacen/guide-pending",
         "almacen/session-articulo-pesaje",
-        "almacen/guide-no-rolls"
+        "almacen/guide-no-rolls",
+        "partidas/declarar-calidad",
+        "partidas/saved-declaracion-calidad",
+        "partidas/list",
+        "machines",
+        "user/list"
+    );
+
+    private static final List<String> EXCLUDED_PATTERNS = Arrays.asList(
+        "/api/v2/partidas/*/rollos"
     );
 
     @Override
@@ -48,7 +61,8 @@ public class JwtFilter implements WebFilter {
         log.info("🔍 [USERS-JWT] path request: '{}'", path);
         log.info("🔍 [USERS-JWT] List of exclusions: {}", EXCLUDED_PATHS);
 
-        boolean isExcluded = EXCLUDED_PATHS.stream().anyMatch(path::contains);
+        boolean isExcluded = EXCLUDED_PATHS.stream().anyMatch(path::contains)
+                || EXCLUDED_PATTERNS.stream().anyMatch(pattern -> PATH_MATCHER.match(pattern, path));
         log.info("🔍 [USERS-JWT] ¿Is path excluded?: {}", isExcluded);
 
         if (isExcluded) {
