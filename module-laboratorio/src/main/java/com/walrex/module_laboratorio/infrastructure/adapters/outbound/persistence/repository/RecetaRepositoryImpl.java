@@ -1,5 +1,6 @@
 package com.walrex.module_laboratorio.infrastructure.adapters.outbound.persistence.repository;
 
+import com.walrex.module_laboratorio.domain.model.CurvaDisenoItem;
 import com.walrex.module_laboratorio.infrastructure.adapters.outbound.persistence.projection.RecetaProjection;
 import io.r2dbc.postgresql.codec.Json;
 import io.r2dbc.spi.Row;
@@ -138,6 +139,17 @@ public class RecetaRepositoryImpl implements RecetaRepository {
                 .one();
     }
 
+    private static final String GET_CURVAS_DISENO_QUERY = """
+            SELECT cdr.id
+                 , cdr.id_curva_diseno
+                 , cd.curva_diseno AS curva
+            FROM laboratorio.curva_diseno_receta cdr
+            JOIN laboratorio.curva_diseno cd ON cd.id = cdr.id_curva_diseno
+            WHERE cdr.id_receta = :idReceta
+              AND cdr.status = 1
+            ORDER BY cdr.id
+            """;
+
     @Override
     public Mono<RecetaProjection> updateCurvaDiseno(Integer id, String curvaDiseno) {
         return db.sql(UPDATE_CURVA_DISENO_QUERY)
@@ -145,6 +157,18 @@ public class RecetaRepositoryImpl implements RecetaRepository {
                 .bind("curvaDiseno", curvaDiseno)
                 .map(this::mapRow)
                 .one();
+    }
+
+    @Override
+    public Flux<CurvaDisenoItem> getCurvasDiseno(Integer idReceta) {
+        return db.sql(GET_CURVAS_DISENO_QUERY)
+                .bind("idReceta", idReceta)
+                .map((row, meta) -> CurvaDisenoItem.builder()
+                        .id(row.get("id", Integer.class))
+                        .idCurvaDiseno(row.get("id_curva_diseno", Integer.class))
+                        .curva(extractJson(row, "curva"))
+                        .build())
+                .all();
     }
 
     private RecetaProjection mapRow(Row row, RowMetadata metadata) {
