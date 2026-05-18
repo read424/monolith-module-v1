@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @Builder
 @AllArgsConstructor
@@ -20,5 +22,5 @@ public class Receta {
     private String noGama;
     private String noColor;
     private String noTenido;
-    private String curvaDiseno;
+    private List<CurvaDisenoItem> curvaDiseno;
 }
