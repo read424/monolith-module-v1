@@ -58,7 +58,7 @@ COPY ./src ./src
 
 # Compilar el proyecto completo (avro-schemas ya está disponible en .m2)
 #RUN mvn clean package -DskipTests
-RUN mvn clean install -Dmaven.test.skip=true
+RUN mvn clean package -pl module-core -am -Dmaven.test.skip=true
 
 # Verificar archivos JAR generados
 RUN ls -la module-core/target/*.jar
