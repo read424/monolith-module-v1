@@ -1,0 +1,13 @@
+# 🎭 Kafka AOP Module - Auto Configuration
+# Spring Boot detectará automáticamente esta configuración cuando el JAR esté en el classpath
+
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.walrex.kafka.aop.config.KafkaAopAutoConfiguration
+
+# 📝 Additional Configurations
+org.springframework.context.ApplicationListener=\
+com.walrex.kafka.aop.config.KafkaAopApplicationListener
+
+# 🔧 Property Source Factories (opcional para configuraciones avanzadas)
+# org.springframework.boot.env.PropertySourceLoader=\
+# com.walrex.kafka.aop.config.KafkaAopPropertySourceLoader 

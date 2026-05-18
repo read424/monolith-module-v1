@@ -84,8 +84,8 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
                             .flatMap(articulo -> {
                                 DetalleEgresoDTO detalle = articuloRequerimientoMapper.toDetalleEgreso(articulo);
                                 return validarDetalleEnOrden(detalle, ordenEgreso.getDetalles())
-                                        .then(marcarDetalleComoEntregado(detalle, ordenEgreso))
-                                        .then(procesarEntregaYConversion(detalle, ordenEgreso));
+                                        .then(Mono.defer(() -> marcarDetalleComoEntregado(detalle, ordenEgreso)))
+                                        .then(Mono.defer(() -> procesarEntregaYConversion(detalle, ordenEgreso)));
                             })
                             .collectList()
                             .flatMap(detallesProcesados ->
@@ -141,8 +141,8 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
                 detalle.getId(), ordenSalida.getId());
 
         return validarDetalleEnOrden(detalle, ordenSalida.getDetalles())
-                .then(marcarDetalleComoEntregado(detalle, ordenSalida))
-                .then(procesarEntregaYConversion(detalle, ordenSalida))
+                .then(Mono.defer(() -> marcarDetalleComoEntregado(detalle, ordenSalida)))
+                .then(Mono.defer(() -> procesarEntregaYConversion(detalle, ordenSalida)))
                 .flatMap(detalleActualizado -> registrarKardexPorDetalle(detalleActualizado, ordenSalida)
                         .then(Mono.just(detalleActualizado)))
                 .doOnSuccess(detalleCompletado ->
@@ -155,6 +155,9 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
      * Valida que el detalle esté en la orden, no esté entregado y las cantidades coincidan
      */
     protected Mono<Void> validarDetalleEnOrden(DetalleEgresoDTO detalle, List<DetalleEgresoDTO> detallesOrden) {
+        if (detallesOrden == null) {
+            return Mono.error(new IllegalArgumentException("La orden de salida no tiene detalles cargados"));
+        }
         log.info("🔍 INICIO validarDetalleEnOrden {} con listado {}", detalle.getId(), detallesOrden.size());
         Long idDetalle = detalle.getId();
         return Mono.fromCallable(() -> {
@@ -480,8 +483,8 @@ public class OrdenSalidaAprobacionPersistenceAdapter extends BaseInventarioAdapt
                     log.debug("🔍 ID Unidad en detalle: {}", detalle.getIdUnidad());
 
                     return validarDetalleEnOrden(detalle, ordenEgreso.getDetalles())
-                            .then(marcarDetalleComoEntregado(detalle, ordenEgreso))
-                            .then(enriquecerConInfoLotes(detalle, ordenEgreso))
+                            .then(Mono.defer(() -> marcarDetalleComoEntregado(detalle, ordenEgreso)))
+                            .then(Mono.defer(() -> enriquecerConInfoLotes(detalle, ordenEgreso)))
                             .doOnSuccess(detalleCompleto ->
                                 log.debug("✅ Detalle completo: precio={}, lotes={}",
                                     detalleCompleto.getPrecio(), detalleCompleto.getA_lotes().size())

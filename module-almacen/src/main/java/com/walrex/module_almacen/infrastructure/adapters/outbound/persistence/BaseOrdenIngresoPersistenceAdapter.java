@@ -73,6 +73,7 @@ public abstract class BaseOrdenIngresoPersistenceAdapter implements OrdenIngreso
                     log.error(errorMsg, ex);
                     return Mono.error(new OrdenIngresoException(errorMsg, ex));
                 })
+                .onErrorResume(OrdenIngresoException.class, Mono::error)
                 .onErrorResume(Exception.class, ex->{
                     String errorMsg = "Error no esperado al guardar la orden: " + ex.getMessage();
                     log.error(errorMsg, ex);

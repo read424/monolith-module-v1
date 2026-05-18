@@ -1,5 +1,6 @@
 package com.walrex.user.module_users.infrastructure.adapters.inbound.reactiveweb.router;
 
+import com.walrex.user.module_users.infrastructure.adapters.inbound.reactiveweb.PersonalHandler;
 import com.walrex.user.module_users.infrastructure.adapters.inbound.reactiveweb.UserGetDetailsHandler;
 import com.walrex.user.module_users.infrastructure.adapters.inbound.reactiveweb.UserSignInHandler;
 import jakarta.annotation.PostConstruct;
@@ -20,6 +21,7 @@ public class RouterReactiveAPI {
     private static final String PATH_LOGIN = "user";
     private final UserSignInHandler userSigninHandler;
     private final UserGetDetailsHandler userGetDetailsHandler;
+    private final PersonalHandler personalHandler;
 
     @Bean
     public RouterFunction<ServerResponse> userRouter(){
@@ -29,7 +31,8 @@ public class RouterReactiveAPI {
                 .POST("/recovery-password",RequestPredicates.accept(MediaType.APPLICATION_JSON), userGetDetailsHandler::senderMailRecoveryPassword)
             )
             .path("/"+PATH_LOGIN, builder -> builder
-                .GET("/{name_user}",RequestPredicates.accept(MediaType.APPLICATION_JSON), userGetDetailsHandler::getInfoUser)
+                .GET("/list", RequestPredicates.accept(MediaType.APPLICATION_JSON), personalHandler::listPersonal)
+                .GET("/{name_user}", RequestPredicates.accept(MediaType.APPLICATION_JSON), userGetDetailsHandler::getInfoUser)
             )
             .before(request -> {
                 log.info("🔄 Router recibió solicitud: {} {}", request.method(), request.path());

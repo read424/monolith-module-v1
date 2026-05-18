@@ -199,6 +199,7 @@ public class BaseOrdenIngresoPersistenceAdapterTest {
                 .thenReturn(Mono.just(articuloEntity));
         when(mapper.toEntity(any(OrdenIngreso.class))).thenReturn(ordenIngresoEntity);
         when(ordenIngresoRepository.save(any(OrdenIngresoEntity.class))).thenReturn(Mono.just(ordenIngresoEntity));
+        when(ordenIngresoRepository.findById(ordenIngresoEntity.getId())).thenReturn(Mono.just(ordenIngresoEntity));
         when(mapper.toDomain(any(OrdenIngresoEntity.class))).thenReturn(ordenIngreso);
 
         when(articuloIngresoLogisticaMapper.toEntity(any(DetalleOrdenIngreso.class))).thenReturn(detalleEntity);
@@ -219,6 +220,7 @@ public class BaseOrdenIngresoPersistenceAdapterTest {
         // Verify
         verify(mapper).toEntity(any(OrdenIngreso.class));
         verify(ordenIngresoRepository).save(any(OrdenIngresoEntity.class));
+        verify(ordenIngresoRepository).findById(ordenIngresoEntity.getId());
         verify(mapper).toDomain(any(OrdenIngresoEntity.class));
         verify(articuloIngresoLogisticaMapper).toEntity(any(DetalleOrdenIngreso.class));
         verify(detalleRepository).save(any(DetailsIngresoEntity.class));

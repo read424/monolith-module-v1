@@ -48,6 +48,8 @@ services:
       HOST_REDIS: ${HOST_REDIS}
       CONSUL_HOST: consul
       CONSUL_PORT: 8500
+      CONSUL_DATACENTER: ${CONSUL_DATACENTER:dc1}
+      GATEWAY_TOKEN: ${GATEWAY_TOKEN:dev-token}
     env_file:
       - .env
     depends_on:

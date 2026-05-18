@@ -3,50 +3,25 @@ package integration.com.walrex.module_almacen.config;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+@Testcontainers(disabledWithoutDocker = true)
 public class AbstractPostgreSQLContainerTest {
-    private static final PostgreSQLContainer<?> postgreSQLContainer;
-
-    static {
-        postgreSQLContainer = new PostgreSQLContainer<>("postgres:13-alpine")
-                .withDatabaseName("test_db")
-                .withUsername("test_user")
-                .withPassword("test_password")
-                .withReuse(true)  // Habilitar reutilización entre ejecuciones de pruebas
-                .withExposedPorts(5432)
-                .withInitScript("db/init-test-db.sql")
-                .withCommand("postgres",
-                        "-c", "log_min_messages=notice",
-                        "-c", "log_statement=all",
-                        "-c", "log_destination=stderr",
-                        "-c", "logging_collector=off"
-                );
-
-        // Iniciar el contenedor al cargar la clase
-        postgreSQLContainer.start();
-
-        // ✅ Seguir los logs del contenedor
-        postgreSQLContainer.followOutput(frame -> {
-            String logLine = frame.getUtf8String();
-            if (logLine.contains("SE GENERO EL CODIGO") ||
-                    logLine.contains("NOTICE") ||
-                    logLine.contains("INSERT") ||
-                    logLine.contains("UPDATE")) {
-                System.out.println("🐘 PostgreSQL: " + logLine.trim());
-            }
-        });
-
-        // Registro de información al iniciar
-        System.out.println("🚀 PostgreSQL Container started at: " + postgreSQLContainer.getJdbcUrl());
-
-        // Opcional: registrar un hook de apagado para detener el contenedor al finalizar la JVM
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            if (postgreSQLContainer.isRunning()) {
-                System.out.println("⏹️ Stopping PostgreSQL Container");
-                postgreSQLContainer.stop();
-            }
-        }));
-    }
+    @Container
+    private static final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:13-alpine")
+            .withDatabaseName("test_db")
+            .withUsername("test_user")
+            .withPassword("test_password")
+            .withReuse(true)
+            .withExposedPorts(5432)
+            .withInitScript("db/init-test-db.sql")
+            .withCommand("postgres",
+                    "-c", "log_min_messages=notice",
+                    "-c", "log_statement=all",
+                    "-c", "log_destination=stderr",
+                    "-c", "logging_collector=off"
+            );
 
     // Configurar dinámicamente las propiedades de R2DBC para Spring
     @DynamicPropertySource

@@ -1,46 +1,42 @@
 package com.walrex.module_partidas.infrastructure.adapters.outbound.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.data.r2dbc.DataR2dbcTest;
-import org.springframework.test.context.ActiveProfiles;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.walrex.module_partidas.domain.model.ProcesoPartida;
 import com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.mapper.ProcesoPartidaMapper;
+import com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.projection.ProcesoPartidaProjection;
 import com.walrex.module_partidas.infrastructure.adapters.outbound.persistence.repository.ProcesoPartidaRepository;
 
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-/**
- * Test de integración para ProcesoPartidaPersistenceAdapter
- * Utiliza @DataR2dbcTest para testing de persistencia reactiva
- * 
- * @author Ronald E. Aybar D.
- * @version 0.0.1-SNAPSHOT
- */
-@DataR2dbcTest
-@ActiveProfiles("test")
+@ExtendWith(MockitoExtension.class)
 class ProcesoPartidaPersistenceAdapterTest {
 
-    @Autowired
+    @Mock
     private ProcesoPartidaRepository repository;
 
-    @Autowired
+    @Mock
     private ProcesoPartidaMapper mapper;
 
     private ProcesoPartidaPersistenceAdapter adapter;
 
+    @BeforeEach
+    void setUp() {
+        adapter = new ProcesoPartidaPersistenceAdapter(repository, mapper);
+    }
+
     @Test
     @DisplayName("Debería crear adapter con dependencias inyectadas")
     void deberiaCrearAdapterConDependenciasInyectadas() {
-        // Given & When
-        adapter = new ProcesoPartidaPersistenceAdapter(repository, mapper);
-
-        // Then
         assertThat(adapter).isNotNull();
         assertThat(repository).isNotNull();
         assertThat(mapper).isNotNull();
@@ -49,30 +45,33 @@ class ProcesoPartidaPersistenceAdapterTest {
     @Test
     @DisplayName("Debería consultar procesos de partida usando el adapter")
     void deberiaConsultarProcesosPartidaUsandoAdapter() {
-        // Given
-        adapter = new ProcesoPartidaPersistenceAdapter(repository, mapper);
-        Integer idPartida = 1; // Asumiendo que existe en la base de datos de test
+        Integer idPartida = 1;
+        ProcesoPartidaProjection projection = ProcesoPartidaProjection.builder()
+                .idPartida(idPartida)
+                .noProceso("Tejido")
+                .isPendiente(true)
+                .build();
+        ProcesoPartida proceso = ProcesoPartida.builder()
+                .idPartida(idPartida)
+                .noProceso("Tejido")
+                .isPendiente(true)
+                .build();
 
-        // When & Then
-        Flux<ProcesoPartida> resultado = adapter.consultarProcesosPartida(idPartida);
+        when(repository.findProcesosByPartida(idPartida)).thenReturn(Flux.just(projection));
+        when(mapper.toDomain(projection)).thenReturn(proceso);
 
-        StepVerifier.create(resultado)
-                .expectNextCount(0) // Puede que no haya datos en test, pero no debe fallar
+        StepVerifier.create(adapter.consultarProcesosPartida(idPartida))
+                .expectNext(proceso)
                 .verifyComplete();
     }
 
     @Test
     @DisplayName("Debería manejar consulta con ID de partida inválido")
     void deberiaManejarConsultaConIdPartidaInvalido() {
-        // Given
-        adapter = new ProcesoPartidaPersistenceAdapter(repository, mapper);
-        Integer idPartida = -1; // ID inválido
+        Integer idPartida = -1;
+        when(repository.findProcesosByPartida(idPartida)).thenReturn(Flux.empty());
 
-        // When & Then
-        Flux<ProcesoPartida> resultado = adapter.consultarProcesosPartida(idPartida);
-
-        StepVerifier.create(resultado)
-                .expectNextCount(0) // No debe fallar, solo retornar vacío
+        StepVerifier.create(adapter.consultarProcesosPartida(idPartida))
                 .verifyComplete();
     }
 }

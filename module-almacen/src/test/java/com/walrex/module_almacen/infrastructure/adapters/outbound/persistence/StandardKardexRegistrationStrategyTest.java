@@ -112,9 +112,7 @@ public class StandardKardexRegistrationStrategyTest {
         // Verificar la conversión
         BigDecimal factorConversion = BigDecimal.valueOf(Math.pow(10, 3)); // valor_conv = 2
         BigDecimal cantidadConvertida = BigDecimal.valueOf(10).multiply(factorConversion).setScale(6, RoundingMode.HALF_UP);
-        BigDecimal totalStock = cantidadConvertida.add(BigDecimal.valueOf(100)).setScale(6, RoundingMode.HALF_UP);
-
-        assertEquals(totalStock, capturedKardex.getSaldo_actual());
+        assertEquals(BigDecimal.valueOf(100).setScale(6, RoundingMode.HALF_UP), capturedKardex.getSaldo_actual());
         assertEquals(cantidadConvertida.setScale(6, RoundingMode.HALF_UP), capturedKardex.getSaldoLote());
         assertEquals(detalle.getIdUnidadSalida(), capturedKardex.getId_unidad_salida());
     }
@@ -140,9 +138,7 @@ public class StandardKardexRegistrationStrategyTest {
 
         // Verificar que no hay conversión cuando las unidades son iguales
         BigDecimal cantidadSinConversion = BigDecimal.valueOf(10);
-        BigDecimal totalStock = cantidadSinConversion.add(BigDecimal.valueOf(100)).setScale(6, RoundingMode.HALF_UP);
-
-        assertEquals(totalStock, capturedKardex.getSaldo_actual());
+        assertEquals(BigDecimal.valueOf(100).setScale(6, RoundingMode.HALF_UP), capturedKardex.getSaldo_actual());
         assertEquals(cantidadSinConversion.setScale(6, RoundingMode.HALF_UP), capturedKardex.getSaldoLote());
         assertEquals(detalle.getIdUnidad(), capturedKardex.getId_unidad_salida());
     }

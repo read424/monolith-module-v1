@@ -1,14 +1,15 @@
 package com.walrex.module_partidas.unit.infrastructure.adapters.inbound;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -17,258 +18,156 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.server.ServerRequest;
 
 import com.walrex.module_partidas.application.ports.input.ConsultarAlmacenTachoUseCase;
-import com.walrex.module_partidas.domain.model.dto.*;
+import com.walrex.module_partidas.domain.model.dto.AlmacenTachoResponseDTO;
+import com.walrex.module_partidas.domain.model.dto.ConsultarAlmacenTachoRequest;
+import com.walrex.module_partidas.domain.model.dto.PartidaTachoResponse;
 import com.walrex.module_partidas.infrastructure.adapters.inbound.reactiveweb.AlmacenTachoHandler;
+import com.walrex.module_partidas.infrastructure.adapters.inbound.reactiveweb.mapper.AlmacenTachoResponseMapper;
+import com.walrex.module_partidas.infrastructure.adapters.inbound.reactiveweb.response.ListPartidaTachoResponse;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-/**
- * Tests unitarios para el handler reactivo AlmacenTachoHandler
- *
- * @author Ronald E. Aybar D.
- * @version 0.0.1-SNAPSHOT
- */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AlmacenTachoHandler Tests")
 class AlmacenTachoHandlerTest {
 
-        @Mock
-        private ConsultarAlmacenTachoUseCase consultarAlmacenTachoUseCase;
+    @Mock
+    private ConsultarAlmacenTachoUseCase consultarAlmacenTachoUseCase;
 
-        @Mock
-        private Validator validator;
+    @Mock
+    private AlmacenTachoResponseMapper almacenTachoResponseMapper;
 
-        @InjectMocks
-        private AlmacenTachoHandler almacenTachoHandler;
+    @Mock
+    private Validator validator;
 
-        private ConsultarAlmacenTachoRequest request;
-        private AlmacenTachoResponseDTO almacenTachoResponseDTO;
+    @InjectMocks
+    private AlmacenTachoHandler almacenTachoHandler;
 
-        @BeforeEach
-        void setUp() {
-                request = ConsultarAlmacenTachoRequest.builder()
-                                .idAlmacen(36)
-                                .page(0)
-                                .numRows(10)
-                                .build();
+    private ConsultarAlmacenTachoRequest request;
+    private AlmacenTachoResponseDTO almacenTachoResponseDTO;
+    private ListPartidaTachoResponse httpResponse;
 
-                List<PartidaTachoResponse> partidas = List.of(
-                                PartidaTachoResponse.builder()
-                                                .idOrdeningreso(307874)
-                                                .idCliente(138)
-                                                .razonSocial("HUANCATEX S.A.C.")
-                                                .noAlias("HUANCATEX")
-                                                .fecRegistro(LocalDateTime.of(2025, 8, 19, 3, 30, 35))
-                                                .codIngreso("ALGT-I46331")
-                                                .idDetordeningreso(330449)
-                                                .idPartida(55509)
-                                                .codPartida("PA25-0048661")
-                                                .cntRollos(18)
-                                                .codReceta("RT25-25388")
-                                                .noColores("NEGRO")
-                                                .idTipoTenido(5)
-                                                .descTenido("DISPERSO")
-                                                .timeElapsed(123456L)
-                                                .build());
+    @BeforeEach
+    void setUp() {
+        request = ConsultarAlmacenTachoRequest.builder()
+                .idAlmacen(36)
+                .page(0)
+                .numRows(10)
+                .codPartida("")
+                .build();
 
-                almacenTachoResponseDTO = AlmacenTachoResponseDTO.builder()
-                                .partidas(partidas)
-                                .totalRecords(1)
-                                .totalPages(1)
-                                .currentPage(0)
-                                .pageSize(10)
-                                .hasNext(false)
-                                .hasPrevious(false)
-                                .build();
-        }
+        almacenTachoResponseDTO = AlmacenTachoResponseDTO.builder()
+                .partidas(List.of(PartidaTachoResponse.builder()
+                        .idPartida(55509)
+                        .codPartida("PA25-0048661")
+                        .timeElapsed(123L)
+                        .build()))
+                .totalRecords(1)
+                .totalPages(1)
+                .currentPage(0)
+                .pageSize(10)
+                .hasNext(false)
+                .hasPrevious(false)
+                .build();
 
-        @Test
-        @DisplayName("Debería consultar almacén tacho exitosamente")
-        void shouldConsultarAlmacenTachoSuccessfully() {
-                // Arrange
-                when(validator.validate(request)).thenReturn(Set.of());
-                when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
-                                .thenReturn(Mono.just(almacenTachoResponseDTO));
+        httpResponse = ListPartidaTachoResponse.builder()
+                .partidas(List.of())
+                .totalRecords(1)
+                .totalPages(1)
+                .currentPage(0)
+                .pageSize(10)
+                .hasNext(false)
+                .hasPrevious(false)
+                .build();
+    }
 
-                // Act & Assert
-                StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(createMockServerRequest(request)))
-                                .expectNextMatches(response -> response.statusCode() == HttpStatus.OK)
-                                .verifyComplete();
-        }
+    @Test
+    @DisplayName("consulta almacén tacho exitosamente")
+    void shouldConsultarAlmacenTachoSuccessfully() {
+        when(validator.validate(any(ConsultarAlmacenTachoRequest.class))).thenReturn(Set.of());
+        when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
+                .thenReturn(Mono.just(almacenTachoResponseDTO));
+        when(almacenTachoResponseMapper.toListPartidaTachoResponse(almacenTachoResponseDTO))
+                .thenReturn(httpResponse);
 
-        @Test
-        @DisplayName("Debería retornar lista vacía cuando no hay resultados")
-        void shouldReturnEmptyListWhenNoResults() {
-                // Arrange
-                when(validator.validate(request)).thenReturn(Set.of());
-                when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
-                                .thenReturn(Mono.just(AlmacenTachoResponseDTO.builder()
-                                .partidas(List.of())
-                                .totalRecords(0)
-                                .totalPages(0)
-                                .currentPage(0)
-                                .pageSize(10)
-                                .hasNext(false)
-                                .hasPrevious(false)
-                                .build()));
+        StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(createRequest("36", "0", "10", "")))
+                .expectNextMatches(response -> response.statusCode() == HttpStatus.OK)
+                .verifyComplete();
+    }
 
-                // Act & Assert
-                StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(createMockServerRequest(request)))
-                                .expectNextMatches(response -> response.statusCode() == HttpStatus.OK)
-                                .verifyComplete();
-        }
+    @Test
+    @DisplayName("retorna bad request cuando falla validación")
+    void shouldReturnBadRequestWhenValidationFails() {
+        @SuppressWarnings("unchecked")
+        ConstraintViolation<ConsultarAlmacenTachoRequest> violation = mock(ConstraintViolation.class);
+        when(violation.getMessage()).thenReturn("es obligatorio");
+        when(validator.validate(any(ConsultarAlmacenTachoRequest.class))).thenReturn(Set.of(violation));
 
-        @Test
-        @DisplayName("Debería manejar error del caso de uso")
-        void shouldHandleUseCaseError() {
-                // Arrange
-                when(validator.validate(request)).thenReturn(Set.of());
-                RuntimeException error = new RuntimeException("Error en caso de uso");
-                when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
-                    .thenReturn(Mono.error(error));
+        StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(createRequest(null, "0", "10", "")))
+                .expectNextMatches(response -> response.statusCode() == HttpStatus.BAD_REQUEST)
+                .verifyComplete();
+    }
 
-                // Act & Assert
-                StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(createMockServerRequest(request)))
-                    .expectNextMatches(
-                                    response -> response.statusCode() == HttpStatus.INTERNAL_SERVER_ERROR)
-                    .verifyComplete();
-        }
+    @Test
+    @DisplayName("maneja error del caso de uso")
+    void shouldHandleUseCaseError() {
+        when(validator.validate(any(ConsultarAlmacenTachoRequest.class))).thenReturn(Set.of());
+        when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
+                .thenReturn(Mono.error(new RuntimeException("Error en caso de uso")));
 
-        @Test
-        @DisplayName("Debería validar request con idAlmacen obligatorio")
-        void shouldValidateRequestWithRequiredIdAlmacen() {
-                // Arrange
-                ConsultarAlmacenTachoRequest requestSinIdAlmacen = ConsultarAlmacenTachoRequest.builder()
-                                .page(0)
-                                .numRows(10)
-                                .build();
+        StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(createRequest("36", "0", "10", "")))
+                .expectNextMatches(response -> response.statusCode() == HttpStatus.INTERNAL_SERVER_ERROR)
+                .verifyComplete();
+    }
 
-                // Configurar validator mock para request inválido
-                when(validator.validate(requestSinIdAlmacen)).thenReturn(Set.of(
-                                mock(ConstraintViolation.class)));
+    @Test
+    @DisplayName("usa valores por defecto para paginación")
+    void shouldUseDefaultPaginationValues() {
+        when(validator.validate(any(ConsultarAlmacenTachoRequest.class))).thenReturn(Set.of());
+        when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
+                .thenReturn(Mono.just(almacenTachoResponseDTO));
+        when(almacenTachoResponseMapper.toListPartidaTachoResponse(almacenTachoResponseDTO))
+                .thenReturn(httpResponse);
 
-                // Act & Assert
-                StepVerifier.create(
-                                almacenTachoHandler.consultarAlmacenTacho(createMockServerRequest(requestSinIdAlmacen)))
-                                .expectNextMatches(
-                                                response -> response.statusCode() == HttpStatus.INTERNAL_SERVER_ERROR)
-                                .verifyComplete();
-        }
+        StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(createRequest("36", null, null, null)))
+                .expectNextMatches(response -> response.statusCode() == HttpStatus.OK)
+                .verifyComplete();
 
-        @Test
-        @DisplayName("Debería manejar error de validación con IllegalArgumentException")
-        void shouldHandleValidationErrorWithIllegalArgumentException() {
-                // Arrange
-                ConsultarAlmacenTachoRequest requestInvalido = ConsultarAlmacenTachoRequest.builder()
-                                .page(-1) // Página negativa inválida
-                                .numRows(0) // Número de filas inválido
-                                .build();
+        verify(consultarAlmacenTachoUseCase).listarPartidasInTacho(argThat(actual ->
+                Integer.valueOf(36).equals(actual.getIdAlmacen())
+                        && Integer.valueOf(0).equals(actual.getPage())
+                        && Integer.valueOf(10).equals(actual.getNumRows())
+                        && "".equals(actual.getCodPartida())));
+    }
 
-                // Configurar validator mock para request inválido
-                when(validator.validate(requestInvalido)).thenReturn(Set.of(
-                                mock(ConstraintViolation.class)));
+    @Test
+    @DisplayName("propaga codPartida cuando viene informado")
+    void shouldPropagateCodPartida() {
+        when(validator.validate(any(ConsultarAlmacenTachoRequest.class))).thenReturn(Set.of());
+        when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
+                .thenReturn(Mono.just(almacenTachoResponseDTO));
+        when(almacenTachoResponseMapper.toListPartidaTachoResponse(almacenTachoResponseDTO))
+                .thenReturn(httpResponse);
 
-                // Act & Assert
-                StepVerifier.create(
-                                almacenTachoHandler.consultarAlmacenTacho(createMockServerRequest(requestInvalido)))
-                                .expectNextMatches(
-                                                response -> response.statusCode() == HttpStatus.INTERNAL_SERVER_ERROR)
-                                .verifyComplete();
-        }
+        StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(createRequest("36", "1", "5", "PA25")))
+                .expectNextMatches(response -> response.statusCode() == HttpStatus.OK)
+                .verifyComplete();
 
-        @Test
-        @DisplayName("Debería manejar error cuando el body del request es inválido")
-        void shouldHandleInvalidRequestBodyError() {
-                // Arrange
-                ServerRequest mockRequest = mock(ServerRequest.class);
-                when(mockRequest.bodyToMono(ConsultarAlmacenTachoRequest.class))
-                                .thenReturn(Mono.error(new IllegalArgumentException("Body inválido")));
+        verify(consultarAlmacenTachoUseCase).listarPartidasInTacho(argThat(actual ->
+                "PA25".equals(actual.getCodPartida())
+                        && Integer.valueOf(1).equals(actual.getPage())
+                        && Integer.valueOf(5).equals(actual.getNumRows())));
+    }
 
-                // Act & Assert
-                StepVerifier.create(almacenTachoHandler.consultarAlmacenTacho(mockRequest))
-                                .expectNextMatches(
-                                                response -> response.statusCode() == HttpStatus.INTERNAL_SERVER_ERROR)
-                                .verifyComplete();
-        }
-
-        @Test
-        @DisplayName("Debería manejar múltiples errores de validación")
-        void shouldHandleMultipleValidationErrors() {
-                // Arrange
-                ConsultarAlmacenTachoRequest requestConMultiplesErrores = ConsultarAlmacenTachoRequest.builder()
-                                .page(-1)
-                                .numRows(0)
-                                .build();
-
-                // Configurar validator mock para múltiples errores de validación
-                ConstraintViolation<ConsultarAlmacenTachoRequest> violation1 = mock(ConstraintViolation.class);
-                ConstraintViolation<ConsultarAlmacenTachoRequest> violation2 = mock(ConstraintViolation.class);
-                when(validator.validate(requestConMultiplesErrores)).thenReturn(Set.of(violation1, violation2));
-
-                // Act & Assert
-                StepVerifier.create(
-                                almacenTachoHandler.consultarAlmacenTacho(
-                                                createMockServerRequest(requestConMultiplesErrores)))
-                                .expectNextMatches(
-                                                response -> response.statusCode() == HttpStatus.INTERNAL_SERVER_ERROR)
-                                .verifyComplete();
-        }
-
-        @Test
-        @DisplayName("Debería consultar almacén tacho con búsqueda por código de partida")
-        void shouldConsultarAlmacenTachoWithCodPartidaSearch() {
-                // Arrange
-                ConsultarAlmacenTachoRequest requestConCodPartida = ConsultarAlmacenTachoRequest.builder()
-                                .idAlmacen(36)
-                                .page(0)
-                                .numRows(10)
-                                .codPartida("PA25-0048661")
-                                .build();
-
-                when(validator.validate(requestConCodPartida)).thenReturn(Set.of());
-                when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
-                                .thenReturn(Mono.just(almacenTachoResponseDTO));
-
-                // Act & Assert
-                StepVerifier.create(almacenTachoHandler
-                                .consultarAlmacenTacho(createMockServerRequest(requestConCodPartida)))
-                                .expectNextMatches(response -> response.statusCode() == HttpStatus.OK)
-                                .verifyComplete();
-        }
-
-        @Test
-        @DisplayName("Debería consultar almacén tacho con búsqueda por código de partida parcial")
-        void shouldConsultarAlmacenTachoWithPartialCodPartidaSearch() {
-                // Arrange
-                ConsultarAlmacenTachoRequest requestConCodPartidaParcial = ConsultarAlmacenTachoRequest.builder()
-                                .idAlmacen(36)
-                                .page(0)
-                                .numRows(10)
-                                .codPartida("PA25")
-                                .build();
-
-                when(validator.validate(requestConCodPartidaParcial)).thenReturn(Set.of());
-                when(consultarAlmacenTachoUseCase.listarPartidasInTacho(any(ConsultarAlmacenTachoRequest.class)))
-                                .thenReturn(Mono.just(almacenTachoResponseDTO));
-
-                // Act & Assert
-                StepVerifier.create(almacenTachoHandler
-                                .consultarAlmacenTacho(createMockServerRequest(requestConCodPartidaParcial)))
-                                .expectNextMatches(response -> response.statusCode() == HttpStatus.OK)
-                                .verifyComplete();
-        }
-
-        /**
-         * Crea un ServerRequest mock para testing
-         */
-        private ServerRequest createMockServerRequest(ConsultarAlmacenTachoRequest request) {
-                // Mock del ServerRequest con bodyToMono configurado
-                ServerRequest mockRequest = mock(ServerRequest.class);
-                when(mockRequest.bodyToMono(ConsultarAlmacenTachoRequest.class))
-                                .thenReturn(Mono.just(request));
-                return mockRequest;
-        }
+    private ServerRequest createRequest(String idAlmacen, String page, String numRows, String codPartida) {
+        ServerRequest serverRequest = mock(ServerRequest.class);
+        when(serverRequest.queryParam("id_almacen")).thenReturn(Optional.ofNullable(idAlmacen));
+        when(serverRequest.queryParam("page")).thenReturn(Optional.ofNullable(page));
+        when(serverRequest.queryParam("num_rows")).thenReturn(Optional.ofNullable(numRows));
+        when(serverRequest.queryParam("cod_partida")).thenReturn(Optional.ofNullable(codPartida));
+        return serverRequest;
+    }
 }

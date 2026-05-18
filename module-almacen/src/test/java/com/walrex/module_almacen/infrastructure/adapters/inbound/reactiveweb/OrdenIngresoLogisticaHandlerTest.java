@@ -7,6 +7,8 @@ import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.Almace
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.ItemArticuloLogisticaRequestDto;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.MotivoIngresoLogisticaRequestDto;
 import com.walrex.module_almacen.infrastructure.adapters.inbound.rest.dto.OrdenIngresoLogisticaRequestDto;
+import com.walrex.module_security_commons.domain.model.JwtUserInfo;
+import com.walrex.module_security_commons.infrastructure.adapters.JwtUserContextService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +42,9 @@ public class OrdenIngresoLogisticaHandlerTest {
 
     @Mock
     private OrdenIngresoLogisticaMapper ordenIngresoMapper;
+
+    @Mock
+    private JwtUserContextService jwtService;
 
     @InjectMocks
     private OrdenIngresoLogisticaHandler handler;
@@ -120,6 +125,7 @@ public class OrdenIngresoLogisticaHandlerTest {
             return null;
         }).when(validator).validate(any(), any(Errors.class));// Simulamos que no hay errores
         when(ordenIngresoMapper.toOrdenIngreso(requestDto)).thenReturn(ordenIngreso);
+        when(jwtService.getCurrentUser(serverRequest)).thenReturn(JwtUserInfo.builder().userId("1").build());
         when(crearOrdenIngresoUseCase.crearOrdenIngresoLogistica(ordenIngreso))
                 .thenReturn(Mono.just(ordenIngreso));
 
@@ -156,6 +162,7 @@ public class OrdenIngresoLogisticaHandlerTest {
             errorsArg.rejectValue("id_cliente", "NotNull", "El cliente es obligatorio");
             return null;
         }).when(validator).validate(any(), any(Errors.class));
+        when(jwtService.getCurrentUser(requestWithInvalidData)).thenReturn(JwtUserInfo.builder().userId("1").build());
 
         // Act & Assert
         StepVerifier.create(handler.nuevoIngresoLogistica(requestWithInvalidData))

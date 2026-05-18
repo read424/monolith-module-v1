@@ -785,6 +785,7 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
         DetalleEgresoDTO detalle = DetalleEgresoDTO.builder()
                 .id(123L)
                 .idUnidad(1)
+                .cantidad(2.0)
                 .articulo(Articulo.builder()
                         .id(456)
                         .stock(BigDecimal.valueOf(2000.0))
@@ -833,8 +834,8 @@ public class OrdenSalidaTransformacionPersistenceAdapterTest {
 
         // ✅ Verificar que se ejecutaron los métodos en orden correcto
         InOrder inOrder = inOrder(detalleSalidaRepository, articuloRepository);
-        inOrder.verify(detalleSalidaRepository).assignedDelivered(123);
         inOrder.verify(articuloRepository).getInfoConversionArticulo(1, 456);
+        inOrder.verify(detalleSalidaRepository).assignedDelivered(123);
 
     }
 

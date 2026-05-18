@@ -28,6 +28,7 @@ public class RouterPartidasReactiveAPI {
     private final SaveSuccessOutTachoHandler saveSuccessOutTachoHandler;
     private final DeclineOutTachoHandler declineOutTachoHandler;
     private final DeclararProcesosHandler declararProcesosHandler;
+    private final PartidasHandler partidasHandler;
     private static final String PATH_PARTIDAS = "partidas";
 
     /**
@@ -46,6 +47,9 @@ public class RouterPartidasReactiveAPI {
     public RouterFunction<ServerResponse> partidasRouter() {
         return RouterFunctions.route()
                 .path("/" + PATH_PARTIDAS, builder -> builder
+                        .GET("",
+                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                partidasHandler::listPartidas)
                         .GET("/almacen-tacho", RequestPredicates.accept(MediaType.APPLICATION_JSON),
                                 almacenTachoHandler::consultarAlmacenTacho)
                         .POST("/out-tacho",
@@ -60,6 +64,18 @@ public class RouterPartidasReactiveAPI {
                         .POST("/declarar-procesos-incompletos",
                             RequestPredicates.accept(MediaType.APPLICATION_JSON),
                             declararProcesosHandler::procesarDeclaracionesIncompletas)
+                        .GET("/declarar-calidad",
+                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                partidasHandler::declararCalidad)
+                        .POST("/saved-declaracion-calidad",
+                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                partidasHandler::crearDeclaracionCalidad)
+                        .GET("/list",
+                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                partidasHandler::listPartidasSimple)
+                        .GET("/{idPartida}/rollos",
+                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                partidasHandler::listRollosByPartida)
                 )
                 .before(request -> {
                     log.info("🔄 Router {} recibió solicitud: {} {}",

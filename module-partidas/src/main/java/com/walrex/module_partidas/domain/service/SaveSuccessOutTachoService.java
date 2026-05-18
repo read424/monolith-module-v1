@@ -36,10 +36,44 @@ public class SaveSuccessOutTachoService implements SaveSuccessOutTachoUseCase {
 
         @Override
         public Mono<IngresoAlmacenDTO> saveSuccessOutTacho(SuccessPartidaTacho successPartidaTacho) {
+                if (successPartidaTacho == null) {
+                        return Mono.error(new IllegalArgumentException("La solicitud es obligatoria"));
+                }
+
+                if (successPartidaTacho.getIdPartida() == null) {
+                        return Mono.error(new IllegalArgumentException("El id de la partida es obligatorio"));
+                }
+
+                if (successPartidaTacho.getIdAlmacen() == null) {
+                        return Mono.error(new IllegalArgumentException("El id del almacén es obligatorio"));
+                }
+
+                if (successPartidaTacho.getIdCliente() == null) {
+                        return Mono.error(new IllegalArgumentException("El id del cliente es obligatorio"));
+                }
+
+                if (successPartidaTacho.getIdArticulo() == null) {
+                        return Mono.error(new IllegalArgumentException("El id del artículo es obligatorio"));
+                }
+
+                if (successPartidaTacho.getIdUnidad() == null) {
+                        return Mono.error(new IllegalArgumentException("El id de la unidad es obligatorio"));
+                }
+
+                if (successPartidaTacho.getIdSupervisor() == null) {
+                        return Mono.error(new IllegalArgumentException("El id del supervisor es obligatorio"));
+                }
+
+                if (successPartidaTacho.getLote() == null || successPartidaTacho.getLote().isBlank()) {
+                        return Mono.error(new IllegalArgumentException("El lote es obligatorio"));
+                }
+
                 log.info("Iniciando procesamiento de salida exitosa de tacho para partida ID: {}",
                                 successPartidaTacho.getIdPartida());
 
-                List<ItemRolloProcess> rollosSeleccionados = successPartidaTacho.getRollos().stream()
+                List<ItemRolloProcess> rollosSeleccionados = successPartidaTacho.getRollos() == null
+                    ? List.of()
+                    : successPartidaTacho.getRollos().stream()
                     .filter(rollo -> Boolean.TRUE.equals(rollo.getSelected()))
                     .collect(Collectors.toList());
 

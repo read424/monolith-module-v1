@@ -6,14 +6,19 @@ import com.walrex.module_almacen.domain.model.Almacen;
 import com.walrex.module_almacen.domain.model.Articulo;
 import com.walrex.module_almacen.domain.model.DetalleOrdenIngreso;
 import com.walrex.module_almacen.domain.model.OrdenIngreso;
+import com.walrex.module_almacen.domain.model.dto.ItemKardexDTO;
 import com.walrex.module_almacen.domain.model.enums.TypeAlmacen;
+import com.walrex.module_almacen.domain.model.mapper.DetIngresoEntityToItemKardexMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetailsIngresoEntity;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.DetalleInventaryEntity;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.KardexEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.entity.OrdenIngresoEntity;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.ArticuloIngresoLogisticaMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.mapper.OrdenIngresoEntityMapper;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.projection.ArticuloInventory;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.ArticuloAlmacenRepository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.DetailsIngresoRepository;
+import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.DetalleInventoryRespository;
 import com.walrex.module_almacen.infrastructure.adapters.outbound.persistence.repository.OrdenIngresoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,6 +61,12 @@ public class OrdenIngresoTransformacionPersistenceAdapterTest {
     @Mock
     private OrdenSalidaAdapterFactory salidaAdapterFactory;
 
+    @Mock
+    private DetalleInventoryRespository detalleInventoryRespository;
+
+    @Mock
+    private DetIngresoEntityToItemKardexMapper detIngresoEntityToItemKardexMapper;
+
     private OrdenIngresoTransformacionPersistenceAdapter adapter;
 
     private OrdenIngreso ordenIngreso;
@@ -72,7 +83,9 @@ public class OrdenIngresoTransformacionPersistenceAdapterTest {
                 .mapper(mapper)
                 .articuloIngresoLogisticaMapper(articuloIngresoLogisticaMapper)
                 .kardexStrategy(kardexStrategy)
+                .detalleInventoryRespository(detalleInventoryRespository)
                 .salidaAdapterFactory(salidaAdapterFactory)
+                .detIngresoEntityToItemKardexMapper(detIngresoEntityToItemKardexMapper)
                 .build();
 
         // Preparar datos de prueba
@@ -92,11 +105,21 @@ public class OrdenIngresoTransformacionPersistenceAdapterTest {
 
         when(mapper.toEntity(any(OrdenIngreso.class))).thenReturn(ordenIngresoEntity);
         when(ordenIngresoRepository.save(any(OrdenIngresoEntity.class))).thenReturn(Mono.just(ordenIngresoEntity));
+        when(ordenIngresoRepository.findById(ordenIngresoEntity.getId())).thenReturn(Mono.just(ordenIngresoEntity));
         when(mapper.toDomain(any(OrdenIngresoEntity.class))).thenReturn(ordenIngreso);
         when(articuloRepository.getInfoConversionArticulo(anyInt(), anyInt())).thenReturn(Mono.just(articuloConversion));
         when(articuloIngresoLogisticaMapper.toEntity(any(DetalleOrdenIngreso.class))).thenReturn(detalleEntity);
         when(detalleRepository.save(any(DetailsIngresoEntity.class))).thenReturn(Mono.just(detalleEntity));
-        when(kardexStrategy.registrarKardex(any(), any(), any())).thenReturn(Mono.empty());
+        when(detalleInventoryRespository.getInventarioByDetailIngreso(detalleEntity.getId().intValue()))
+                .thenReturn(Mono.just(DetalleInventaryEntity.builder()
+                        .idLote(55L)
+                        .cantidad(120.0)
+                        .costoCompra(BigDecimal.valueOf(1.75))
+                        .build()));
+        when(detIngresoEntityToItemKardexMapper.toItemKardex(any(DetailsIngresoEntity.class)))
+                .thenReturn(ItemKardexDTO.builder().build());
+        when(kardexStrategy.registrarKardex(any(ItemKardexDTO.class)))
+                .thenReturn(Mono.just(KardexEntity.builder().id_kardex(1L).build()));
 
         // When
         Mono<OrdenIngreso> resultado = adapter.guardarOrdenIngresoLogistica(ordenIngreso);
@@ -108,7 +131,7 @@ public class OrdenIngresoTransformacionPersistenceAdapterTest {
 
         verify(ordenIngresoRepository).save(any(OrdenIngresoEntity.class));
         verify(detalleRepository).save(any(DetailsIngresoEntity.class));
-        verify(kardexStrategy).registrarKardex(any(), any(), any());
+        verify(kardexStrategy).registrarKardex(any(ItemKardexDTO.class));
     }
 
     private void setupTestData() {

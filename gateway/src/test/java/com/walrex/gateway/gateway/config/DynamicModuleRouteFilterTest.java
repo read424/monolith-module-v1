@@ -3,6 +3,7 @@ package com.walrex.gateway.gateway.config;
 import com.walrex.gateway.gateway.application.ports.output.ServiceRegistryPort;
 import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.entity.ModulesUrl;
 import com.walrex.gateway.gateway.infrastructure.adapters.outbound.persistence.repository.ModulesUrlRepository;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,13 +38,15 @@ public class DynamicModuleRouteFilterTest {
     private PathTransformer pathTransformer;
     private ProxyRequestBuilder proxyRequestBuilder;
     private DynamicModuleRouteFilter filter;
+    private SimpleMeterRegistry meterRegistry;
 
     @BeforeEach
     void setUp() {
-        routeResolver = new RouteResolver(modulesUrlRepository);
+        meterRegistry = new SimpleMeterRegistry();
+        routeResolver = new RouteResolver(modulesUrlRepository, meterRegistry);
         pathTransformer = new PathTransformer();
         proxyRequestBuilder = new ProxyRequestBuilder(pathTransformer);
-        filter = new DynamicModuleRouteFilter(routeResolver, pathTransformer, proxyRequestBuilder, serviceRegistryPort);
+        filter = new DynamicModuleRouteFilter(routeResolver, pathTransformer, proxyRequestBuilder, serviceRegistryPort, meterRegistry);
     }
 
     // ── PathTransformer tests ─────────────────────────────────────────────────
