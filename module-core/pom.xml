@@ -10,6 +10,7 @@
 	</parent>
 	<groupId>com.walrex</groupId>
 	<artifactId>module-core</artifactId>
+    <packaging>jar</packaging>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>module-core</name>
 	<description>Core module for the modular monolith</description>
@@ -370,14 +371,6 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>repackage</id>
-						<goals>
-							<goal>repackage</goal>
-						</goals>
-					</execution>
-				</executions>
 				<configuration>
 					<skip>false</skip>
 					<mainClass>com.walrex.module_core.ModuleCoreApplication</mainClass>
