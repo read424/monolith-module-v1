@@ -31,17 +31,7 @@ public class RecetaService implements ListRecetasUseCase {
     @Override
     public Mono<Receta> getCurvaDisenoById(Integer id) {
         return persistencePort.findById(id)
-                .switchIfEmpty(Mono.error(new RecetaException("Receta no encontrada", "NOT_FOUND")))
-                .flatMap(receta -> {
-                    if (receta.getCurvaDiseno() == null || receta.getCurvaDiseno().isBlank()) {
-                        return Mono.error(new RecetaException(
-                                "La receta no tiene curva_diseno registrada", "CURVA_DISENO_EMPTY"));
-                    }
-                    return Mono.just(Receta.builder()
-                            .id(receta.getId())
-                            .curvaDiseno(receta.getCurvaDiseno())
-                            .build());
-                });
+                .switchIfEmpty(Mono.error(new RecetaException("Receta no encontrada", "NOT_FOUND")));
     }
 
     @Override
@@ -62,12 +52,6 @@ public class RecetaService implements ListRecetasUseCase {
     public Mono<byte[]> generateCurvaDisenoPdf(Integer id) {
         return persistencePort.findById(id)
                 .switchIfEmpty(Mono.error(new RecetaException("Receta no encontrada", "NOT_FOUND")))
-                .flatMap(receta -> {
-                    if (receta.getCurvaDiseno() == null || receta.getCurvaDiseno().isBlank()) {
-                        return Mono.error(new RecetaException(
-                                "La receta no tiene curva_diseno registrada", "CURVA_DISENO_EMPTY"));
-                    }
-                    return curvaDisenoPdfPort.generatePdf(receta);
-                });
+                .flatMap(curvaDisenoPdfPort::generatePdf);
     }
 }
