@@ -52,6 +52,8 @@ COPY ./module-driver/src ./module-driver/src
 COPY ./module-comercial/src ./module-comercial/src
 COPY ./module-liquidaciones/src ./module-liquidaciones/src
 COPY ./module-revision-tela/src ./module-revision-tela/src
+COPY ./module-laboratorio/src ./module-laboratorio/src
+COPY ./module-machines/src ./module-machines/src
 COPY ./src ./src
 
 # Compilar el proyecto completo (avro-schemas ya está disponible en .m2)
