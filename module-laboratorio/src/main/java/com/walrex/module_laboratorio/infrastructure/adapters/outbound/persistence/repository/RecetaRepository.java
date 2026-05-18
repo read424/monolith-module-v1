@@ -1,5 +1,6 @@
 package com.walrex.module_laboratorio.infrastructure.adapters.outbound.persistence.repository;
 
+import com.walrex.module_laboratorio.domain.model.CurvaDisenoItem;
 import com.walrex.module_laboratorio.infrastructure.adapters.outbound.persistence.projection.RecetaProjection;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -15,4 +16,5 @@ public interface RecetaRepository {
     Mono<RecetaProjection> findById(Integer id);
     Mono<Boolean> existsById(Integer id);
     Mono<RecetaProjection> updateCurvaDiseno(Integer id, String curvaDiseno);
+    Flux<CurvaDisenoItem> getCurvasDiseno(Integer idReceta);
 }
