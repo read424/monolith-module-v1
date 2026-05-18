@@ -48,9 +48,35 @@ public class CurvaDisenoPdfAdapter implements CurvaDisenoPdfPort {
     @Override
     public Mono<byte[]> generatePdf(Receta receta) {
         return Mono.fromCallable(() -> {
-            JsonNode root = parseJson(receta.getCurvaDiseno(), "RECETA");
-            String html = buildHtml(ChartMetadata.fromReceta(receta), root);
-            return renderPdf(html, "RECETA");
+            List<com.walrex.module_laboratorio.domain.model.CurvaDisenoItem> curvas = receta.getCurvaDiseno();
+            if (curvas == null || curvas.isEmpty()) {
+                throw new RecetaException("La receta no tiene curvas de diseño registradas", "CURVA_DISENO_EMPTY");
+            }
+            if (curvas.size() == 1) {
+                JsonNode root = parseJson(curvas.get(0).getCurva(), "RECETA");
+                String html = buildHtml(ChartMetadata.fromReceta(receta), root);
+                return renderPdf(html, "RECETA");
+            }
+            try (PDDocument merged = new PDDocument();
+                 ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+                for (com.walrex.module_laboratorio.domain.model.CurvaDisenoItem item : curvas) {
+                    JsonNode root = parseJson(item.getCurva(), "RECETA");
+                    String html = buildHtml(ChartMetadata.fromReceta(receta), root);
+                    byte[] pdfBytes = renderPdf(html, "RECETA");
+                    try (PDDocument part = PDDocument.load(pdfBytes)) {
+                        for (PDPage page : part.getPages()) {
+                            merged.addPage(merged.importPage(page));
+                        }
+                    }
+                }
+                merged.save(output);
+                return output.toByteArray();
+            } catch (RecetaException ex) {
+                throw ex;
+            } catch (Exception ex) {
+                log.error("Error mergeando PDFs de curvas de diseño", ex);
+                throw new RecetaException("No se pudo generar el PDF de la receta", "PDF_GENERATION_ERROR");
+            }
         });
     }
 
@@ -147,11 +173,6 @@ public class CurvaDisenoPdfAdapter implements CurvaDisenoPdfPort {
                 content.addRect(chartX, chartY, chartWidth, chartHeight);
                 content.fill();
 
-                content.setStrokingColor(new Color(203, 213, 225));
-                content.setLineWidth(0.8f);
-                content.addRect(chartX, chartY, chartWidth, chartHeight);
-                content.stroke();
-
                 if (segments.isEmpty()) {
                     content.setNonStrokingColor(new Color(100, 116, 139));
                     content.beginText();
@@ -161,17 +182,8 @@ public class CurvaDisenoPdfAdapter implements CurvaDisenoPdfPort {
                     content.endText();
                 } else {
                     PdfBounds bounds = PdfBounds.from(segments, timelineEvents);
-                    drawPdfGrid(content, plotX, plotY, plotWidth, plotHeight, bounds);
                     drawThermalSegments(content, segments, bounds, plotX, plotY, plotWidth, plotHeight);
                     drawTimelineEvents(content, timelineEvents, segments, bounds, plotX, plotY, plotWidth, plotHeight);
-
-                    content.setNonStrokingColor(new Color(31, 41, 55));
-                    content.beginText();
-                    content.setFont(PDType1Font.HELVETICA, 9);
-                    content.newLineAtOffset(plotX, chartY + 14);
-                    content.showText("Perfil termico: " + segments.size() + " segmento(s) | Timeline: "
-                            + timelineEvents.size() + " evento(s)");
-                    content.endText();
                 }
             }
 
@@ -255,37 +267,6 @@ public class CurvaDisenoPdfAdapter implements CurvaDisenoPdfPort {
         return point.path("x").isNumber() && point.path("y").isNumber();
     }
 
-    private void drawPdfGrid(PDPageContentStream content, float plotX, float plotY,
-                             float plotWidth, float plotHeight, PdfBounds bounds) throws Exception {
-        content.setStrokingColor(new Color(226, 232, 240));
-        content.setLineWidth(0.5f);
-        for (int i = 0; i <= 6; i++) {
-            float y = plotY + plotHeight * i / 6f;
-            content.moveTo(plotX, y);
-            content.lineTo(plotX + plotWidth, y);
-            content.stroke();
-        }
-        for (int i = 0; i <= 8; i++) {
-            float x = plotX + plotWidth * i / 8f;
-            content.moveTo(x, plotY);
-            content.lineTo(x, plotY + plotHeight);
-            content.stroke();
-        }
-
-        content.setStrokingColor(new Color(148, 163, 184));
-        content.setLineWidth(1f);
-        content.addRect(plotX, plotY, plotWidth, plotHeight);
-        content.stroke();
-
-        content.setNonStrokingColor(new Color(100, 116, 139));
-        content.beginText();
-        content.setFont(PDType1Font.HELVETICA, 7);
-        content.newLineAtOffset(plotX, plotY - 13);
-        content.showText("X " + formatCoordinate(bounds.minX()) + " -> " + formatCoordinate(bounds.maxX())
-                + " | Y " + formatCoordinate(bounds.minY()) + " -> " + formatCoordinate(bounds.maxY()));
-        content.endText();
-    }
-
     private void drawThermalSegments(PDPageContentStream content, List<PdfSegment> segments, PdfBounds bounds,
                                      float plotX, float plotY, float plotWidth, float plotHeight) throws Exception {
         for (int i = 0; i < segments.size(); i++) {
@@ -347,6 +328,11 @@ public class CurvaDisenoPdfAdapter implements CurvaDisenoPdfPort {
                     ? Math.max(plotY + 8, startY - 14)
                     : Math.min(plotY + plotHeight - 8, startY + 14);
             return new PdfPoint(startX + 6, labelY);
+        }
+        if (isDrainEvent(event)) {
+            float labelX = line.x2() + 6;
+            float labelY = Math.max(plotY + 8, line.y2() - 14);
+            return new PdfPoint(labelX, labelY);
         }
 
         float labelY;
