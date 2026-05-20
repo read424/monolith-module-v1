@@ -29,6 +29,7 @@ public class RouterPartidasReactiveAPI {
     private final DeclineOutTachoHandler declineOutTachoHandler;
     private final DeclararProcesosHandler declararProcesosHandler;
     private final PartidasHandler partidasHandler;
+    private final ReporteDeclaracionCalidadHandler reporteDeclaracionCalidadHandler;
     private static final String PATH_PARTIDAS = "partidas";
 
     /**
@@ -76,6 +77,9 @@ public class RouterPartidasReactiveAPI {
                         .GET("/{idPartida}/rollos",
                                 RequestPredicates.accept(MediaType.APPLICATION_JSON),
                                 partidasHandler::listRollosByPartida)
+                        .GET("/reporte-declaracion-calidad",
+                                RequestPredicates.accept(MediaType.APPLICATION_JSON),
+                                reporteDeclaracionCalidadHandler::exportarExcel)
                 )
                 .before(request -> {
                     log.info("🔄 Router {} recibió solicitud: {} {}",

@@ -80,6 +80,17 @@
             <artifactId>module-security-commons</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
+		<!-- Apache POI para generación de Excel -->
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi</artifactId>
+			<version>5.2.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.poi</groupId>
+			<artifactId>poi-ooxml</artifactId>
+			<version>5.2.4</version>
+		</dependency>
 		<!-- PostgreSQL (R2DBC only) -->
 		<dependency>
 			<groupId>org.postgresql</groupId>
