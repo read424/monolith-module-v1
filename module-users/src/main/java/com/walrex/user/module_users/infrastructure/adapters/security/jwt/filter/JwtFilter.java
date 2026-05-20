@@ -34,6 +34,7 @@ public class JwtFilter implements WebFilter {
         "almacen/guide-no-rolls",
         "partidas/declarar-calidad",
         "partidas/saved-declaracion-calidad",
+        "partidas/reporte-declaracion-calidad",
         "partidas/list",
         "machines",
         "user/list"
