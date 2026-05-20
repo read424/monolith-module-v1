@@ -17,7 +17,7 @@ public class ReporteDeclaracionCalidadRepository {
 
     private final DatabaseClient databaseClient;
 
-    private static final String REPORTE_SQL = """
+    private static final String REPORTE_SQL_BASE = """
             SELECT CASE WHEN t3.id_tipodoc=3 THEN t3.no_razon
                         ELSE TRIM(t3.no_apepat || t3.no_apemat ||', '|| t3.no_nombres)
                    END AS razon_social
@@ -26,7 +26,11 @@ public class ReporteDeclaracionCalidadRepository {
                  , t4.desc_articulo, t6.no_color, dc.cnt_rollos
                  , CASE WHEN dc.id_ubicacion=18 THEN 'TINTORERIA' ELSE 'ACABADO' END AS tipo_declaracion
                  , dc.is_observado, dc.observacion
-                 , dc.nivel_critico, tmr.descripcion AS desc_motivo_rechazo
+                 , CASE WHEN dc.nivel_critico IS NULL THEN 'APROBADO'
+                        WHEN dc.nivel_critico = 1    THEN 'AUTORIZADO'
+                        ELSE 'RECHAZADO'
+                   END AS desc_nivel
+                 , tmr.descripcion AS desc_motivo_rechazo
             FROM produccion.declaracion_calidad dc
             LEFT OUTER JOIN produccion.tb_partidas tp         ON tp.id_partida = dc.id_partida
             LEFT OUTER JOIN comercial.tborden_produccion tp2  ON tp2.id_ordenproduccion = tp.id_ordenproduccion
@@ -44,14 +48,19 @@ public class ReporteDeclaracionCalidadRepository {
             LEFT OUTER JOIN laboratorio.tbcolores t5          ON t5.id_colores = tr.id_colores
             LEFT OUTER JOIN laboratorio.tbcolor t6            ON t6.id_color = t5.id_color
             WHERE dc.fecha_declaracion = :fechaDeclaracion
-            ORDER BY dc.fecha_declaracion ASC
             """;
 
     public Flux<ReporteDeclaracionCalidadDTO> findByFechaAndUbicacion(Integer idUbicacion, String fechaDeclaracion) {
-        return databaseClient.sql(REPORTE_SQL)
-                .bind("fechaDeclaracion", LocalDate.parse(fechaDeclaracion))
-                .map((row, meta) -> mapRow(row))
-                .all();
+        String sql = REPORTE_SQL_BASE
+                + (idUbicacion != null ? "  AND dc.id_ubicacion = :idUbicacion\n" : "")
+                + "ORDER BY dc.fecha_declaracion ASC";
+
+        DatabaseClient.GenericExecuteSpec spec = databaseClient.sql(sql)
+                .bind("fechaDeclaracion", LocalDate.parse(fechaDeclaracion));
+        if (idUbicacion != null) {
+            spec = spec.bind("idUbicacion", idUbicacion);
+        }
+        return spec.map((row, meta) -> mapRow(row)).all();
     }
 
     private ReporteDeclaracionCalidadDTO mapRow(Row row) {
@@ -66,7 +75,7 @@ public class ReporteDeclaracionCalidadRepository {
                 .noColor(row.get("no_color", String.class))
                 .cntRollos(row.get("cnt_rollos", Integer.class))
                 .tipoDeclaracion(row.get("tipo_declaracion", String.class))
-                .nivelCritico(row.get("nivel_critico", Integer.class))
+                .descNivel(row.get("desc_nivel", String.class))
                 .descMotivoRechazo(row.get("desc_motivo_rechazo", String.class))
                 .isObservado(row.get("is_observado", Integer.class))
                 .observacion(row.get("observacion", String.class))

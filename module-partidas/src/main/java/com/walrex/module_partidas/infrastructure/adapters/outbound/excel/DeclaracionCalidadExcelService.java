@@ -15,7 +15,6 @@ import reactor.core.publisher.Mono;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -79,7 +78,7 @@ public class DeclaracionCalidadExcelService {
                 estiloTexto(workbook, (short) 10, false, HorizontalAlignment.CENTER, null));
 
         Row r3 = sheet.createRow(3);
-        String generado = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        String generado = LocalDate.now().format(FMT_FECHA);
         crearCeldaMerge(sheet, r3, 0, ultimo, "GENERADO: " + generado,
                 estiloTexto(workbook, (short) 9, false, HorizontalAlignment.CENTER, null));
 
@@ -149,7 +148,7 @@ public class DeclaracionCalidadExcelService {
             setStr(row, 6,  r.getDescArticulo(),        estTexto);
             setStr(row, 7,  r.getNoColor(),             estTexto);
             setNum(row, 8,  r.getCntRollos(),           estNumero);
-            setStr(row, 9,  nivelCriticoLabel(r.getNivelCritico()), estCentro);
+            setStr(row, 9,  r.getDescNivel(), estCentro);
             setStr(row, 10, r.getDescMotivoRechazo(),   estObs);
             setStr(row, 11, r.getObservacion(),         estObs);
             setCellLong(row, 12, dias, dias > 30 ? estDiasAlerta : estDias);
@@ -160,17 +159,6 @@ public class DeclaracionCalidadExcelService {
 
     private String fmt(LocalDate d) {
         return d != null ? d.format(FMT_FECHA) : "";
-    }
-
-    private String nivelCriticoLabel(Integer nivel) {
-        if (nivel == null) return "";
-        return switch (nivel) {
-            case 0  -> "Sin rechazo";
-            case 1  -> "Nivel 1";
-            case 2  -> "Nivel 2";
-            case 3  -> "Nivel 3";
-            default -> String.valueOf(nivel);
-        };
     }
 
     private void crearCeldaMerge(Sheet sheet, Row row, int c1, int c2, String valor, CellStyle style) {
