@@ -6,15 +6,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Map;
 
 @Component
 @RequiredArgsConstructor
@@ -54,7 +57,12 @@ public class ReporteDeclaracionCalidadHandler {
                 .collectList()
                 .flatMap(registros -> {
                     if (registros.isEmpty()) {
-                        return ServerResponse.status(HttpStatus.NO_CONTENT).build();
+                        return ServerResponse.status(HttpStatus.NOT_FOUND)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .bodyValue(Map.of(
+                                        "message", "No se encontraron declaraciones de calidad para la consulta realizada",
+                                        "fecha", fechaDeclaracion
+                                ));
                     }
                     return excelService.generarExcel(registros, fechaDeclaracion,
                                     request.exchange().getResponse().bufferFactory())

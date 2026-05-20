@@ -22,7 +22,7 @@ public class ReporteDeclaracionCalidadDTO {
     private String noColor;
     private Integer cntRollos;
     private String tipoDeclaracion;
-    private Integer nivelCritico;
+    private String descNivel;
     private String descMotivoRechazo;
     private Integer isObservado;
     private String observacion;
