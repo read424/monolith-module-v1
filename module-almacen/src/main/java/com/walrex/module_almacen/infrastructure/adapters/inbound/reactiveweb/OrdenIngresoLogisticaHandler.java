@@ -29,7 +29,9 @@ public class OrdenIngresoLogisticaHandler {
     private final JwtUserContextService jwtService;
 
     public Mono<ServerResponse> nuevoIngresoLogistica(ServerRequest request){
+        log.info("✅ [ALMACEN-HANDLER] nuevoIngresoLogistica invocado - thread: {}", Thread.currentThread().getName());
         JwtUserInfo user = jwtService.getCurrentUser(request);
+        log.info("✅ [ALMACEN-HANDLER] userId='{}', username='{}'", user.getUserId(), user.getUsername());
         log.info("Método HTTP: {}", request.method());
         log.info("Headers: {}", request.headers().asHttpHeaders());
 
