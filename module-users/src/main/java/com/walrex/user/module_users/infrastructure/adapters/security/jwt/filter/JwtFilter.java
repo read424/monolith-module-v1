@@ -72,11 +72,16 @@ public class JwtFilter implements WebFilter {
         }
 
         String auth = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-        if(auth == null)
+        if(auth == null) {
+            log.warn("❌ [USERS-JWT] Sin header Authorization → 401 para: {}", path);
             return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "no token was found"));
-        if(!auth.startsWith("Bearer "))
+        }
+        if(!auth.startsWith("Bearer ")) {
+            log.warn("❌ [USERS-JWT] Header Authorization no comienza con 'Bearer ' → 401 para: {}", path);
             return Mono.error(new ResponseStatusException(HttpStatus.UNAUTHORIZED, "invalid auth"));
+        }
 
+        log.info("✅ [USERS-JWT] Token Bearer presente, continuando cadena para: {}", path);
         String token = auth.replace("Bearer ", "");
         exchange.getAttributes().put("token", token);
         return chain.filter(exchange);
