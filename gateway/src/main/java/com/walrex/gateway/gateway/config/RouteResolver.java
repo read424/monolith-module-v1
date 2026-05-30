@@ -56,14 +56,14 @@ public class RouteResolver {
 
         ModulesUrl exact = exactPathCache.get(requestPath);
         if (exact != null) {
-            log.debug("Módulo encontrado en caché (exacta): {}", requestPath);
+            log.info("✅ [ROUTE-MATCH] Cache exacta: '{}' → módulo '{}'", requestPath, exact.getModuleName());
             cacheHitExact.increment();
             return Mono.just(exact);
         }
 
         ModulesUrl pattern = findPatternMatchInCache(requestPath);
         if (pattern != null) {
-            log.debug("Módulo encontrado en caché (patrón): {}", requestPath);
+            log.info("✅ [ROUTE-MATCH] Cache patrón: '{}' → módulo '{}'", requestPath, pattern.getModuleName());
             cacheHitPattern.increment();
             return Mono.just(pattern);
         }
@@ -89,6 +89,7 @@ public class RouteResolver {
             .next()
             .doOnNext(module -> {
                 sample.stop(dbLookupTimer);
+                log.info("✅ [ROUTE-MATCH] DB match: '{}' → módulo '{}' (stripPrefix={})", requestPath, module.getModuleName(), module.getStripPrefixCount());
                 if (Boolean.TRUE.equals(module.getIsPattern())) {
                     patternPathCache.put(module.getPath(), module);
                 } else if (module.getPath().contains("*")) {
@@ -97,7 +98,12 @@ public class RouteResolver {
                     exactPathCache.put(requestPath, module);
                 }
             })
-            .doOnSuccess(m -> { if (m == null) sample.stop(dbLookupTimer); });
+            .doOnSuccess(m -> {
+                if (m == null) {
+                    sample.stop(dbLookupTimer);
+                    log.warn("❌ [ROUTE-MATCH] Sin coincidencia en tb_modules para: '{}'", requestPath);
+                }
+            });
     }
 
     public Mono<ModulesUrl> findModuleByPattern(String requestPath) {
